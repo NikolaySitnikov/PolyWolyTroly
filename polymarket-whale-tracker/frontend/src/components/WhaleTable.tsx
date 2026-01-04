@@ -153,46 +153,59 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
           }}
         >
           <span style={{ color: tokens.colors.textMuted }}>🔍</span>
-          <input
-            type="text"
-            placeholder="Search by address..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+          {/* Search input container - keeps clear button close to text */}
+          <div
             style={{
-              flex: 1,
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              fontFamily: tokens.fonts.body,
-              fontSize: '14px',
-              color: tokens.colors.textPrimary,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              maxWidth: '300px',
+              flex: '0 1 300px',
             }}
-          />
-          {filter && (
-            <button
-              onClick={() => setFilter('')}
-              aria-label="Clear search"
+          >
+            <input
+              type="text"
+              placeholder="Search by address..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
               style={{
+                flex: 1,
                 background: 'transparent',
                 border: 'none',
-                padding: '4px 8px',
-                cursor: 'pointer',
-                color: tokens.colors.textMuted,
-                fontSize: '16px',
-                lineHeight: 1,
-                borderRadius: '4px',
-                transition: 'color 0.15s ease',
+                outline: 'none',
+                fontFamily: tokens.fonts.body,
+                fontSize: '14px',
+                color: tokens.colors.textPrimary,
+                minWidth: 0,
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = tokens.colors.textPrimary;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = tokens.colors.textMuted;
-              }}
-            >
-              ×
-            </button>
-          )}
+            />
+            {filter && (
+              <button
+                onClick={() => setFilter('')}
+                aria-label="Clear search"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '4px 8px',
+                  cursor: 'pointer',
+                  color: tokens.colors.textMuted,
+                  fontSize: '16px',
+                  lineHeight: 1,
+                  borderRadius: '4px',
+                  transition: 'color 0.15s ease',
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = tokens.colors.textPrimary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = tokens.colors.textMuted;
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
         <div
           style={{
@@ -409,46 +422,61 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
         }}
       >
         <span style={{ color: tokens.colors.textMuted }}>🔍</span>
-        <input
-          type="text"
-          placeholder="Search by address..."
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+        {/* Search input container - keeps clear button close to text */}
+        <div
           style={{
-            flex: 1,
-            background: 'transparent',
-            border: 'none',
-            outline: 'none',
-            fontFamily: tokens.fonts.body,
-            fontSize: '14px',
-            color: tokens.colors.textPrimary,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            maxWidth: '300px',
+            flex: '0 1 300px',
           }}
-        />
-        {filter && (
-          <button
-            onClick={() => setFilter('')}
-            aria-label="Clear search"
+        >
+          <input
+            type="text"
+            placeholder="Search by address..."
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
             style={{
+              flex: 1,
               background: 'transparent',
               border: 'none',
-              padding: '4px 8px',
-              cursor: 'pointer',
-              color: tokens.colors.textMuted,
-              fontSize: '16px',
-              lineHeight: 1,
-              borderRadius: '4px',
-              transition: 'color 0.15s ease',
+              outline: 'none',
+              fontFamily: tokens.fonts.body,
+              fontSize: '14px',
+              color: tokens.colors.textPrimary,
+              minWidth: 0,
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = tokens.colors.textPrimary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = tokens.colors.textMuted;
-            }}
-          >
-            ×
-          </button>
-        )}
+          />
+          {filter && (
+            <button
+              onClick={() => setFilter('')}
+              aria-label="Clear search"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: '4px 8px',
+                cursor: 'pointer',
+                color: tokens.colors.textMuted,
+                fontSize: '16px',
+                lineHeight: 1,
+                borderRadius: '4px',
+                transition: 'color 0.15s ease',
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = tokens.colors.textPrimary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = tokens.colors.textMuted;
+              }}
+            >
+              ×
+            </button>
+          )}
+        </div>
+        {/* Spacer to push whale count to the right */}
+        <div style={{ flex: 1 }} />
         <span
           style={{
             display: 'inline-flex',
