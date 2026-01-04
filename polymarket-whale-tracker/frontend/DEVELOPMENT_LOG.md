@@ -1797,4 +1797,38 @@ animation: 0s ease 0s 1 normal none running none ✅ (cleared)
 
 ---
 
+### Task 7: Fix UTF-8 Character Encoding Issues
+
+**Status**: ✅ COMPLETE (No issues found - added regression tests)
+
+**Goal**: Ensure all Unicode characters (emojis, arrows, special symbols) render correctly.
+
+**Investigation**:
+- Searched codebase for garbled UTF-8 patterns mentioned in roadmap (â€¹, â€º, ðŸ‹, etc.)
+- **No garbled characters found** - all files properly UTF-8 encoded
+- Visual verification in browser confirmed all characters render correctly:
+  - 🐋 (whale), 📊 (chart), 🔥 (fire), ⚡ (lightning), 🆕 (new) - ✅
+  - ↑ ↓ ← → (arrows) - ✅
+  - ‹ › (angle brackets for pagination) - ✅
+  - × (multiplication sign for close buttons) - ✅
+  - ◉ (filled circle for active nav) - ✅
+
+**Implementation**:
+- Created comprehensive Unicode test suite as regression guard
+- Tests verify correct Unicode code points for all special characters
+- Guards against future encoding issues (e.g., file saved in wrong encoding)
+
+**Files Added**:
+| File | Description |
+|------|-------------|
+| `src/utils/unicode.test.ts` | 21 tests for Unicode character encoding |
+
+**Tests**: All 318 tests pass (21 new Unicode tests added)
+
+**How to Verify**:
+- Run `npm test -- --run src/utils/unicode.test.ts`
+- All 21 tests should pass, confirming proper UTF-8 encoding
+
+---
+
 *"In the void, whales move in silence. We see them."*
