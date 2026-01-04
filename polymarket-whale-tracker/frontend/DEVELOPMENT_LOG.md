@@ -1653,4 +1653,36 @@ All data-fetching hooks now use the same pattern:
 
 ---
 
+### Task 3: Implement Hover Effects on WhaleTable Cards (Mobile View)
+
+**Status**: ✅ COMPLETE
+
+**Goal**: Add hover effects to whale cards in the mobile view per DESIGN_SYSTEM.md "Elevated Card (hover)" pattern.
+
+**Implementation**:
+- Added hover effects to mobile whale cards (matching StatCard pattern):
+  - `transform: translateY(-2px)` - card lifts
+  - `borderColor: cyan` - border highlights
+  - `boxShadow: 0 0 30px cyanGlow, inset 0 1px 0 cyan` - glow effect
+- Added `onAnimationEnd` handler to clear entrance animation (same fix as StatCard)
+- Updated transition to use design tokens
+- Desktop table rows already had `background: surfaceHover` on hover (per DESIGN_SYSTEM.md)
+
+**Playwright MCP Verification**:
+```
+transform: matrix(1, 0, 0, 1, 0, -2) ✅ (translateY(-2px))
+borderColor: rgb(0, 255, 240) ✅ (cyan)
+boxShadow: rgba(0, 255, 240, 0.2) 0px 0px 30px... ✅ (glow)
+```
+
+**Files Modified**:
+| File | Changes |
+|------|---------|
+| `src/components/WhaleTable.tsx` | Added hover handlers to mobile cards |
+| `src/components/WhaleTable.test.tsx` | Added 2 tests for mobile card hover |
+
+**Tests**: All 286 tests pass (2 new tests added)
+
+---
+
 *"In the void, whales move in silence. We see them."*

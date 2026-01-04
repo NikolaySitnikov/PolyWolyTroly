@@ -315,8 +315,24 @@ export function WhaleTable({
               borderRadius: '12px',
               padding: '16px',
               cursor: 'pointer',
-              transition: 'all 0.2s ease',
+              transition: `all ${tokens.animation.durationFast} ${tokens.animation.easeOutExpo}`,
               animation: `fadeInUp 0.4s ${i * 0.05}s both cubic-bezier(0.16, 1, 0.3, 1)`,
+            }}
+            onAnimationEnd={(e) => {
+              // Clear animation so hover transform can work
+              e.currentTarget.style.animation = 'none';
+            }}
+            onMouseEnter={(e) => {
+              if (window.matchMedia('(hover: hover)').matches) {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.borderColor = tokens.colors.cyan;
+                e.currentTarget.style.boxShadow = `0 0 30px ${tokens.colors.cyanGlow}, inset 0 1px 0 ${tokens.colors.cyan}`;
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.borderColor = tokens.colors.border;
+              e.currentTarget.style.boxShadow = 'none';
             }}
           >
             <div

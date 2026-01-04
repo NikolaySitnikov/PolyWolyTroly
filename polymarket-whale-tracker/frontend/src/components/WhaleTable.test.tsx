@@ -330,5 +330,33 @@ describe('WhaleTable Component', () => {
       // tokens.colors.surface = '#12121a' = rgb(18, 18, 26)
       expect(container).toHaveStyle({ backgroundColor: 'rgb(18, 18, 26)' });
     });
+
+    it('should have transition property on mobile cards for hover effects', () => {
+      render(
+        <WhaleTable
+          whales={mockWhales}
+          isMobile={true}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      const firstCard = screen.getByTestId(
+        'whale-card-0x9876543210fedcba9876543210fedcba98765432'
+      );
+      expect(firstCard.style.transition).toContain('all');
+    });
+
+    it('should have cursor pointer on mobile cards', () => {
+      render(
+        <WhaleTable
+          whales={mockWhales}
+          isMobile={true}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      const firstCard = screen.getByTestId(
+        'whale-card-0x9876543210fedcba9876543210fedcba98765432'
+      );
+      expect(firstCard).toHaveStyle({ cursor: 'pointer' });
+    });
   });
 });
