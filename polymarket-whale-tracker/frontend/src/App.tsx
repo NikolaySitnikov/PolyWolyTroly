@@ -7,6 +7,7 @@
  * Step 5: Connected to real backend API with loading/error states.
  * Step 5b: Live updates via WebSocket - data updates instantly!
  * Step 6: Whale List/Table with search & sort.
+ * Step 7: Live Alert Feed with real-time updates.
  *
  * @see ../Design docs/DESIGN_SYSTEM.md
  */
@@ -17,6 +18,7 @@ import { tokens } from './styles/tokens';
 import { useMobile } from './hooks/useMobile';
 import { useStats } from './hooks/useStats';
 import { useWhales } from './hooks/useWhales';
+import { useAlerts } from './hooks/useAlerts';
 import { useWebSocket } from './hooks/useWebSocket';
 import { Header } from './components/Header';
 import { MobileNav } from './components/MobileNav';
@@ -24,8 +26,10 @@ import { Dashboard } from './components/Dashboard';
 import { DashboardLoading } from './components/DashboardLoading';
 import { DashboardError } from './components/DashboardError';
 import { WhaleTable } from './components/WhaleTable';
+import { AlertFeed } from './components/AlertFeed';
 import { GlowText } from './components/GlowText';
 import type { ViewId } from './types/navigation';
+import type { Alert } from './types/alert';
 
 // WebSocket URL - same port as API
 const WS_URL = 'ws://localhost:3002';
@@ -43,12 +47,32 @@ function App() {
     addWhale,
   } = useWhales();
 
+  const {
+    alerts,
+    loading: alertsLoading,
+    error: alertsError,
+    refetch: refetchAlerts,
+    addAlert,
+  } = useAlerts();
+
   // Connect to WebSocket for instant live updates
   // Uses seamless updates - no loading states, no page refresh
   useWebSocket(WS_URL, {
     onStats: updateStats,
     onDeposit: (deposit) => {
       console.log('New deposit:', deposit);
+
+      // Add to live alert feed instantly
+      const newAlert: Alert = {
+        id: deposit.txHash,
+        type: 'deposit',
+        walletAddress: deposit.walletAddress,
+        amount: deposit.amount,
+        timestamp: new Date().toISOString(),
+        txHash: deposit.txHash,
+      };
+      addAlert(newAlert);
+
       // Seamlessly update or add whale data without triggering loading state
       if (deposit.isNewWallet) {
         // New whale - add to list
@@ -81,6 +105,117 @@ function App() {
   const handleWhaleClick = (address: string) => {
     console.log('Whale clicked:', address);
     // Future: navigate to wallet profile view
+  };
+
+  const handleAlertClick = (alert: Alert) => {
+    console.log('Alert clicked:', alert);
+    // Future: navigate to wallet profile or show alert details
+  };
+
+  const renderAlertsContent = () => {
+    return (
+      <div>
+        {/* Page header */}
+        <div style={{ marginBottom: tokens.spacing[6] }}>
+          <h1
+            style={{
+              fontFamily: tokens.fonts.display,
+              fontSize: isMobile ? tokens.fontSizes['2xl'] : tokens.fontSizes['3xl'],
+              fontWeight: tokens.fontWeights.extrabold,
+              color: tokens.colors.textPrimary,
+              marginBottom: tokens.spacing[2],
+              letterSpacing: '-0.02em',
+            }}
+          >
+            ⚡ Live <GlowText>Alerts</GlowText>
+          </h1>
+          <p
+            style={{
+              fontFamily: tokens.fonts.body,
+              fontSize: tokens.fontSizes.sm,
+              color: tokens.colors.textSecondary,
+            }}
+          >
+            Real-time whale deposits as they happen
+          </p>
+        </div>
+
+        {/* Loading state */}
+        {alertsLoading && (
+          <div
+            style={{
+              background: tokens.colors.surface,
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: '12px',
+              padding: '48px',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '32px',
+                marginBottom: tokens.spacing[4],
+                animation: 'pulse 2s ease-in-out infinite',
+              }}
+            >
+              ⚡
+            </div>
+            <p style={{ color: tokens.colors.textSecondary }}>Loading alerts...</p>
+          </div>
+        )}
+
+        {/* Error state */}
+        {alertsError && (
+          <div
+            style={{
+              background: tokens.colors.surface,
+              border: `1px solid ${tokens.colors.loss}`,
+              borderRadius: '12px',
+              padding: '48px',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '32px',
+                marginBottom: tokens.spacing[4],
+              }}
+            >
+              ⚠️
+            </div>
+            <p
+              style={{
+                color: tokens.colors.loss,
+                marginBottom: tokens.spacing[4],
+              }}
+            >
+              {alertsError}
+            </p>
+            <button
+              onClick={refetchAlerts}
+              style={{
+                padding: '10px 24px',
+                background: tokens.colors.cyan,
+                border: 'none',
+                borderRadius: '8px',
+                fontFamily: tokens.fonts.body,
+                fontSize: '14px',
+                fontWeight: 600,
+                color: tokens.colors.void,
+                cursor: 'pointer',
+              }}
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Alert feed */}
+        {!alertsLoading && !alertsError && (
+          <AlertFeed alerts={alerts} isMobile={isMobile} onAlertClick={handleAlertClick} />
+        )}
+      </div>
+    );
   };
 
   const renderDashboardContent = () => {
@@ -273,9 +408,10 @@ function App() {
         {/* View content */}
         {currentView === 'dashboard' && renderDashboardContent()}
         {currentView === 'whales' && renderWhalesContent()}
+        {currentView === 'alerts' && renderAlertsContent()}
 
-        {/* Placeholder for other views - will be implemented in future steps */}
-        {(currentView === 'alerts' || currentView === 'settings') && (
+        {/* Placeholder for settings - will be implemented in Step 10 */}
+        {currentView === 'settings' && (
           <div style={{ textAlign: 'center', paddingTop: tokens.spacing[8] }}>
             <h1
               style={{
@@ -287,8 +423,7 @@ function App() {
                 letterSpacing: '-0.02em',
               }}
             >
-              {currentView === 'alerts' && 'Live Alerts'}
-              {currentView === 'settings' && 'Settings'}
+              Settings
             </h1>
 
             <p
@@ -301,10 +436,7 @@ function App() {
                 marginBottom: tokens.spacing[8],
               }}
             >
-              {currentView === 'alerts' &&
-                'Real-time alerts for whale deposits and trades.'}
-              {currentView === 'settings' &&
-                'Configure your notification preferences.'}
+              Configure your notification preferences.
             </p>
 
             {/* Coming soon badge */}
@@ -326,7 +458,7 @@ function App() {
                   color: tokens.colors.textMuted,
                 }}
               >
-                Coming in Step {currentView === 'alerts' ? '7' : '10'}
+                Coming in Step 10
               </span>
             </div>
           </div>

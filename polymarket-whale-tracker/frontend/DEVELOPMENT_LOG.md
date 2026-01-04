@@ -1176,7 +1176,167 @@ curl "http://localhost:3002/api/wallets?limit=3"
 
 ---
 
-## Step 7-10: [PENDING]
+## Step 7: Build Live Alert Feed with Real-Time Updates
+
+### Status: COMPLETE
+
+### Goal
+Create a live alert feed that displays whale deposits in real-time, with instant WebSocket updates.
+
+### Requirements
+- [x] Alert type definitions
+- [x] useAlerts hook for fetching and managing alert data
+- [x] AlertFeed component with desktop and mobile support
+- [x] Real-time updates via WebSocket integration
+- [x] Loading and error states
+- [x] Relative time formatting (e.g., "5 min ago")
+- [x] Currency formatting for deposit amounts
+- [x] Integration with App.tsx navigation
+
+### TDD Implementation
+
+**RED Phase:** Wrote 20 failing tests first
+- `useAlerts.test.tsx` - 8 tests for alerts hook
+- `AlertFeed.test.tsx` - 12 tests for feed component
+
+**GREEN Phase:** Implemented components to pass all tests
+- Created Alert type definitions
+- Created useAlerts hook with addAlert for seamless updates
+- Created AlertFeed component with design system styling
+- Integrated WebSocket updates for live alerts
+
+### Tests Written & Passing (20 new tests, 186 frontend total)
+
+**`src/hooks/useAlerts.test.tsx`** (8 tests)
+
+*Initial State*
+- Returns loading true initially
+- Fetches deposits on mount
+
+*Data Transformation*
+- Transforms deposits to alerts with correct structure
+
+*Error Handling*
+- Handles API errors gracefully
+
+*Live Updates*
+- Provides addAlert function for WebSocket updates
+- Adds new alerts without triggering loading state
+- Prevents duplicate alerts by ID
+
+*Pagination*
+- Returns total count from API
+
+**`src/components/AlertFeed.test.tsx`** (12 tests)
+
+*Rendering*
+- Renders with correct test id
+- Displays "Live Feed" header
+- Shows LIVE indicator
+- Displays all alerts
+
+*Formatting*
+- Formats wallet addresses with truncation (0x1234...7890)
+- Formats amounts in USD ($50.0K, $1.50M)
+- Shows deposit type badge
+- Displays relative time for timestamps
+
+*Icons*
+- Shows deposit icon (💰)
+
+*Empty State*
+- Shows "No alerts" message when empty
+
+*Mobile Support*
+- Renders mobile layout when isMobile is true
+
+*Interactions*
+- Calls onAlertClick when an alert is clicked
+
+### Files Created
+
+| File | Description |
+|------|-------------|
+| `src/types/alert.ts` | Alert, AlertType, DepositApiResponse, DepositsResponse types |
+| `src/hooks/useAlerts.ts` | Hook for fetching and managing live alert data |
+| `src/hooks/useAlerts.test.tsx` | 8 tests for useAlerts hook |
+| `src/components/AlertFeed.tsx` | Live alert feed with design system styling |
+| `src/components/AlertFeed.test.tsx` | 12 tests for AlertFeed component |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/services/api.ts` | Added `fetchDeposits()`, `DepositApiResponse`, `DepositsResponse` |
+| `src/App.tsx` | Integrated useAlerts, AlertFeed, WebSocket live updates, alerts view routing |
+
+### AlertFeed Features
+
+**Header:**
+- "⚡ Live Feed" title
+- LIVE indicator with pulsing green dot
+
+**Alert Items:**
+- Deposit icon (💰) with green background
+- Wallet address in cyan (truncated: 0x1234...7890)
+- Type badge (deposit) with green styling
+- Amount in USD format ($50.0K, $1.50M)
+- Relative time (just now, 5 min ago, 1 hour ago)
+
+**Empty State:**
+- ASCII whale art
+- "No alerts yet - waiting for whale activity..." message
+
+**Live Updates:**
+- WebSocket pushes new deposits to feed instantly
+- New alerts appear at top of list
+- No loading state during live updates
+- Duplicate prevention by transaction hash
+
+### Visual Verification
+
+**Prerequisites:**
+1. Start API server: `cd polymarket-whale-tracker && npm run dev`
+2. Start frontend: `cd frontend && npm run dev`
+
+**Alerts View:**
+- Navigate to "Alerts" tab (⚡)
+- See "⚡ Live Alerts" header with glowing cyan text
+- See AlertFeed with LIVE indicator
+- Each alert shows:
+  - Deposit icon
+  - Wallet address (cyan, truncated)
+  - "deposit" badge (green)
+  - Amount (formatted)
+  - Relative time (right side)
+- Click an alert (logs to console)
+
+**Live Updates:**
+- When a deposit happens on Polymarket, new alert appears at top
+- No page refresh or loading state
+- Console shows: `New deposit: { walletAddress: "0x...", amount: 50000, ... }`
+
+**Mobile (< 768px):**
+- Same feed layout, optimized for touch
+- Scrollable list with proper padding
+
+### Test Command
+```bash
+cd frontend && npm test
+# Output: 186 tests passing
+```
+
+### API Verification
+```bash
+curl "http://localhost:3002/api/deposits?limit=5"
+# Returns paginated deposit data
+```
+
+### Total Tests: 346 (186 frontend + 160 backend)
+
+---
+
+## Step 8-10: [PENDING]
 
 *See IMPLEMENTATION_PLAN.md for full details*
 

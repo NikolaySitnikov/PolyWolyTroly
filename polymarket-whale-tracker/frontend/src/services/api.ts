@@ -74,3 +74,41 @@ export async function fetchWhales(page = 1, limit = 20): Promise<WalletsResponse
 
   return response.json();
 }
+
+/**
+ * Raw deposit data from API
+ */
+export interface DepositApiResponse {
+  id: string;
+  wallet_address: string;
+  amount: string;
+  tx_hash: string;
+  created_at: string;
+}
+
+/**
+ * Paginated deposits response from API
+ */
+export interface DepositsResponse {
+  deposits: DepositApiResponse[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+/**
+ * Fetches paginated list of recent deposits.
+ * @param page - Page number (default 1)
+ * @param limit - Items per page (default 50)
+ * @returns Promise resolving to paginated deposit data
+ * @throws Error if the request fails
+ */
+export async function fetchDeposits(page = 1, limit = 50): Promise<DepositsResponse> {
+  const response = await fetch(`${api.baseUrl}/api/deposits?page=${page}&limit=${limit}`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch deposits: ${response.status}`);
+  }
+
+  return response.json();
+}
