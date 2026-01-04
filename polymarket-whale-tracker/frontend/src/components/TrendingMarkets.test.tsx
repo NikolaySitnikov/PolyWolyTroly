@@ -22,6 +22,7 @@ const mockMarkets: TrendingMarketResponse[] = [
     endDate: '2025-12-31T00:00:00Z',
     category: 'Crypto',
     active: true,
+    clobTokenId: '123456789',
   },
   {
     id: 'market-2',
@@ -35,6 +36,7 @@ const mockMarkets: TrendingMarketResponse[] = [
     endDate: '2025-06-30T00:00:00Z',
     category: 'Crypto',
     active: true,
+    clobTokenId: '987654321',
   },
 ];
 

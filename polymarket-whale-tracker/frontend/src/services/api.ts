@@ -152,6 +152,7 @@ export interface TrendingMarketResponse {
   endDate: string;
   category: string;
   active: boolean;
+  clobTokenId: string; // CLOB token ID for price history lookups
 }
 
 /**
@@ -176,4 +177,53 @@ export async function fetchTrendingMarkets(limit = 8): Promise<TrendingMarketsRe
   }
 
   return response.json();
+}
+
+/**
+ * Price history data point from Polymarket CLOB API
+ */
+export interface PriceHistoryPoint {
+  t: number; // Unix timestamp
+  p: number; // Price value (0-1)
+}
+
+/**
+ * Price history response from CLOB API
+ */
+export interface PriceHistoryResponse {
+  history: PriceHistoryPoint[];
+}
+
+/**
+ * Fetches price history for a market from Polymarket CLOB API.
+ * Uses 1-week interval with hourly fidelity for sparklines.
+ *
+ * @param clobTokenId - The CLOB token ID for the Yes outcome
+ * @returns Promise resolving to price history data, or empty array on error
+ */
+export async function fetchPriceHistory(clobTokenId: string): Promise<PriceHistoryPoint[]> {
+  if (!clobTokenId) {
+    return [];
+  }
+
+  try {
+    const params = new URLSearchParams({
+      market: clobTokenId,
+      interval: '1w',    // Last 1 week
+      fidelity: '60',    // 60-minute intervals (hourly data)
+    });
+
+    const response = await fetch(`https://clob.polymarket.com/prices-history?${params.toString()}`);
+
+    if (!response.ok) {
+      console.error(`CLOB API error: ${response.status}`);
+      return [];
+    }
+
+    const data: PriceHistoryResponse = await response.json();
+    return data.history || [];
+  } catch (error) {
+    console.error('Error fetching price history:', error);
+    return [];
+  }
 }

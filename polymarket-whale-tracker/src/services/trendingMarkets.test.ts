@@ -18,7 +18,7 @@ describe("trendingMarkets service", () => {
 
   describe("getTrendingMarkets", () => {
     it("should fetch markets from Gamma API sorted by 24hr volume", async () => {
-      // Note: Gamma API returns outcomes and outcomePrices as JSON-encoded strings
+      // Note: Gamma API returns outcomes, outcomePrices, and clobTokenIds as JSON-encoded strings
       const mockMarkets = [
         {
           id: "market-1",
@@ -26,6 +26,7 @@ describe("trendingMarkets service", () => {
           slug: "btc-100k",
           outcomes: '["Yes", "No"]',
           outcomePrices: '["0.65", "0.35"]',
+          clobTokenIds: '["token-1-yes", "token-1-no"]',
           volume24hr: 500000,
           liquidityNum: 100000,
           endDate: "2025-12-31T00:00:00Z",
@@ -40,6 +41,7 @@ describe("trendingMarkets service", () => {
           slug: "eth-flip-btc",
           outcomes: '["Yes", "No"]',
           outcomePrices: '["0.25", "0.75"]',
+          clobTokenIds: '["token-2-yes", "token-2-no"]',
           volume24hr: 300000,
           liquidityNum: 80000,
           endDate: "2025-06-30T00:00:00Z",
@@ -65,6 +67,7 @@ describe("trendingMarkets service", () => {
       expect(result[0].noPrice).toBe(0.35);
       expect(result[0].volume24hr).toBe(500000);
       expect(result[0].eventSlug).toBe("btc-100k-event");
+      expect(result[0].clobTokenId).toBe("token-1-yes");
     });
 
     it("should call Gamma API with correct parameters", async () => {
@@ -124,6 +127,7 @@ describe("trendingMarkets service", () => {
         active: true,
         closed: false,
         events: [{ id: "event-test", slug: "test-event-slug", title: "Test Event" }],
+        clobTokenIds: '["123456789", "987654321"]',
       };
 
       mockFetch.mockResolvedValue({
@@ -146,7 +150,37 @@ describe("trendingMarkets service", () => {
         endDate: "2025-03-15T12:00:00Z",
         category: "Politics",
         active: true,
+        clobTokenId: "123456789",
       });
+    });
+
+    it("should include clobTokenId for price history lookups", async () => {
+      const mockMarket = {
+        id: "market-with-clob",
+        question: "Market with CLOB token?",
+        slug: "clob-market",
+        outcomes: '["Yes", "No"]',
+        outcomePrices: '["0.65", "0.35"]',
+        volume24hr: 100000,
+        liquidityNum: 50000,
+        endDate: "2025-12-31T00:00:00Z",
+        category: "Crypto",
+        active: true,
+        closed: false,
+        events: [{ id: "e1", slug: "clob-event", title: "CLOB Event" }],
+        clobTokenIds: '["58194798786674267467235696472878300864943462064955274098210719743062794563955", "86127053351389280317665592955308422023136163174658857021506191296325242966070"]',
+      };
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => [mockMarket],
+      });
+
+      const { trendingMarketsService } = await import("./trendingMarkets.js");
+      const result = await trendingMarketsService.getTrendingMarkets();
+
+      // First token ID (Yes outcome) should be exposed for sparkline price history
+      expect(result[0].clobTokenId).toBe("58194798786674267467235696472878300864943462064955274098210719743062794563955");
     });
 
     it("should return empty array when API returns error", async () => {
@@ -178,6 +212,7 @@ describe("trendingMarkets service", () => {
           slug: "open",
           outcomes: '["Yes", "No"]',
           outcomePrices: '["0.5", "0.5"]',
+          clobTokenIds: '["open-yes", "open-no"]',
           volume24hr: 100000,
           liquidityNum: 10000,
           endDate: "2025-12-31T00:00:00Z",
@@ -192,6 +227,7 @@ describe("trendingMarkets service", () => {
           slug: "closed",
           outcomes: '["Yes", "No"]',
           outcomePrices: '["1", "0"]',
+          clobTokenIds: '["closed-yes", "closed-no"]',
           volume24hr: 200000,
           liquidityNum: 0,
           endDate: "2024-12-31T00:00:00Z",
@@ -221,6 +257,7 @@ describe("trendingMarkets service", () => {
         slug: "no-prices",
         outcomes: '["Yes", "No"]',
         outcomePrices: '[]', // Empty prices (JSON-encoded empty array)
+        clobTokenIds: '[]', // Empty token IDs
         volume24hr: 1000,
         liquidityNum: 500,
         endDate: "2025-12-31T00:00:00Z",
@@ -249,6 +286,7 @@ describe("trendingMarkets service", () => {
         slug: "market-slug-fallback",
         outcomes: '["Yes", "No"]',
         outcomePrices: '["0.5", "0.5"]',
+        clobTokenIds: '["fallback-yes", "fallback-no"]',
         volume24hr: 1000,
         liquidityNum: 500,
         endDate: "2025-12-31T00:00:00Z",

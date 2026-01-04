@@ -24,6 +24,7 @@ export interface TrendingMarket {
   endDate: string;
   category: string;
   active: boolean;
+  clobTokenId: string; // CLOB token ID for Yes outcome (used for price history)
 }
 
 /**
@@ -37,7 +38,7 @@ interface GammaEvent {
 
 /**
  * Raw market response from Gamma API.
- * Note: outcomes and outcomePrices are JSON-encoded strings, not arrays.
+ * Note: outcomes, outcomePrices, and clobTokenIds are JSON-encoded strings, not arrays.
  */
 interface GammaMarket {
   id: string;
@@ -45,6 +46,7 @@ interface GammaMarket {
   slug: string;
   outcomes: string; // JSON-encoded array: "[\"Yes\", \"No\"]"
   outcomePrices: string; // JSON-encoded array: "[\"0.65\", \"0.35\"]"
+  clobTokenIds: string; // JSON-encoded array: "[\"123...\", \"456...\"]" - Yes and No token IDs
   volume24hr: number;
   liquidityNum: number;
   endDate: string;
@@ -71,12 +73,30 @@ function parseOutcomePrices(outcomePrices: string): [number, number] {
 }
 
 /**
+ * Parse CLOB token IDs from JSON-encoded string.
+ * Returns first token ID (Yes outcome) or empty string on error.
+ */
+function parseClobTokenId(clobTokenIds: string): string {
+  try {
+    const tokenIds = JSON.parse(clobTokenIds);
+    if (Array.isArray(tokenIds) && tokenIds.length >= 1) {
+      return String(tokenIds[0]) || "";
+    }
+  } catch {
+    // Invalid JSON, return empty string
+  }
+  return "";
+}
+
+/**
  * Transform Gamma API market to our TrendingMarket format
  */
 function transformMarket(market: GammaMarket): TrendingMarket {
   const [yesPrice, noPrice] = parseOutcomePrices(market.outcomePrices);
   // Use the first event's slug for the Polymarket URL, fallback to market slug
   const eventSlug = market.events?.[0]?.slug || market.slug;
+  // Get the Yes outcome token ID for price history lookups
+  const clobTokenId = parseClobTokenId(market.clobTokenIds);
 
   return {
     id: market.id,
@@ -90,6 +110,7 @@ function transformMarket(market: GammaMarket): TrendingMarket {
     endDate: market.endDate,
     category: market.category || "Other",
     active: market.active,
+    clobTokenId,
   };
 }
 
