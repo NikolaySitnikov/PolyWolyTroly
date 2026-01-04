@@ -649,6 +649,139 @@ curl http://localhost:3002/api/stats
 
 ---
 
+## Step 5 (Part 2): Connect API to Real PostgreSQL Database
+
+### Status: COMPLETE
+
+### Issue Identified
+The Step 5 implementation connected the frontend to the API, but the API was still returning **hardcoded mock data** instead of querying the real PostgreSQL database.
+
+### Fix Applied
+
+**Problem:** API endpoints in `server.ts` had `// TODO: Connect to actual database in Step 5` comments and returned hardcoded values:
+```typescript
+// OLD CODE (hardcoded)
+app.get("/api/stats", (_req: Request, res: Response) => {
+  res.json({
+    whaleCount: 42,
+    totalVolume: 15750000,
+    alertsToday: 12,
+    newWhalesThisWeek: 5,
+  });
+});
+```
+
+**Solution:** Added new database methods and connected API to real database.
+
+### TDD Implementation
+
+**RED Phase:** Added 9 new tests for database methods in `src/services/database.test.ts`
+
+**GREEN Phase:** Implemented database methods and updated API endpoints
+
+### New Database Methods Added
+
+**`src/services/database.ts`** - Added 3 new methods:
+
+1. **`getStats()`** - Dashboard statistics
+   - Counts total wallets (`whaleCount`)
+   - Sums all deposit amounts (`totalVolume`)
+   - Counts deposits in last 24 hours (`alertsToday`)
+   - Counts wallets created in last 7 days (`newWhalesThisWeek`)
+
+2. **`getAllWallets(page, limit)`** - Paginated wallet list
+   - Returns wallets ordered by `total_deposited DESC`
+   - Includes total count for pagination
+
+3. **`getRecentDeposits(page, limit, walletAddress?)`** - Paginated deposits
+   - Optional wallet address filter
+   - Returns deposits ordered by `created_at DESC`
+   - Includes total count for pagination
+
+### API Endpoints Updated
+
+**`src/api/server.ts`** - Changed from hardcoded to database queries:
+
+```typescript
+// NEW CODE (real database)
+app.get("/api/stats", async (_req: Request, res: Response) => {
+  try {
+    const stats = await db.getStats();
+    res.json(stats);
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+    res.status(500).json({ error: "Failed to fetch stats" });
+  }
+});
+```
+
+### Tests Updated
+
+**`src/api/server.test.ts`** - Rewrote to properly mock database:
+```typescript
+vi.mock("../services/database.js", () => ({
+  db: {
+    getStats: vi.fn(),
+    getAllWallets: vi.fn(),
+    getWallet: vi.fn(),
+    getRecentDeposits: vi.fn(),
+  },
+}));
+```
+
+Added test for 500 error when database throws.
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/services/database.ts` | Added `getStats()`, `getAllWallets()`, `getRecentDeposits()` methods |
+| `src/services/database.test.ts` | Added 9 tests for new database methods |
+| `src/api/server.ts` | Changed endpoints to use `db.*` methods, added error handling |
+| `src/api/server.test.ts` | Rewrote to mock database, added 500 error test |
+
+### Verification
+
+**API now returns REAL data:**
+```bash
+curl http://localhost:3002/api/stats
+# {"whaleCount":46,"totalVolume":1206310,"alertsToday":60,"newWhalesThisWeek":46}
+
+curl http://localhost:3002/api/wallets?limit=2
+# {"wallets":[{"address":"0x4d97...","total_deposited":"403337.47",...}],...}
+
+curl http://localhost:3002/api/deposits?limit=2
+# {"deposits":[{"id":307,"tx_hash":"0x899c...","amount":"5800.00",...}],...}
+```
+
+**Compare to OLD mock data:**
+- whaleCount: 42 → 46 (real)
+- totalVolume: 15750000 → 1206310 (real)
+- alertsToday: 12 → 60 (real)
+- newWhalesThisWeek: 5 → 46 (real)
+
+### Test Results
+
+```bash
+# Backend tests: 159 passing
+cd polymarket-whale-tracker && npm test
+
+# Frontend tests: 128 passing
+cd frontend && npm test
+
+# Total: 287 tests passing
+```
+
+### Visual Verification
+
+Open **http://localhost:5173/** and verify:
+- Dashboard shows real whale count (46, not 42)
+- Total volume reflects actual USDC deposits (~$1.2M)
+- Alerts today shows recent deposit count
+- New this week shows recently tracked wallets
+
+---
+
 ## Step 6-10: [PENDING]
 
 *See IMPLEMENTATION_PLAN.md for full details*
