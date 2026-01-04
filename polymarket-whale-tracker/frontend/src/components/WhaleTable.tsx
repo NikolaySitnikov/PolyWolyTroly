@@ -497,8 +497,8 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
       </div>
 
       {/* Table */}
-      <div style={{ overflowX: 'auto' }}>
-        <table role="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div>
+        <table role="table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
           <thead>
             <tr style={{ background: tokens.colors.void }}>
               <th
@@ -512,6 +512,7 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em',
                   whiteSpace: 'nowrap',
+                  width: '35%',
                 }}
               >
                 Wallet
@@ -531,6 +532,7 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   userSelect: 'none',
+                  width: '25%',
                 }}
               >
                 Total Deposited {sortBy === 'totalDeposited' && (sortDir === 'desc' ? '↓' : '↑')}
@@ -550,6 +552,7 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   userSelect: 'none',
+                  width: '20%',
                 }}
               >
                 Deposits {sortBy === 'depositCount' && (sortDir === 'desc' ? '↓' : '↑')}
@@ -569,6 +572,7 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   userSelect: 'none',
+                  width: '20%',
                 }}
               >
                 First Seen {sortBy === 'firstSeenAt' && (sortDir === 'desc' ? '↓' : '↑')}
