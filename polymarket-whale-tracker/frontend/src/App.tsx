@@ -115,6 +115,13 @@ function App() {
   const whalesRef = useRef(whales);
   whalesRef.current = whales;
 
+  // Unified refetch function - retries all data sources at once
+  const refetchAll = useCallback(() => {
+    refetch();
+    refetchWhales();
+    refetchAlerts();
+  }, [refetch, refetchWhales, refetchAlerts]);
+
   // Sync URL hash with current view and wallet address
   useEffect(() => {
     if (currentView === 'wallet' && selectedWalletAddress) {
@@ -287,7 +294,7 @@ function App() {
               {alertsError}
             </p>
             <button
-              onClick={refetchAlerts}
+              onClick={refetchAll}
               style={{
                 padding: '10px 24px',
                 background: tokens.colors.cyan,
@@ -319,7 +326,7 @@ function App() {
     }
 
     if (error) {
-      return <DashboardError error={error} onRetry={refetch} isMobile={isMobile} />;
+      return <DashboardError error={error} onRetry={refetchAll} isMobile={isMobile} />;
     }
 
     if (stats) {
@@ -409,7 +416,7 @@ function App() {
               {whalesError}
             </p>
             <button
-              onClick={refetchWhales}
+              onClick={refetchAll}
               style={{
                 padding: '10px 24px',
                 background: tokens.colors.cyan,
