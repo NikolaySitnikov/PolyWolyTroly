@@ -136,4 +136,56 @@ describe('Pagination', () => {
       expect(activeButton.style.animation).toContain('infinite');
     });
   });
+
+  describe('Keyboard Navigation', () => {
+    it('should navigate to previous page when pressing ArrowLeft', async () => {
+      const onPageChange = vi.fn();
+      render(<Pagination {...defaultProps} currentPage={5} onPageChange={onPageChange} />);
+
+      const pagination = screen.getByTestId('pagination');
+      pagination.focus();
+      await userEvent.keyboard('{ArrowLeft}');
+
+      expect(onPageChange).toHaveBeenCalledWith(4);
+    });
+
+    it('should navigate to next page when pressing ArrowRight', async () => {
+      const onPageChange = vi.fn();
+      render(<Pagination {...defaultProps} currentPage={5} onPageChange={onPageChange} />);
+
+      const pagination = screen.getByTestId('pagination');
+      pagination.focus();
+      await userEvent.keyboard('{ArrowRight}');
+
+      expect(onPageChange).toHaveBeenCalledWith(6);
+    });
+
+    it('should NOT navigate past first page when pressing ArrowLeft', async () => {
+      const onPageChange = vi.fn();
+      render(<Pagination {...defaultProps} currentPage={1} onPageChange={onPageChange} />);
+
+      const pagination = screen.getByTestId('pagination');
+      pagination.focus();
+      await userEvent.keyboard('{ArrowLeft}');
+
+      expect(onPageChange).not.toHaveBeenCalled();
+    });
+
+    it('should NOT navigate past last page when pressing ArrowRight', async () => {
+      const onPageChange = vi.fn();
+      render(<Pagination {...defaultProps} currentPage={10} onPageChange={onPageChange} />);
+
+      const pagination = screen.getByTestId('pagination');
+      pagination.focus();
+      await userEvent.keyboard('{ArrowRight}');
+
+      expect(onPageChange).not.toHaveBeenCalled();
+    });
+
+    it('should have tabIndex for keyboard focus', () => {
+      render(<Pagination {...defaultProps} />);
+      const pagination = screen.getByTestId('pagination');
+      expect(pagination).toHaveAttribute('tabIndex', '0');
+    });
+  });
 });

@@ -7,7 +7,7 @@
  * @see Design docs/PAGINATION_GUIDELINES.md
  */
 
-import { useMemo } from 'react';
+import { useMemo, useCallback, KeyboardEvent } from 'react';
 import { tokens } from '../styles/tokens';
 import { useHover } from '../hooks/useHover';
 
@@ -217,11 +217,27 @@ export function Pagination({
 
   const pageNumbers = useMemo(() => getPageNumbers(currentPage, totalPages), [currentPage, totalPages]);
 
+  /**
+   * Keyboard navigation handler for arrow keys
+   */
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === 'ArrowLeft' && currentPage > 1) {
+        onPageChange(currentPage - 1);
+      } else if (e.key === 'ArrowRight' && currentPage < totalPages) {
+        onPageChange(currentPage + 1);
+      }
+    },
+    [currentPage, totalPages, onPageChange]
+  );
+
   // Mobile: Simplified layout
   if (isMobile) {
     return (
       <div
         data-testid="pagination"
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -230,6 +246,7 @@ export function Pagination({
           padding: '16px 20px',
           background: tokens.colors.surface,
           borderTop: `1px solid ${tokens.colors.border}`,
+          outline: 'none',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -271,6 +288,8 @@ export function Pagination({
   return (
     <div
       data-testid="pagination"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -278,6 +297,7 @@ export function Pagination({
         padding: '16px 20px',
         background: tokens.colors.surface,
         borderTop: `1px solid ${tokens.colors.border}`,
+        outline: 'none',
       }}
     >
       {/* Left: Results summary */}
