@@ -52,25 +52,25 @@ function formatTimeAgo(date: Date | null): string {
 }
 
 export function LiveIndicator() {
-  const { blockchainHealthy, lastEventTime, healthCheckOk } = useHealth();
+  const { blockchainHealthy, lastHeartbeatTime, healthCheckOk } = useHealth();
   const [showTooltip, setShowTooltip] = useState(false);
-  const [lastEventTimeAgo, setLastEventTimeAgo] = useState('');
+  const [lastHeartbeatAgo, setLastHeartbeatAgo] = useState('');
   const containerRef = useRef<HTMLSpanElement>(null);
 
   const status = getHealthStatus(blockchainHealthy, healthCheckOk);
   const color = getStatusColor(status);
   const label = getStatusLabel(status);
 
-  // Update time ago display every 10 seconds
+  // Update time ago display every 5 seconds
   useEffect(() => {
     const updateTimeAgo = () => {
-      setLastEventTimeAgo(formatTimeAgo(lastEventTime));
+      setLastHeartbeatAgo(formatTimeAgo(lastHeartbeatTime));
     };
 
     updateTimeAgo();
-    const interval = setInterval(updateTimeAgo, 10000);
+    const interval = setInterval(updateTimeAgo, 5000);
     return () => clearInterval(interval);
-  }, [lastEventTime]);
+  }, [lastHeartbeatTime]);
 
   return (
     <span
@@ -182,7 +182,7 @@ export function LiveIndicator() {
                   letterSpacing: '0.05em',
                 }}
               >
-                Status
+                RPC Status
               </span>
               <span
                 style={{
@@ -192,7 +192,7 @@ export function LiveIndicator() {
                   fontWeight: tokens.fontWeights.medium,
                 }}
               >
-                {status === 'healthy' ? 'Receiving deposits' : status === 'degraded' ? 'Not receiving' : 'Connection lost'}
+                {status === 'healthy' ? 'Connected' : status === 'degraded' ? 'Disconnected' : 'Unreachable'}
               </span>
             </div>
 
@@ -206,7 +206,7 @@ export function LiveIndicator() {
                   letterSpacing: '0.05em',
                 }}
               >
-                Last Event
+                Last Heartbeat
               </span>
               <span
                 style={{
@@ -215,7 +215,7 @@ export function LiveIndicator() {
                   color: tokens.colors.textPrimary,
                 }}
               >
-                {lastEventTimeAgo}
+                {lastHeartbeatAgo}
               </span>
             </div>
           </div>
@@ -241,8 +241,8 @@ export function LiveIndicator() {
                 }}
               >
                 {status === 'degraded'
-                  ? 'The blockchain listener may have stopped. New deposits might not appear until the connection is restored.'
-                  : 'Cannot reach the server. Please check your connection.'}
+                  ? 'RPC connection lost. The listener cannot detect new deposits until the connection is restored.'
+                  : 'Cannot reach the backend server. Please check your connection.'}
               </p>
             </div>
           )}

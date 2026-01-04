@@ -35,6 +35,7 @@ export function createApp(): Express {
       blockchain: {
         listening: healthStatus.isRunning,
         healthy: healthStatus.healthy,
+        lastHeartbeatTime: healthStatus.lastHeartbeatTime?.toISOString() || null,
         lastEventTime: healthStatus.lastEventTime?.toISOString() || null,
         startTime: healthStatus.startTime?.toISOString() || null,
         consecutiveErrors: healthStatus.consecutiveErrors,

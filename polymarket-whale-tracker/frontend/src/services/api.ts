@@ -23,6 +23,7 @@ export interface HealthResponse {
   blockchain: {
     listening: boolean;
     healthy: boolean;
+    lastHeartbeatTime: string | null;
     lastEventTime: string | null;
     startTime: string | null;
     consecutiveErrors: number;

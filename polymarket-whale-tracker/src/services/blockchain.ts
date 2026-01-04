@@ -28,6 +28,8 @@ const logger = pino({ level: "info" });
 // Configuration for robustness
 const MAX_CONSECUTIVE_ERRORS = 5;
 const RESTART_DELAY_MS = 2000;
+const HEARTBEAT_INTERVAL_MS = 30000; // Check RPC connection every 30 seconds
+const HEARTBEAT_STALE_MS = 60000; // Consider unhealthy if no heartbeat for 60 seconds
 
 // Create WebSocket client for real-time events
 const wsClient = createPublicClient({
@@ -49,26 +51,37 @@ const httpClient = createPublicClient({
 // Health tracking state
 let isRunning = false;
 let lastEventTime: Date | null = null;
+let lastHeartbeatTime: Date | null = null;
 let listenerHealthy = false;
 let listenerStartTime: Date | null = null;
 let consecutiveErrors = 0;
 let currentUnwatch: (() => void) | null = null;
+let heartbeatInterval: NodeJS.Timeout | null = null;
 
 export const blockchain = {
   /**
    * Get listener health status for monitoring
+   * Health is determined by successful heartbeat checks, NOT by receiving deposit events
    */
   getHealthStatus(): {
     isRunning: boolean;
     lastEventTime: Date | null;
+    lastHeartbeatTime: Date | null;
     healthy: boolean;
     startTime: Date | null;
     consecutiveErrors: number;
   } {
+    // Healthy = running AND recent heartbeat (within HEARTBEAT_STALE_MS)
+    const heartbeatFresh = lastHeartbeatTime
+      ? Date.now() - lastHeartbeatTime.getTime() < HEARTBEAT_STALE_MS
+      : false;
+    const isHealthy = isRunning && listenerHealthy && heartbeatFresh;
+
     return {
       isRunning,
       lastEventTime,
-      healthy: listenerHealthy,
+      lastHeartbeatTime,
+      healthy: isHealthy,
       startTime: listenerStartTime,
       consecutiveErrors,
     };
@@ -157,6 +170,44 @@ export const blockchain = {
   },
 
   /**
+   * Heartbeat check - verifies RPC connection is working
+   * This is independent of whether deposits are being received
+   */
+  async _heartbeat(): Promise<void> {
+    try {
+      const blockNumber = await httpClient.getBlockNumber();
+      lastHeartbeatTime = new Date();
+      logger.debug({ msg: "Heartbeat OK", blockNumber: blockNumber.toString() });
+    } catch (error) {
+      logger.warn({ msg: "Heartbeat failed", error });
+      // Don't update lastHeartbeatTime - health check will detect staleness
+    }
+  },
+
+  /**
+   * Start the heartbeat interval
+   */
+  _startHeartbeat(): void {
+    // Initial heartbeat
+    this._heartbeat();
+
+    // Schedule periodic heartbeats
+    heartbeatInterval = setInterval(() => {
+      this._heartbeat();
+    }, HEARTBEAT_INTERVAL_MS);
+  },
+
+  /**
+   * Stop the heartbeat interval
+   */
+  _stopHeartbeat(): void {
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+      heartbeatInterval = null;
+    }
+  },
+
+  /**
    * Internal method to set up the event watcher
    */
   _setupWatcher(): () => void {
@@ -230,6 +281,9 @@ export const blockchain = {
     consecutiveErrors = 0;
     console.log("🚀 Starting Polymarket whale tracker...");
 
+    // Start heartbeat to monitor RPC connection health
+    this._startHeartbeat();
+
     // Watch for USDC transfers TO Polymarket Exchange
     // Note: PublicNode doesn't support eth_subscribe for logs, so we use polling
     currentUnwatch = this._setupWatcher();
@@ -242,6 +296,7 @@ export const blockchain = {
       logger.info("Shutting down...");
       isRunning = false;
       listenerHealthy = false;
+      this._stopHeartbeat();
       if (currentUnwatch) {
         currentUnwatch();
         currentUnwatch = null;

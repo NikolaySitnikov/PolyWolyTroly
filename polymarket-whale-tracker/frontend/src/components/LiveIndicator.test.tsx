@@ -23,6 +23,7 @@ describe('LiveIndicator Component', () => {
     // Default to healthy state
     mockUseHealth.mockReturnValue({
       blockchainHealthy: true,
+      lastHeartbeatTime: new Date(),
       lastEventTime: new Date(),
       healthCheckOk: true,
     });
@@ -73,7 +74,8 @@ describe('LiveIndicator Component', () => {
     beforeEach(() => {
       mockUseHealth.mockReturnValue({
         blockchainHealthy: false,
-        lastEventTime: new Date(Date.now() - 600000), // 10 minutes ago
+        lastHeartbeatTime: new Date(Date.now() - 120000), // 2 minutes ago (stale)
+        lastEventTime: null,
         healthCheckOk: true,
       });
     });
@@ -100,6 +102,7 @@ describe('LiveIndicator Component', () => {
     beforeEach(() => {
       mockUseHealth.mockReturnValue({
         blockchainHealthy: false,
+        lastHeartbeatTime: null,
         lastEventTime: null,
         healthCheckOk: false,
       });
@@ -137,18 +140,19 @@ describe('LiveIndicator Component', () => {
       expect(screen.queryByTestId('health-tooltip')).not.toBeInTheDocument();
     });
 
-    it('should show "Receiving deposits" status when healthy', () => {
+    it('should show "Connected" status when healthy', () => {
       render(<LiveIndicator />);
       const indicator = screen.getByTestId('live-indicator');
 
       fireEvent.mouseEnter(indicator);
-      expect(screen.getByText('Receiving deposits')).toBeInTheDocument();
+      expect(screen.getByText('Connected')).toBeInTheDocument();
     });
 
     it('should show warning message when degraded', () => {
       mockUseHealth.mockReturnValue({
         blockchainHealthy: false,
-        lastEventTime: new Date(Date.now() - 600000),
+        lastHeartbeatTime: new Date(Date.now() - 120000),
+        lastEventTime: null,
         healthCheckOk: true,
       });
 
@@ -156,12 +160,13 @@ describe('LiveIndicator Component', () => {
       const indicator = screen.getByTestId('live-indicator');
 
       fireEvent.mouseEnter(indicator);
-      expect(screen.getByText(/blockchain listener may have stopped/i)).toBeInTheDocument();
+      expect(screen.getByText(/RPC connection lost/i)).toBeInTheDocument();
     });
 
     it('should show connection error message when offline', () => {
       mockUseHealth.mockReturnValue({
         blockchainHealthy: false,
+        lastHeartbeatTime: null,
         lastEventTime: null,
         healthCheckOk: false,
       });
@@ -170,7 +175,7 @@ describe('LiveIndicator Component', () => {
       const indicator = screen.getByTestId('live-indicator');
 
       fireEvent.mouseEnter(indicator);
-      expect(screen.getByText(/cannot reach the server/i)).toBeInTheDocument();
+      expect(screen.getByText(/cannot reach the backend server/i)).toBeInTheDocument();
     });
 
     it('should show "Blockchain Listener" header in tooltip', () => {
@@ -181,12 +186,12 @@ describe('LiveIndicator Component', () => {
       expect(screen.getByText('Blockchain Listener')).toBeInTheDocument();
     });
 
-    it('should show last event time in tooltip', () => {
+    it('should show last heartbeat time in tooltip', () => {
       render(<LiveIndicator />);
       const indicator = screen.getByTestId('live-indicator');
 
       fireEvent.mouseEnter(indicator);
-      expect(screen.getByText('Last Event')).toBeInTheDocument();
+      expect(screen.getByText('Last Heartbeat')).toBeInTheDocument();
     });
   });
 });
