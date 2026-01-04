@@ -36,6 +36,7 @@ import { WalletProfileLoading } from './components/WalletProfileLoading';
 import { WalletProfileError } from './components/WalletProfileError';
 import { InlineLoading } from './components/InlineLoading';
 import { GlowText } from './components/GlowText';
+import { Settings } from './components/Settings';
 import type { ViewId } from './types/navigation';
 import type { Alert } from './types/alert';
 
@@ -541,59 +542,8 @@ function App() {
         {currentView === 'alerts' && renderAlertsContent()}
         {currentView === 'wallet' && renderWalletContent()}
 
-        {/* Placeholder for settings - will be implemented in Step 10 */}
-        {currentView === 'settings' && (
-          <div style={{ textAlign: 'center', paddingTop: tokens.spacing[8] }}>
-            <h1
-              style={{
-                fontFamily: tokens.fonts.display,
-                fontSize: isMobile ? tokens.fontSizes['2xl'] : tokens.fontSizes['4xl'],
-                fontWeight: tokens.fontWeights.extrabold,
-                color: tokens.colors.textPrimary,
-                marginBottom: tokens.spacing[4],
-                letterSpacing: '-0.02em',
-              }}
-            >
-              Settings
-            </h1>
-
-            <p
-              style={{
-                fontFamily: tokens.fonts.body,
-                fontSize: tokens.fontSizes.base,
-                color: tokens.colors.textSecondary,
-                maxWidth: '500px',
-                margin: '0 auto',
-                marginBottom: tokens.spacing[8],
-              }}
-            >
-              Configure your notification preferences.
-            </p>
-
-            {/* Coming soon badge */}
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: tokens.spacing[2],
-                padding: `${tokens.spacing[3]} ${tokens.spacing[5]}`,
-                background: tokens.colors.surface,
-                border: `1px solid ${tokens.colors.border}`,
-                borderRadius: tokens.radius.lg,
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: tokens.fonts.mono,
-                  fontSize: tokens.fontSizes.xs,
-                  color: tokens.colors.textMuted,
-                }}
-              >
-                Coming in Step 10
-              </span>
-            </div>
-          </div>
-        )}
+        {/* Settings page */}
+        {currentView === 'settings' && <Settings isMobile={isMobile} />}
       </main>
 
       {/* Mobile Bottom Navigation */}
