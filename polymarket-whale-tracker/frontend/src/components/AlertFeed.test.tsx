@@ -9,6 +9,16 @@ import { render, screen } from '@testing-library/react';
 import { AlertFeed } from './AlertFeed';
 import type { Alert } from '../types/alert';
 
+// Mock the useHealth hook for LiveIndicator component
+vi.mock('../hooks/useHealth', () => ({
+  useHealth: vi.fn(() => ({
+    blockchainHealthy: true,
+    lastHeartbeatTime: new Date(),
+    lastEventTime: new Date(),
+    healthCheckOk: true,
+  })),
+}));
+
 describe('AlertFeed', () => {
   const mockAlerts: Alert[] = [
     {

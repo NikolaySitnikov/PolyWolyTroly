@@ -9,17 +9,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import App from './App';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { ApiConnectivityProvider } from './hooks/useApiConnectivity';
 import * as api from './services/api';
 
 // Mock the API module
 vi.mock('./services/api');
 
-// Wrapper to provide SettingsContext
+// Wrapper to provide required contexts
 function renderApp() {
   return render(
-    <SettingsProvider>
-      <App />
-    </SettingsProvider>
+    <ApiConnectivityProvider>
+      <SettingsProvider>
+        <App />
+      </SettingsProvider>
+    </ApiConnectivityProvider>
   );
 }
 
@@ -35,6 +38,12 @@ describe('App Component', () => {
     vi.clearAllMocks();
     // Default to successful fetch
     vi.mocked(api.fetchStats).mockResolvedValue(mockStats);
+    // Mock health check for ApiConnectivityProvider
+    vi.mocked(api.fetchHealth).mockResolvedValue({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      blockchain: { listening: true, healthy: true, lastHeartbeatTime: null, lastEventTime: null, startTime: null, consecutiveErrors: 0 },
+    });
   });
 
   afterEach(() => {

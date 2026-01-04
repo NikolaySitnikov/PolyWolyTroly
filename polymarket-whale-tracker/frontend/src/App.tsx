@@ -23,6 +23,7 @@ import { useAlerts } from './hooks/useAlerts';
 import { useWallet } from './hooks/useWallet';
 import { useTrendingMarkets } from './hooks/useTrendingMarkets';
 import { useWebSocket, type DepositEvent } from './hooks/useWebSocket';
+import { useApiConnectivity } from './hooks/useApiConnectivity';
 import { Header } from './components/Header';
 import { MobileNav } from './components/MobileNav';
 import { Dashboard } from './components/Dashboard';
@@ -152,6 +153,12 @@ function App() {
     refetchAlerts();
     refetchTrending();
   }, [refetch, refetchWhales, refetchAlerts, refetchTrending]);
+
+  // Auto-refetch when API recovers from disconnection
+  const { onReconnect } = useApiConnectivity();
+  useEffect(() => {
+    return onReconnect(refetchAll);
+  }, [onReconnect, refetchAll]);
 
   // Sync URL hash with current view and wallet address
   useEffect(() => {
