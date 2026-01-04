@@ -7,7 +7,7 @@ const logger = pino({ level: "info" });
 
 export async function main() {
   console.log("=".repeat(50));
-  console.log("🐋 Polymarket Whale Tracker");
+  console.log("🐋 PolyWolyTroly");
   console.log("=".repeat(50));
   console.log(`Environment: ${config.app.nodeEnv}`);
   console.log(`Min deposit threshold: $${config.app.minDepositAmount.toLocaleString()}`);

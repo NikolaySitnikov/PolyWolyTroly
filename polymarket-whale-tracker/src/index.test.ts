@@ -83,7 +83,7 @@ describe("main application", () => {
 
       // Check for startup banner logs
       expect(mockConsoleLog).toHaveBeenCalledWith("=".repeat(50));
-      expect(mockConsoleLog).toHaveBeenCalledWith("🐋 Polymarket Whale Tracker");
+      expect(mockConsoleLog).toHaveBeenCalledWith("🐋 PolyWolyTroly");
       expect(mockConsoleLog).toHaveBeenCalledWith("Environment: test");
       expect(mockConsoleLog).toHaveBeenCalledWith("Min deposit threshold: $10,000");
     });

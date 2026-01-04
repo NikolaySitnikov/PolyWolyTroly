@@ -2,7 +2,7 @@
  * Express REST API Server
  *
  * TDD: GREEN phase - Implementation to make tests pass.
- * Provides REST endpoints for the Polymarket whale tracker frontend.
+ * Provides REST endpoints for the PolyWolyTroly frontend.
  *
  * Step 5 (Fixed): Now connected to real PostgreSQL database.
  */

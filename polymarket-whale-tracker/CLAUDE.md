@@ -22,7 +22,7 @@ npm test -- src/services/blockchain.test.ts  # Run single test file
 
 ## Architecture
 
-Real-time Polymarket whale tracker that monitors large USDC deposits on Polygon and sends Telegram alerts. Distinguishes between first-time Polymarket users and returning users.
+PolyWolyTroly - Real-time monitoring of large USDC deposits to Polymarket on Polygon. Sends Telegram alerts when whales deposit, distinguishing between first-time Polymarket users and returning users.
 
 ### Data Flow
 1. **blockchain.ts** - WebSocket listener (viem) watches USDC Transfer events to Polymarket Exchange

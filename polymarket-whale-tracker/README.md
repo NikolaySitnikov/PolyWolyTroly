@@ -1,4 +1,4 @@
-# Polymarket Whale Tracker
+# PolyWolyTroly
 
 Real-time monitoring of large USDC deposits to Polymarket on Polygon. Sends Telegram alerts when whales deposit, distinguishing between first-time users and returning traders.
 

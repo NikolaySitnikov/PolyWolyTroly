@@ -1,7 +1,7 @@
 {
-  "name": "polymarket-whale-tracker",
+  "name": "polywolytroly",
   "version": "1.0.0",
-  "description": "",
+  "description": "Real-time monitoring of large USDC deposits to Polymarket on Polygon",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon --exec tsx src/index.ts",
