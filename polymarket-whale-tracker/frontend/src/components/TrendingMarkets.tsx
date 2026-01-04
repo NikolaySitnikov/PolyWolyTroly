@@ -15,6 +15,7 @@
 import { tokens } from '../styles/tokens';
 import { EmptyState } from './EmptyState';
 import { Sparkline } from './Sparkline';
+import { CategoryTag, inferCategory, type MarketCategory } from './CategoryTag';
 import type { TrendingMarketResponse } from '../services/api';
 
 interface TrendingMarketsProps {
@@ -110,6 +111,8 @@ function MarketCard({
   const yesPercent = Math.round(market.yesPrice * 100);
   const priceChange = calculatePriceChange(market.priceHistory);
   const changeDisplay = priceChange !== null ? formatPriceChange(priceChange) : null;
+  // Use category from API if available, otherwise infer from question
+  const category = (market.category?.toLowerCase() as MarketCategory) || inferCategory(market.question);
 
   return (
     <a
@@ -145,6 +148,11 @@ function MarketCard({
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
+      {/* Category tag */}
+      <div style={{ marginBottom: '8px' }}>
+        <CategoryTag category={category} size="small" />
+      </div>
+
       {/* Market question */}
       <div
         style={{

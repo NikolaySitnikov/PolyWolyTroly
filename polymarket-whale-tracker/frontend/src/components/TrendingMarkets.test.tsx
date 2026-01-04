@@ -445,4 +445,59 @@ describe('TrendingMarkets Component', () => {
       expect(priceChange.textContent).not.toMatch(/[↑↓]/);
     });
   });
+
+  describe('Category Tags', () => {
+    it('should render category tag for each market card', () => {
+      render(
+        <TrendingMarkets
+          markets={mockMarkets}
+          loading={false}
+          error={null}
+          isMobile={false}
+        />
+      );
+
+      // Both markets are crypto category
+      const cryptoTags = screen.getAllByTestId('category-tag-crypto');
+      expect(cryptoTags).toHaveLength(2);
+    });
+
+    it('should infer category from question when not provided by API', () => {
+      const marketsWithoutCategory = [{
+        ...mockMarkets[0],
+        category: undefined,
+        question: 'Will Trump win the election?', // Should infer 'politics'
+      }];
+
+      render(
+        <TrendingMarkets
+          markets={marketsWithoutCategory}
+          loading={false}
+          error={null}
+          isMobile={false}
+        />
+      );
+
+      expect(screen.getByTestId('category-tag-politics')).toBeInTheDocument();
+    });
+
+    it('should use API category when provided', () => {
+      const marketsWithCategory = [{
+        ...mockMarkets[0],
+        category: 'Sports', // API provides 'Sports'
+        question: 'Will Bitcoin reach $100k?', // Would infer crypto without API category
+      }];
+
+      render(
+        <TrendingMarkets
+          markets={marketsWithCategory}
+          loading={false}
+          error={null}
+          isMobile={false}
+        />
+      );
+
+      expect(screen.getByTestId('category-tag-sports')).toBeInTheDocument();
+    });
+  });
 });
