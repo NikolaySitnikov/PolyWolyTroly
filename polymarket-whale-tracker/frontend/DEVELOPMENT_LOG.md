@@ -348,7 +348,140 @@ curl http://localhost:3002/api/deposits?wallet=0x123...
 
 ---
 
-## Step 4-10: [PENDING]
+## Step 4: Build Dashboard View with StatCards (Mock Data)
+
+### Status: COMPLETE
+
+### Goal
+Create the main dashboard view with statistics cards showing key metrics.
+
+### Requirements
+- [x] StatCard component with label, value, icon, trend, and accent color
+- [x] Dashboard component with hero section and 4 stat cards
+- [x] Responsive layout (4 columns desktop, 2 columns mobile)
+- [x] GlowText utility component for neon glow effect
+- [x] formatUSD utility for currency formatting
+- [x] Animated entrance for stat cards
+- [x] Integration with App.tsx
+
+### TDD Implementation
+
+**RED Phase:** Wrote 30 failing tests first
+- `StatCard.test.tsx` - 17 tests for stats card component
+- `Dashboard.test.tsx` - 13 tests for dashboard layout
+
+**GREEN Phase:** Implemented components to pass all tests
+- Created StatCard with all required props and styling
+- Created Dashboard with hero section and stats grid
+- Created GlowText for neon glow effects
+- Created formatUSD utility for currency formatting
+
+### Tests Written & Passing (30 new tests, 93 frontend total)
+
+**`src/components/StatCard.test.tsx`** (17 tests)
+
+*Rendering* (4 tests)
+- Renders without crashing
+- Displays the label
+- Displays the value
+- Displays the icon
+
+*Optional Props* (4 tests)
+- Displays subValue when provided
+- Displays positive trend with up arrow
+- Displays negative trend with down arrow
+- Does not display trend when not provided
+
+*Styling* (3 tests)
+- Has surface background color
+- Has border
+- Has rounded corners
+
+*Accent Colors* (4 tests)
+- Uses cyan accent by default
+- Uses magenta accent when specified
+- Uses profit color for positive trends
+- Uses loss color for negative trends
+
+*Typography* (2 tests)
+- Uses uppercase for label
+- Uses Exo 2 font for value
+
+**`src/components/Dashboard.test.tsx`** (13 tests)
+
+*Rendering* (3 tests)
+- Renders without crashing
+- Displays the hero title
+- Displays subtitle with whale count
+
+*StatCards* (5 tests)
+- Displays 4 stat cards
+- Displays whales tracked stat
+- Displays total volume stat
+- Displays alerts today stat
+- Displays new whales stat
+
+*Layout* (4 tests)
+- Uses 4-column grid on desktop
+- Uses 2-column grid on mobile
+- Centers hero text on mobile
+- Left-aligns hero text on desktop
+
+*Styling* (1 test)
+- Has proper spacing between sections
+
+### Files Created
+
+| File | Description |
+|------|-------------|
+| `src/components/StatCard.tsx` | Statistics card with label, value, trend, icon |
+| `src/components/StatCard.test.tsx` | 17 tests for StatCard |
+| `src/components/Dashboard.tsx` | Main dashboard view with stats grid |
+| `src/components/Dashboard.test.tsx` | 13 tests for Dashboard |
+| `src/components/GlowText.tsx` | Neon glow text utility component |
+| `src/utils/formatters.ts` | Currency and percentage formatters |
+
+### Files Modified
+
+| File | Description |
+|------|-------------|
+| `src/App.tsx` | Integrated Dashboard, added mock stats data |
+
+### Visual Verification
+Dev server running at: **http://localhost:5173/**
+
+**Dashboard View:**
+- Hero section: "Whale Intelligence Dashboard" with glowing cyan text
+- Subtitle: "Tracking 42 whales across Polymarket"
+- 4 stat cards in a row:
+  1. Whales Tracked: 42 (cyan accent, +12% trend)
+  2. Total Volume: $15.75M (magenta accent, +8.4% trend)
+  3. Alerts Today: 12 (purple accent)
+  4. New This Week: 5 (green accent, +5% trend)
+- Each card has:
+  - Top accent glow bar
+  - Label in uppercase monospace
+  - Large value in Exo 2 display font
+  - Trend indicator (up/down arrow with percentage)
+  - Icon in corner
+- Animated entrance (staggered fade-in)
+
+**Mobile View (< 768px):**
+- Hero text centered
+- 2-column grid for stat cards
+- Cards stack nicely
+
+### Test Command
+```bash
+cd frontend && npm test
+# Output: 93 tests passing
+```
+
+### Total Tests: 243 (93 frontend + 150 backend)
+
+---
+
+## Step 5-10: [PENDING]
 
 *See IMPLEMENTATION_PLAN.md for full details*
 
