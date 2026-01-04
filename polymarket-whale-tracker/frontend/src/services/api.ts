@@ -7,7 +7,9 @@
 
 export interface StatsResponse {
   whaleCount: number;
+  whaleCountTrend: number;
   totalVolume: number;
+  totalVolumeTrend: number;
   alertsToday: number;
   newWhalesThisWeek: number;
 }

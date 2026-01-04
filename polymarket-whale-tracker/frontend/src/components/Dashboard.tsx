@@ -17,7 +17,9 @@ import { formatUSD } from '../utils/formatters';
 
 interface DashboardStats {
   whaleCount: number;
+  whaleCountTrend: number;
   totalVolume: number;
+  totalVolumeTrend: number;
   alertsToday: number;
   newWhalesThisWeek: number;
 }
@@ -75,14 +77,14 @@ export function Dashboard({ stats, isMobile }: DashboardProps) {
         <StatCard
           label="Whales Tracked"
           value={stats.whaleCount.toString()}
-          trend={12}
+          trend={stats.whaleCountTrend}
           icon="🐋"
           delay={0}
         />
         <StatCard
           label="Total Volume"
           value={formatUSD(stats.totalVolume)}
-          trend={8.4}
+          trend={stats.totalVolumeTrend}
           icon="📊"
           accentColor="magenta"
           delay={50}
@@ -98,7 +100,6 @@ export function Dashboard({ stats, isMobile }: DashboardProps) {
         <StatCard
           label="New This Week"
           value={stats.newWhalesThisWeek.toString()}
-          trend={5}
           icon="🆕"
           accentColor="profit"
           delay={150}

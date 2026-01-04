@@ -884,6 +884,124 @@ cd polymarket-whale-tracker && npm test
 
 ---
 
+## Step 5c: Fix Hardcoded Trends - Calculate from Real Data
+
+### Status: COMPLETE
+
+### Issue Identified
+Dashboard was displaying hardcoded trend percentages (↑12%, ↑8.4%, ↑5%) instead of calculating real week-over-week changes from the database.
+
+### Fix Applied
+
+**Problem:** Frontend `Dashboard.tsx` had hardcoded trend values:
+```typescript
+// OLD CODE (hardcoded)
+<StatCard label="Whales Tracked" trend={12} ... />
+<StatCard label="Total Volume" trend={8.4} ... />
+<StatCard label="New This Week" trend={5} ... />
+```
+
+**Solution:** Calculate real trends in the database and pass them through the API.
+
+### TDD Implementation
+
+**RED Phase:** Updated database tests to expect trend calculations
+- Modified `getStats()` tests to mock 6 queries (current + previous week data)
+- Added assertions for `whaleCountTrend` and `totalVolumeTrend`
+
+**GREEN Phase:** Implemented real trend calculations
+
+### Database Changes
+
+**`src/services/database.ts`** - Updated `getStats()`:
+```typescript
+// Get whale count from 7 days ago (for trend)
+const whaleCountLastWeekResult = await pool.query(
+  "SELECT COUNT(*) as count FROM wallets WHERE created_at < NOW() - INTERVAL '7 days'"
+);
+
+// Calculate whale trend: % change week over week
+const whaleCountTrend = whaleCountLastWeek > 0
+  ? Math.round(((whaleCount - whaleCountLastWeek) / whaleCountLastWeek) * 100 * 100) / 100
+  : 0;
+```
+
+**Trend Calculation Formula:**
+```
+trend = ((current - previous) / previous) * 100
+```
+- If previous = 0, trend = 0 (no data to compare)
+- Rounded to 2 decimal places
+
+### Frontend Changes
+
+**`frontend/src/services/api.ts`** - Added trend fields:
+```typescript
+export interface StatsResponse {
+  whaleCount: number;
+  whaleCountTrend: number;      // NEW
+  totalVolume: number;
+  totalVolumeTrend: number;     // NEW
+  alertsToday: number;
+  newWhalesThisWeek: number;
+}
+```
+
+**`frontend/src/components/Dashboard.tsx`** - Use real trends:
+```typescript
+<StatCard
+  label="Whales Tracked"
+  trend={stats.whaleCountTrend}  // Was: trend={12}
+  ...
+/>
+<StatCard
+  label="Total Volume"
+  trend={stats.totalVolumeTrend}  // Was: trend={8.4}
+  ...
+/>
+```
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/services/database.ts` | Added trend calculations to `getStats()` |
+| `src/services/database.test.ts` | Updated mock to return 6 query results |
+| `frontend/src/services/api.ts` | Added `whaleCountTrend`, `totalVolumeTrend` to interface |
+| `frontend/src/components/Dashboard.tsx` | Use `stats.*Trend` instead of hardcoded values |
+| `frontend/src/components/Dashboard.test.tsx` | Added trend fields to mockStats |
+| `frontend/src/hooks/useStats.test.tsx` | Added trend fields to mockStats |
+
+### Verification
+
+```bash
+curl http://localhost:3002/api/stats | jq .
+# {
+#   "whaleCount": 101,
+#   "whaleCountTrend": 0,        # 0 because all wallets are < 7 days old
+#   "totalVolume": 3483999,
+#   "totalVolumeTrend": 0,       # 0 because all deposits are < 7 days old
+#   "alertsToday": 151,
+#   "newWhalesThisWeek": 101
+# }
+```
+
+**Note:** Trends show 0% because all data is from the past week. Once the system has been running for 7+ days, trends will show real week-over-week changes.
+
+### Test Results
+
+```bash
+# Backend tests: 160 passing
+cd polymarket-whale-tracker && npm test
+
+# Frontend tests: 135 passing
+cd frontend && npm test
+
+# Total: 295 tests passing
+```
+
+---
+
 ## Step 6-10: [PENDING]
 
 *See IMPLEMENTATION_PLAN.md for full details*

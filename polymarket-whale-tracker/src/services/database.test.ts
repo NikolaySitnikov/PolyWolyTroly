@@ -307,11 +307,12 @@ describe("getStats", () => {
     mockQuery.mockReset();
   });
 
-  it("should return dashboard statistics", async () => {
-    // Mock for whale count
+  it("should return dashboard statistics with trends", async () => {
     mockQuery
       .mockResolvedValueOnce({ rows: [{ count: "42" }] }) // whaleCount
+      .mockResolvedValueOnce({ rows: [{ count: "35" }] }) // whaleCountLastWeek
       .mockResolvedValueOnce({ rows: [{ sum: "15750000" }] }) // totalVolume
+      .mockResolvedValueOnce({ rows: [{ sum: "14500000" }] }) // volumeLastWeek
       .mockResolvedValueOnce({ rows: [{ count: "12" }] }) // alertsToday
       .mockResolvedValueOnce({ rows: [{ count: "5" }] }); // newWhalesThisWeek
 
@@ -320,15 +321,35 @@ describe("getStats", () => {
 
     expect(result).toEqual({
       whaleCount: 42,
+      whaleCountTrend: 20, // (42-35)/35 * 100 = 20%
       totalVolume: 15750000,
+      totalVolumeTrend: 8.62, // (15750000-14500000)/14500000 * 100 = 8.62%
       alertsToday: 12,
       newWhalesThisWeek: 5,
     });
   });
 
+  it("should return 0 trends when previous period is 0", async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ count: "10" }] }) // whaleCount
+      .mockResolvedValueOnce({ rows: [{ count: "0" }] }) // whaleCountLastWeek (0)
+      .mockResolvedValueOnce({ rows: [{ sum: "5000000" }] }) // totalVolume
+      .mockResolvedValueOnce({ rows: [{ sum: "0" }] }) // volumeLastWeek (0)
+      .mockResolvedValueOnce({ rows: [{ count: "5" }] }) // alertsToday
+      .mockResolvedValueOnce({ rows: [{ count: "10" }] }); // newWhalesThisWeek
+
+    const { db } = await import("./database.js");
+    const result = await db.getStats();
+
+    expect(result.whaleCountTrend).toBe(0);
+    expect(result.totalVolumeTrend).toBe(0);
+  });
+
   it("should return 0 for null values", async () => {
     mockQuery
       .mockResolvedValueOnce({ rows: [{ count: "0" }] })
+      .mockResolvedValueOnce({ rows: [{ count: "0" }] })
+      .mockResolvedValueOnce({ rows: [{ sum: null }] })
       .mockResolvedValueOnce({ rows: [{ sum: null }] })
       .mockResolvedValueOnce({ rows: [{ count: "0" }] })
       .mockResolvedValueOnce({ rows: [{ count: "0" }] });
@@ -338,7 +359,9 @@ describe("getStats", () => {
 
     expect(result).toEqual({
       whaleCount: 0,
+      whaleCountTrend: 0,
       totalVolume: 0,
+      totalVolumeTrend: 0,
       alertsToday: 0,
       newWhalesThisWeek: 0,
     });

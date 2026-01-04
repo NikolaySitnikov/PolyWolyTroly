@@ -38,6 +38,7 @@ export function useStats(): UseStatsResult {
 
   // Allow external updates (from WebSocket)
   const updateStats = useCallback((stats: StatsResponse) => {
+    console.log('[useStats] Updating stats:', stats);
     setData(stats);
     setLoading(false);
     setError(null);

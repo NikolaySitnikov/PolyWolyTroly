@@ -15,7 +15,9 @@ vi.mock('../services/api');
 describe('useStats Hook', () => {
   const mockStats: api.StatsResponse = {
     whaleCount: 42,
+    whaleCountTrend: 20,
     totalVolume: 15750000,
+    totalVolumeTrend: 8.62,
     alertsToday: 12,
     newWhalesThisWeek: 5,
   };
@@ -161,6 +163,7 @@ describe('useStats Hook', () => {
       vi.mocked(api.fetchStats).mockResolvedValueOnce({
         ...mockStats,
         whaleCount: 50,
+        whaleCountTrend: 25,
       });
 
       await act(async () => {
