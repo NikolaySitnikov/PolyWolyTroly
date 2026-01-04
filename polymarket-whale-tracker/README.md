@@ -1,9 +1,16 @@
 # PolyWolyTroly
 
-Real-time monitoring of large USDC deposits to Polymarket on Polygon. Sends Telegram alerts when whales deposit, distinguishing between first-time users and returning traders.
+Real-time monitoring of large USDC deposits to Polymarket on Polygon. Sends Telegram alerts when whales deposit, distinguishing between first-time users and returning traders. Includes a web dashboard for visualizing whale activity.
+
+## Components
+
+1. **Backend Tracker** - Monitors blockchain, detects whale deposits, sends Telegram alerts
+2. **API Server** - REST API + WebSocket server for the web dashboard
+3. **Frontend Dashboard** - React web app with real-time whale activity visualization
 
 ## Features
 
+### Backend Tracker
 - Monitors USDC transfers to Polymarket Exchange contract in real-time via WebSocket
 - Configurable minimum deposit threshold (default: $9,000)
 - Detects truly new Polymarket users by checking historical activity via Polymarket API
@@ -11,11 +18,20 @@ Real-time monitoring of large USDC deposits to Polymarket on Polygon. Sends Tele
 - Tracks all deposits in PostgreSQL for historical analysis
 - Uses Redis for fast wallet lookups and deduplication
 
+### Web Dashboard
+- Real-time stats: whale count, total volume, daily alerts
+- Searchable, sortable whale table with pagination
+- Live alert feed via WebSocket
+- Individual wallet profiles with transaction history
+- Trending markets by whale activity
+- Cyberpunk terminal aesthetic with responsive design
+
 ## Quick Start
 
 ```bash
 # Install dependencies
 npm install
+cd frontend && npm install && cd ..
 
 # Set up environment variables (copy .env.example to .env and fill in values)
 cp .env.example .env
@@ -23,9 +39,17 @@ cp .env.example .env
 # Set up database schema
 npm run db:setup
 
-# Run the tracker
-npx tsx src/index.ts
+# Run the blockchain tracker (monitors deposits, sends Telegram alerts)
+npm run dev
+
+# Run the API server (in another terminal)
+npm run dev:api
+
+# Run the frontend (in another terminal)
+cd frontend && npm run dev
 ```
+
+Open http://localhost:5173 to view the dashboard.
 
 ## Environment Variables
 
@@ -75,22 +99,58 @@ npx tsx src/index.ts
 ## Development
 
 ```bash
-# Run tests
+# Backend tracker with hot-reload
+npm run dev
+
+# API server with hot-reload
+npm run dev:api
+
+# Frontend dev server
+cd frontend && npm run dev
+
+# Run backend tests
 npm test
 
-# Run with hot-reload
-npm run dev
+# Run frontend tests
+cd frontend && npm test
 
 # Build for production
 npm run build
-npm start
 ```
 
 ## Tech Stack
 
+### Backend
 - **Runtime**: Node.js with TypeScript (tsx)
 - **Blockchain**: viem for Polygon RPC
 - **Database**: PostgreSQL (pg)
 - **Cache**: Redis (ioredis)
+- **API**: Express + WebSocket (ws)
 - **Notifications**: Telegram Bot API
 - **Testing**: Vitest
+
+### Frontend
+- **Framework**: React 18 + TypeScript
+- **Build**: Vite
+- **Testing**: Vitest + React Testing Library
+- **Design**: Custom cyberpunk terminal aesthetic
+
+## Project Structure
+
+```
+polymarket-whale-tracker/
+├── src/
+│   ├── index.ts           # Blockchain tracker entry point
+│   ├── api/               # REST API + WebSocket server
+│   │   ├── server.ts      # Express app
+│   │   └── websocket.ts   # WebSocket for live updates
+│   ├── services/          # Core business logic
+│   └── config/            # Environment config
+├── frontend/              # React dashboard
+│   ├── src/
+│   │   ├── components/    # React components
+│   │   ├── hooks/         # Custom hooks for API/WebSocket
+│   │   └── styles/        # Design tokens & global CSS
+│   └── package.json
+└── package.json
+```

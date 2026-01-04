@@ -12,8 +12,8 @@ npm run build        # Compile TypeScript to dist/
 npm start            # Run compiled JS from dist/
 
 # API Server (serves frontend dashboard)
-npm run server       # Start API server on port 3001
-npm run server:dev   # Start with hot-reload
+npm run start:api    # Start API server on port 3001 (compiled)
+npm run dev:api      # Start with hot-reload (nodemon + tsx)
 
 # Frontend Development
 cd frontend

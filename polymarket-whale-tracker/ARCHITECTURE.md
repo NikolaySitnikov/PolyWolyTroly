@@ -342,28 +342,39 @@ PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymar
 ## Component Responsibilities
 
 ```
-┌──────────────────┬──────────────────────────────────────────────────────────┐
-│  COMPONENT       │  RESPONSIBILITY                                          │
-├──────────────────┼──────────────────────────────────────────────────────────┤
-│  index.ts        │  Entry point: loads config, tests Telegram, starts       │
-│                  │  blockchain listener                                      │
-├──────────────────┼──────────────────────────────────────────────────────────┤
-│  blockchain.ts   │  WebSocket listener for USDC Transfer events,            │
-│                  │  orchestrates the full processing pipeline               │
-├──────────────────┼──────────────────────────────────────────────────────────┤
-│  walletTracker.ts│  Business logic: determines if wallet is new,            │
-│                  │  coordinates the 3-layer lookup                          │
-├──────────────────┼──────────────────────────────────────────────────────────┤
-│  polymarketApi.ts│  Queries Polymarket Data API for wallet history          │
-├──────────────────┼──────────────────────────────────────────────────────────┤
-│  database.ts     │  PostgreSQL operations: wallets, deposits, notifications │
-├──────────────────┼──────────────────────────────────────────────────────────┤
-│  cache.ts        │  Redis operations: wallet seen cache, last block tracker │
-├──────────────────┼──────────────────────────────────────────────────────────┤
-│  notifications.ts│  Formats and sends Telegram alerts, logs results         │
-├──────────────────┼──────────────────────────────────────────────────────────┤
-│  config/index.ts │  Loads and validates environment variables               │
-└──────────────────┴──────────────────────────────────────────────────────────┘
+┌──────────────────────┬──────────────────────────────────────────────────────┐
+│  COMPONENT           │  RESPONSIBILITY                                      │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│  index.ts            │  Entry point: loads config, tests Telegram, starts   │
+│                      │  blockchain listener                                  │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│  blockchain.ts       │  WebSocket listener for USDC Transfer events,        │
+│                      │  orchestrates the full processing pipeline           │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│  walletTracker.ts    │  Business logic: determines if wallet is new,        │
+│                      │  coordinates the 3-layer lookup                      │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│  polymarketApi.ts    │  Queries Polymarket Data API for wallet history      │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│  database.ts         │  PostgreSQL operations: wallets, deposits,           │
+│                      │  notifications, stats queries for API                │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│  cache.ts            │  Redis operations: wallet seen cache, block tracker  │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│  notifications.ts    │  Formats and sends Telegram alerts, logs results     │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│  config/index.ts     │  Loads and validates environment variables           │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│  api/server.ts       │  Express REST API for dashboard (stats, wallets,     │
+│                      │  deposits, trending markets)                         │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│  api/websocket.ts    │  WebSocket server for real-time deposit events       │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│  trendingMarkets.ts  │  Fetches trending markets from Polymarket Gamma API  │
+├──────────────────────┼──────────────────────────────────────────────────────┤
+│  frontend/           │  React dashboard: Dashboard, WhaleTable, AlertFeed,  │
+│                      │  WalletProfile, TrendingMarkets, Settings            │
+└──────────────────────┴──────────────────────────────────────────────────────┘
 ```
 
 ---
