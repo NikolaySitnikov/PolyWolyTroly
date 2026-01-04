@@ -97,13 +97,18 @@ function App() {
     setPage: setWhalesPage,
   } = useWhales(WHALES_PER_PAGE);
 
+  const ALERTS_PER_PAGE = 20;
   const {
     alerts,
     loading: alertsLoading,
     error: alertsError,
+    total: totalAlerts,
+    page: alertsPage,
+    totalPages: alertsTotalPages,
+    setPage: setAlertsPage,
     refetch: refetchAlerts,
     addAlert,
-  } = useAlerts();
+  } = useAlerts(ALERTS_PER_PAGE);
 
   // Trending markets data
   const {
@@ -311,7 +316,17 @@ function App() {
 
         {/* Alert feed */}
         {!alertsLoading && !alertsError && (
-          <AlertFeed alerts={alerts} isMobile={isMobile} onAlertClick={handleAlertClick} minThreshold={settings.minAlertThreshold} />
+          <AlertFeed
+            alerts={alerts}
+            isMobile={isMobile}
+            onAlertClick={handleAlertClick}
+            minThreshold={settings.minAlertThreshold}
+            currentPage={alertsPage}
+            totalPages={alertsTotalPages}
+            totalItems={totalAlerts}
+            itemsPerPage={ALERTS_PER_PAGE}
+            onPageChange={setAlertsPage}
+          />
         )}
       </div>
     );

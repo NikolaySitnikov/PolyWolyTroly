@@ -2,7 +2,7 @@
  * useAlerts Hook
  *
  * React hook for fetching and managing live alert data.
- * Handles loading, error states, and seamless live updates.
+ * Handles loading, error states, pagination, and seamless live updates.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -14,6 +14,9 @@ interface UseAlertsResult {
   loading: boolean;
   error: string | null;
   total: number;
+  page: number;
+  totalPages: number;
+  setPage: (page: number) => void;
   refetch: () => void;
   /** Add a new alert seamlessly (no loading state) - used for WebSocket updates */
   addAlert: (alert: Alert) => void;
@@ -33,12 +36,15 @@ function transformDeposit(deposit: DepositsResponse['deposits'][0]): Alert {
   };
 }
 
-export function useAlerts(limit = 50): UseAlertsResult {
+export function useAlerts(limit = 20): UseAlertsResult {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const isInitialLoad = useRef(true);
+
+  const totalPages = Math.ceil(total / limit);
 
   const fetchData = useCallback(async () => {
     // Only show loading on initial load, not on refetch
@@ -48,7 +54,7 @@ export function useAlerts(limit = 50): UseAlertsResult {
     setError(null);
 
     try {
-      const response = await fetchDeposits(1, limit);
+      const response = await fetchDeposits(page, limit);
       setAlerts(response.deposits.map(transformDeposit));
       setTotal(response.total);
     } catch (err) {
@@ -57,7 +63,7 @@ export function useAlerts(limit = 50): UseAlertsResult {
       setLoading(false);
       isInitialLoad.current = false;
     }
-  }, [limit]);
+  }, [limit, page]);
 
   useEffect(() => {
     fetchData();
@@ -67,8 +73,10 @@ export function useAlerts(limit = 50): UseAlertsResult {
    * Add a new alert without triggering loading state.
    * Used for live WebSocket updates.
    * Prevents duplicates by checking alert ID.
+   * Only adds to first page to avoid confusion.
    */
   const addAlert = useCallback((alert: Alert) => {
+    // Only add live alerts when on page 1
     setAlerts((prev) => {
       // Check if alert already exists
       const exists = prev.some((a) => a.id === alert.id);
@@ -78,6 +86,8 @@ export function useAlerts(limit = 50): UseAlertsResult {
       // Add new alert at the beginning (most recent)
       return [alert, ...prev];
     });
+    // Increment total count
+    setTotal((prev) => prev + 1);
   }, []);
 
   return {
@@ -85,6 +95,9 @@ export function useAlerts(limit = 50): UseAlertsResult {
     loading,
     error,
     total,
+    page,
+    totalPages,
+    setPage,
     refetch: fetchData,
     addAlert,
   };

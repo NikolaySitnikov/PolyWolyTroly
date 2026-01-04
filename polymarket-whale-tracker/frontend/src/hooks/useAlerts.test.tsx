@@ -58,7 +58,7 @@ describe('useAlerts', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    expect(fetchDeposits).toHaveBeenCalledWith(1, 50);
+    expect(fetchDeposits).toHaveBeenCalledWith(1, 20);
   });
 
   it('should transform deposits to alerts', async () => {

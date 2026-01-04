@@ -11,6 +11,7 @@ import { useState, useMemo } from 'react';
 import { tokens } from '../styles/tokens';
 import { LiveIndicator } from './LiveIndicator';
 import { EmptyState } from './EmptyState';
+import { Pagination } from './Pagination';
 import type { Alert } from '../types/alert';
 
 interface AlertFeedProps {
@@ -19,6 +20,12 @@ interface AlertFeedProps {
   onAlertClick?: (alert: Alert) => void;
   /** Minimum amount to display (filters out smaller alerts) */
   minThreshold?: number;
+  /** Pagination props (optional - if not provided, no pagination) */
+  currentPage?: number;
+  totalPages?: number;
+  totalItems?: number;
+  itemsPerPage?: number;
+  onPageChange?: (page: number) => void;
 }
 
 /**
@@ -100,7 +107,17 @@ function AlertTypeBadge({ type }: { type: Alert['type'] }) {
   );
 }
 
-export function AlertFeed({ alerts, isMobile, onAlertClick, minThreshold = 0 }: AlertFeedProps) {
+export function AlertFeed({
+  alerts,
+  isMobile,
+  onAlertClick,
+  minThreshold = 0,
+  currentPage,
+  totalPages,
+  totalItems,
+  itemsPerPage,
+  onPageChange,
+}: AlertFeedProps) {
   const [filter, setFilter] = useState('');
 
   // Filter alerts by wallet address and minimum threshold
@@ -333,6 +350,17 @@ export function AlertFeed({ alerts, isMobile, onAlertClick, minThreshold = 0 }: 
           ))
         )}
       </div>
+
+      {/* Pagination - only show when pagination props are provided */}
+      {onPageChange && totalPages !== undefined && currentPage !== undefined && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems ?? 0}
+          itemsPerPage={itemsPerPage ?? 20}
+          onPageChange={onPageChange}
+        />
+      )}
     </div>
   );
 }
