@@ -311,4 +311,90 @@ describe('TrendingMarkets Component', () => {
       expect(sparklines[0].style.animation).toContain('shimmer');
     });
   });
+
+  describe('Price Change Indicators', () => {
+    it('should show positive price change with up arrow and green color', () => {
+      const marketsWithPositiveChange = [{
+        ...mockMarkets[0],
+        priceHistory: [
+          { t: 1704067200, p: 0.50 },
+          { t: 1704153600, p: 0.60 }, // 20% increase
+        ],
+      }];
+
+      render(
+        <TrendingMarkets
+          markets={marketsWithPositiveChange}
+          loading={false}
+          error={null}
+          isMobile={false}
+        />
+      );
+
+      const priceChange = screen.getByTestId('price-change');
+      expect(priceChange).toHaveTextContent('↑20%');
+    });
+
+    it('should show negative price change with down arrow and red color', () => {
+      const marketsWithNegativeChange = [{
+        ...mockMarkets[0],
+        priceHistory: [
+          { t: 1704067200, p: 0.60 },
+          { t: 1704153600, p: 0.48 }, // 20% decrease
+        ],
+      }];
+
+      render(
+        <TrendingMarkets
+          markets={marketsWithNegativeChange}
+          loading={false}
+          error={null}
+          isMobile={false}
+        />
+      );
+
+      const priceChange = screen.getByTestId('price-change');
+      expect(priceChange).toHaveTextContent('↓20%');
+    });
+
+    it('should not show price change indicator when price history is empty', () => {
+      const marketsWithoutHistory = [{
+        ...mockMarkets[0],
+        priceHistory: [],
+      }];
+
+      render(
+        <TrendingMarkets
+          markets={marketsWithoutHistory}
+          loading={false}
+          error={null}
+          isMobile={false}
+        />
+      );
+
+      expect(screen.queryByTestId('price-change')).not.toBeInTheDocument();
+    });
+
+    it('should format small changes with one decimal place', () => {
+      const marketsWithSmallChange = [{
+        ...mockMarkets[0],
+        priceHistory: [
+          { t: 1704067200, p: 0.50 },
+          { t: 1704153600, p: 0.525 }, // 5% increase
+        ],
+      }];
+
+      render(
+        <TrendingMarkets
+          markets={marketsWithSmallChange}
+          loading={false}
+          error={null}
+          isMobile={false}
+        />
+      );
+
+      const priceChange = screen.getByTestId('price-change');
+      expect(priceChange).toHaveTextContent('↑5.0%');
+    });
+  });
 });

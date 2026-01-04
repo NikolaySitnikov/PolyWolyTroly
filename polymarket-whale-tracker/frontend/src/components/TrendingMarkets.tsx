@@ -58,6 +58,31 @@ function getMarketUrl(eventSlug: string): string {
 }
 
 /**
+ * Calculate price change percentage from price history data
+ * Returns null if insufficient data
+ */
+function calculatePriceChange(priceHistory: { t: number; p: number }[] | undefined): number | null {
+  if (!priceHistory || priceHistory.length < 2) return null;
+  const firstPrice = priceHistory[0].p;
+  const lastPrice = priceHistory[priceHistory.length - 1].p;
+  if (firstPrice === 0) return null;
+  return ((lastPrice - firstPrice) / firstPrice) * 100;
+}
+
+/**
+ * Format price change with arrow indicator
+ */
+function formatPriceChange(change: number): { text: string; isPositive: boolean } {
+  const arrow = change >= 0 ? '↑' : '↓';
+  const absChange = Math.abs(change);
+  const formatted = absChange >= 10 ? absChange.toFixed(0) : absChange.toFixed(1);
+  return {
+    text: `${arrow}${formatted}%`,
+    isPositive: change >= 0,
+  };
+}
+
+/**
  * Single market card component
  */
 function MarketCard({
@@ -68,6 +93,8 @@ function MarketCard({
   index: number;
 }) {
   const yesPercent = Math.round(market.yesPrice * 100);
+  const priceChange = calculatePriceChange(market.priceHistory);
+  const changeDisplay = priceChange !== null ? formatPriceChange(priceChange) : null;
 
   return (
     <a
@@ -180,13 +207,29 @@ function MarketCard({
           </span>
         </div>
 
-        {/* Sparkline - price history chart */}
-        <Sparkline
-          data={market.priceHistory || []}
-          loading={market.priceHistoryLoading}
-          width={60}
-          height={24}
-        />
+        {/* Sparkline with price change indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Sparkline
+            data={market.priceHistory || []}
+            loading={market.priceHistoryLoading}
+            width={50}
+            height={24}
+          />
+          {changeDisplay && (
+            <span
+              data-testid="price-change"
+              style={{
+                fontFamily: tokens.fonts.mono,
+                fontSize: '11px',
+                fontWeight: 500,
+                color: changeDisplay.isPositive ? tokens.colors.profit : tokens.colors.loss,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {changeDisplay.text}
+            </span>
+          )}
+        </div>
 
         {/* 24h volume */}
         <div
