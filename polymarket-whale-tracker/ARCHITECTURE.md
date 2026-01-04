@@ -446,18 +446,144 @@ The system is designed to run safely across multiple instances without sending d
 
 ---
 
+## Web Dashboard & API Server
+
+The system includes a web-based dashboard for visualizing whale activity in real-time.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          WEB DASHBOARD ARCHITECTURE                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌──────────────────────────────────────────────────────────────────────┐
+    │  FRONTEND (React + TypeScript + Vite)                                │
+    │                                                                       │
+    │  • Dashboard: Real-time stats, whale count, volume, alerts           │
+    │  • Whale Table: Searchable, sortable list with pagination            │
+    │  • Alert Feed: Live deposit notifications via WebSocket              │
+    │  • Wallet Profiles: Individual wallet details & transaction history  │
+    │  • Trending Markets: Top prediction markets by volume                │
+    │  • Settings: User preferences, theme, notifications                  │
+    │                                                                       │
+    │  Tech: React 18, TypeScript, Vite, Vitest (126 tests)               │
+    │  Design: Cyberpunk terminal aesthetic ("teenage hacker meets         │
+    │          Wall Street terminal")                                       │
+    └────────────────────────────┬─────────────────────────────────────────┘
+                                 │
+                                 │ HTTP API + WebSocket
+                                 ▼
+    ┌──────────────────────────────────────────────────────────────────────┐
+    │  BACKEND API SERVER (Express + WebSocket)                            │
+    │                                                                       │
+    │  REST Endpoints:                                                      │
+    │  • GET /api/health          - Health check                           │
+    │  • GET /api/stats           - Dashboard statistics                   │
+    │  • GET /api/wallets         - Paginated whale list (search/sort)     │
+    │  • GET /api/wallets/:addr   - Individual wallet details              │
+    │  • GET /api/deposits        - Recent deposit history                 │
+    │  • GET /api/markets/trending - Top markets by whale volume           │
+    │                                                                       │
+    │  WebSocket:                                                           │
+    │  • WS /ws                   - Real-time deposit event stream         │
+    │                                                                       │
+    │  Integration:                                                         │
+    │  • Queries PostgreSQL database (same as tracker)                     │
+    │  • Fetches trending markets from Polymarket API                      │
+    │  • Broadcasts new deposits to connected WebSocket clients            │
+    └────────────────────────────┬─────────────────────────────────────────┘
+                                 │
+                                 │ Queries same database
+                                 ▼
+    ┌──────────────────────────────────────────────────────────────────────┐
+    │  SHARED POSTGRESQL DATABASE                                          │
+    │                                                                       │
+    │  • Tracker writes deposits/wallets as they happen                    │
+    │  • API server reads for dashboard queries                            │
+    │  • No conflicts: tracker writes, API reads                           │
+    └──────────────────────────────────────────────────────────────────────┘
+```
+
+### Frontend-Backend Data Flow
+
+```
+    User opens dashboard in browser
+              │
+              │ HTTP GET /api/stats
+              ▼
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  API queries database:                                           │
+    │  • Total whale count                                             │
+    │  • Total volume deposited                                        │
+    │  • Alerts sent today                                             │
+    │  • New whales this week                                          │
+    └─────────────────────────────────────────────────────────────────┘
+              │
+              │ Returns JSON
+              ▼
+    Dashboard displays stats
+              │
+              │ Establishes WebSocket connection
+              ▼
+    ┌─────────────────────────────────────────────────────────────────┐
+    │  New deposit detected by tracker:                               │
+    │                                                                   │
+    │  1. Tracker processes deposit (blockchain.ts)                   │
+    │  2. Writes to database                                           │
+    │  3. Sends Telegram alert                                         │
+    │  4. Tracker emits event that API server can listen to           │
+    │  5. API server broadcasts to all WebSocket clients              │
+    └─────────────────────────────────────────────────────────────────┘
+              │
+              │ WebSocket message
+              ▼
+    Dashboard shows live alert in feed
+    (without page refresh)
+```
+
+### Frontend Component Structure
+
+```
+frontend/src/
+├── App.tsx                    # Main shell, routing, WebSocket
+├── components/
+│   ├── Dashboard.tsx          # Stats overview
+│   ├── WhaleTable.tsx         # Searchable/sortable whale list
+│   ├── AlertFeed.tsx          # Live deposit notifications
+│   ├── WalletProfile.tsx      # Individual wallet details
+│   ├── TrendingMarkets.tsx    # Top markets list
+│   ├── Header.tsx             # Navigation
+│   ├── MobileNav.tsx          # Mobile navigation
+│   ├── Settings.tsx           # User preferences
+│   └── ...                    # Supporting components
+├── hooks/
+│   ├── useStats.ts            # Dashboard statistics
+│   ├── useWhales.ts           # Whale list with pagination
+│   ├── useAlerts.ts           # Alert feed
+│   ├── useWallet.ts           # Individual wallet data
+│   ├── useTrendingMarkets.ts  # Markets data
+│   └── useWebSocket.ts        # Real-time updates
+├── styles/
+│   ├── tokens.ts              # Design system tokens
+│   └── globals.css            # Global styles
+└── types/                     # TypeScript types
+```
+
+---
+
 ## Error Handling Philosophy
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  SCENARIO                          │  HANDLING                              │
 ├────────────────────────────────────┼────────────────────────────────────────┤
-│  WebSocket disconnects             │  Auto-reconnect (10 attempts)          │
+│  Blockchain WebSocket disconnects  │  Auto-reconnect (10 attempts)          │
 │  Polymarket API timeout            │  Treat as unknown (not new) - safe     │
 │  Telegram send fails               │  Log error, continue monitoring        │
 │  Duplicate transaction detected    │  Skip gracefully (idempotent)          │
 │  Database connection lost          │  Connection pool handles reconnect     │
 │  Redis unavailable                 │  Continue with slower DB lookup        │
 │  Multiple instances running        │  Redis lock prevents duplicate alerts  │
+│  Frontend API request fails        │  Show error state, retry available     │
+│  Frontend WebSocket drops          │  Auto-reconnect, resume live updates   │
 └────────────────────────────────────┴────────────────────────────────────────┘
 ```

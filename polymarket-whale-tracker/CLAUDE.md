@@ -5,26 +5,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Development
+# Backend Tracker Development
 npm run dev          # Run with hot-reload (nodemon + tsx)
 npx tsx src/index.ts # Run directly without compilation
 npm run build        # Compile TypeScript to dist/
 npm start            # Run compiled JS from dist/
 
+# API Server (serves frontend dashboard)
+npm run server       # Start API server on port 3001
+npm run server:dev   # Start with hot-reload
+
+# Frontend Development
+cd frontend
+npm run dev          # Start Vite dev server on port 5173
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm test             # Run frontend tests (126 tests)
+
 # Database
 npm run db:setup     # Create PostgreSQL schema (wallets, deposits, notifications tables)
 
 # Testing
-npm test             # Run all tests once (126 tests across 10 files)
+npm test             # Run backend tests
 npm run test:watch   # Run tests in watch mode
 npm test -- src/services/blockchain.test.ts  # Run single test file
 ```
 
 ## Architecture
 
-PolyWolyTroly - Real-time monitoring of large USDC deposits to Polymarket on Polygon. Sends Telegram alerts when whales deposit, distinguishing between first-time Polymarket users and returning users.
+PolyWolyTroly - Real-time monitoring of large USDC deposits to Polymarket on Polygon. Has three main components:
+1. **Backend Tracker**: Monitors blockchain, sends Telegram alerts
+2. **API Server**: REST API + WebSocket server for web dashboard
+3. **Frontend Dashboard**: React web app for visualizing whale activity
 
-### Data Flow
+### Backend Tracker Data Flow
 1. **blockchain.ts** - WebSocket listener (viem) watches USDC Transfer events to Polymarket Exchange
 2. **walletTracker.ts** - Determines if depositor is new using 3-layer lookup:
    - Redis cache (fast path)
@@ -34,6 +48,26 @@ PolyWolyTroly - Real-time monitoring of large USDC deposits to Polymarket on Pol
 4. **notifications.ts** - Sends Telegram alert with "FIRST TIME DEPOSIT" or "Returning user" status
 5. **database.ts** - PostgreSQL persistence (pg) for wallets/deposits/notifications
 6. **cache.ts** - Redis (ioredis) for fast wallet lookups, block tracking, and deduplication
+
+### API Server (src/api/server.ts)
+REST API + WebSocket server that powers the web dashboard:
+- **GET /api/health** - Health check
+- **GET /api/stats** - Dashboard statistics (whale count, volume, alerts)
+- **GET /api/wallets** - Paginated whale list with search/sort
+- **GET /api/wallets/:address** - Individual wallet details
+- **GET /api/deposits** - Recent deposit history
+- **GET /api/markets/trending** - Top prediction markets by whale volume
+- **WS /ws** - Real-time deposit events via WebSocket
+
+### Frontend (frontend/)
+React + TypeScript + Vite dashboard with cyberpunk terminal aesthetic:
+- **Dashboard**: Real-time stats with live WebSocket updates
+- **Whale Table**: Searchable, sortable list with pagination
+- **Alert Feed**: Live deposit notifications
+- **Wallet Profiles**: Individual wallet details and transaction history
+- **Trending Markets**: Top markets by whale activity
+- **Settings**: User preferences, theme, notifications
+- **126 tests** with Vitest + React Testing Library
 
 ### Key Services
 
