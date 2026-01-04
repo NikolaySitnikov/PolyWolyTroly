@@ -168,6 +168,31 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
               color: tokens.colors.textPrimary,
             }}
           />
+          {filter && (
+            <button
+              onClick={() => setFilter('')}
+              aria-label="Clear search"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: '4px 8px',
+                cursor: 'pointer',
+                color: tokens.colors.textMuted,
+                fontSize: '16px',
+                lineHeight: 1,
+                borderRadius: '4px',
+                transition: 'color 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = tokens.colors.textPrimary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = tokens.colors.textMuted;
+              }}
+            >
+              ×
+            </button>
+          )}
         </div>
         <div
           style={{
@@ -222,6 +247,24 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
               color: tokens.colors.textPrimary,
             }}
           />
+          {filter && (
+            <button
+              onClick={() => setFilter('')}
+              aria-label="Clear search"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: '4px 8px',
+                cursor: 'pointer',
+                color: tokens.colors.textMuted,
+                fontSize: '18px',
+                lineHeight: 1,
+                borderRadius: '4px',
+              }}
+            >
+              ×
+            </button>
+          )}
         </div>
 
         {/* Cards */}
@@ -381,6 +424,31 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
             color: tokens.colors.textPrimary,
           }}
         />
+        {filter && (
+          <button
+            onClick={() => setFilter('')}
+            aria-label="Clear search"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: '4px 8px',
+              cursor: 'pointer',
+              color: tokens.colors.textMuted,
+              fontSize: '16px',
+              lineHeight: 1,
+              borderRadius: '4px',
+              transition: 'color 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = tokens.colors.textPrimary;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = tokens.colors.textMuted;
+            }}
+          >
+            ×
+          </button>
+        )}
         <span
           style={{
             display: 'inline-flex',

@@ -39,15 +39,38 @@ function App() {
     loading: whalesLoading,
     error: whalesError,
     refetch: refetchWhales,
+    updateWhale,
+    addWhale,
   } = useWhales();
 
   // Connect to WebSocket for instant live updates
-  const { connected } = useWebSocket(WS_URL, {
+  // Uses seamless updates - no loading states, no page refresh
+  useWebSocket(WS_URL, {
     onStats: updateStats,
     onDeposit: (deposit) => {
       console.log('New deposit:', deposit);
-      // Refetch whales to get updated data
-      refetchWhales();
+      // Seamlessly update or add whale data without triggering loading state
+      if (deposit.isNewWallet) {
+        // New whale - add to list
+        addWhale({
+          address: deposit.walletAddress,
+          firstSeenAt: new Date().toISOString(),
+          totalDeposited: deposit.amount,
+          depositCount: 1,
+        });
+      } else {
+        // Existing whale - update their deposit count and total
+        // Find the existing whale and increment their values
+        const existingWhale = whales.find(
+          (w) => w.address.toLowerCase() === deposit.walletAddress.toLowerCase()
+        );
+        if (existingWhale) {
+          updateWhale(deposit.walletAddress, {
+            totalDeposited: existingWhale.totalDeposited + deposit.amount,
+            depositCount: existingWhale.depositCount + 1,
+          });
+        }
+      }
     },
   });
 
