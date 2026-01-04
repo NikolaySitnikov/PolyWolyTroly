@@ -122,4 +122,18 @@ describe('StatCard Component', () => {
       expect(value.style.fontFamily).toContain('Exo 2');
     });
   });
+
+  describe('Hover Effects', () => {
+    it('should have transition property for smooth hover', () => {
+      render(<StatCard {...defaultProps} />);
+      const card = screen.getByTestId('stat-card');
+      expect(card.style.transition).toContain('all');
+    });
+
+    it('should have cursor pointer for interactivity', () => {
+      render(<StatCard {...defaultProps} />);
+      const card = screen.getByTestId('stat-card');
+      expect(card.style.cursor).toBe('pointer');
+    });
+  });
 });

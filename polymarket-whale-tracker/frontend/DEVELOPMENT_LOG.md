@@ -1615,4 +1615,39 @@ All data-fetching hooks now use the same pattern:
 
 ---
 
+### Task 2: Implement Hover Glow Effects on StatCard Component
+
+**Status**: ✅ COMPLETE
+
+**Goal**: Add hover effects to StatCard per DESIGN_SYSTEM.md specifications for the "Elevated Card (hover)" pattern.
+
+**Implementation**:
+- Added `cursor: pointer` for interactivity indication
+- Added `transition: all 150ms ease-out-expo` for smooth hover
+- On hover (desktop only via `@media (hover: hover)`):
+  - `transform: translateY(-2px)` - card lifts
+  - `borderColor: cyan` - border highlights
+  - `boxShadow: 0 0 30px cyanGlow, inset 0 1px 0 cyan` - glow effect
+- On mouse leave: reset to default state
+
+**Design System Compliance**:
+- Per DESIGN_SYSTEM.md "Elevated Card (hover)" specs
+- Uses tokens for colors and animation timing
+- Only applies on devices with hover capability (mobile-safe)
+
+**Files Modified**:
+| File | Changes |
+|------|---------|
+| `src/components/StatCard.tsx` | Added hover handlers and transition styles |
+| `src/components/StatCard.test.tsx` | Added 2 tests for hover effects |
+
+**Tests**: All 284 tests pass (2 new tests added)
+
+**Visual Verification**:
+- Open http://localhost:5173
+- Hover over any StatCard on the Dashboard
+- Card should lift 2px and glow cyan
+
+---
+
 *"In the void, whales move in silence. We see them."*
