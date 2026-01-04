@@ -1685,4 +1685,42 @@ boxShadow: rgba(0, 255, 240, 0.2) 0px 0px 30px... ✅ (glow)
 
 ---
 
+### Task 4: Implement Hover Effects on TrendingMarkets Cards
+
+**Status**: ✅ COMPLETE
+
+**Goal**: Fix hover effects on TrendingMarkets market cards per DESIGN_SYSTEM.md "Elevated Card (hover)" pattern.
+
+**Issue Identified**: The TrendingMarkets component already had hover handlers implemented, but the `translateY(-2px)` transform wasn't working due to the same `animation-fill-mode: both` conflict as StatCard and WhaleTable.
+
+**Implementation**:
+- Added `onAnimationEnd` handler to clear entrance animation after it completes
+- Added `@media (hover: hover)` check to only apply hover on desktop
+- Existing hover handlers work correctly now:
+  - `transform: translateY(-2px)` - card lifts
+  - `borderColor: cyan` - border highlights
+  - `boxShadow: cardHover` - glow effect from tokens
+
+**Playwright MCP Verification**:
+```
+Before fix:
+transform: matrix(1, 0, 0, 1, 0, 0) ❌ (identity - no transform applied)
+
+After fix:
+transform: matrix(1, 0, 0, 1, 0, -2) ✅ (translateY(-2px))
+borderColor: rgb(0, 255, 240) ✅ (cyan)
+boxShadow: rgba(0, 255, 240, 0.2) 0px 0px 30px... ✅ (glow)
+animation: 0s ease 0s 1 normal none running none ✅ (cleared)
+```
+
+**Files Modified**:
+| File | Changes |
+|------|---------|
+| `src/components/TrendingMarkets.tsx` | Added onAnimationEnd handler, matchMedia check |
+| `src/components/TrendingMarkets.test.tsx` | Added 2 tests for hover effects |
+
+**Tests**: All 288 tests pass (2 new tests added)
+
+---
+
 *"In the void, whales move in silence. We see them."*

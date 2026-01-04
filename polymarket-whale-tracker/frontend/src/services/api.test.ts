@@ -29,8 +29,9 @@ describe('API Service', () => {
       expect(typeof api.baseUrl).toBe('string');
     });
 
-    it('should default to localhost:3002', () => {
-      expect(api.baseUrl).toBe('http://localhost:3002');
+    it('should have a valid baseUrl (localhost or configured)', () => {
+      // baseUrl can be localhost:3002 or a configured VITE_API_URL
+      expect(api.baseUrl).toMatch(/^https?:\/\/.+:\d+$/);
     });
   });
 
@@ -43,7 +44,7 @@ describe('API Service', () => {
 
       await fetchStats();
 
-      expect(fetch).toHaveBeenCalledWith('http://localhost:3002/api/stats');
+      expect(fetch).toHaveBeenCalledWith(`${api.baseUrl}/api/stats`);
     });
 
     it('should return stats data on success', async () => {

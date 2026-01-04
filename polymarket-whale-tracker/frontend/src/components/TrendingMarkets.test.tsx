@@ -234,4 +234,34 @@ describe('TrendingMarkets Component', () => {
       expect(viewAllLink).toHaveAttribute('href', 'https://polymarket.com');
     });
   });
+
+  describe('Hover Effects', () => {
+    it('should have cursor pointer on market cards', () => {
+      render(
+        <TrendingMarkets
+          markets={mockMarkets}
+          loading={false}
+          error={null}
+          isMobile={false}
+        />
+      );
+
+      const cards = screen.getAllByTestId('market-card');
+      expect(cards[0]).toHaveStyle({ cursor: 'pointer' });
+    });
+
+    it('should have transition property on market cards for hover effects', () => {
+      render(
+        <TrendingMarkets
+          markets={mockMarkets}
+          loading={false}
+          error={null}
+          isMobile={false}
+        />
+      );
+
+      const cards = screen.getAllByTestId('market-card');
+      expect(cards[0].style.transition).toContain('all');
+    });
+  });
 });

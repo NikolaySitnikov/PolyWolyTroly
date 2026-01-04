@@ -80,10 +80,16 @@ function MarketCard({
         animation: `fadeInUp 0.4s ${index * 0.05}s both cubic-bezier(0.16, 1, 0.3, 1)`,
         cursor: 'pointer',
       }}
+      onAnimationEnd={(e) => {
+        // Clear animation so hover transform can work
+        e.currentTarget.style.animation = 'none';
+      }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = tokens.colors.cyan;
-        e.currentTarget.style.boxShadow = tokens.shadows.cardHover;
-        e.currentTarget.style.transform = 'translateY(-2px)';
+        if (window.matchMedia('(hover: hover)').matches) {
+          e.currentTarget.style.borderColor = tokens.colors.cyan;
+          e.currentTarget.style.boxShadow = tokens.shadows.cardHover;
+          e.currentTarget.style.transform = 'translateY(-2px)';
+        }
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.borderColor = tokens.colors.border;
