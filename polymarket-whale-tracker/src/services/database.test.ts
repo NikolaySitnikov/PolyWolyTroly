@@ -301,6 +301,150 @@ describe("database service", () => {
   });
 });
 
+describe("getStats", () => {
+  beforeEach(async () => {
+    vi.resetModules();
+    mockQuery.mockReset();
+  });
+
+  it("should return dashboard statistics with trends", async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ count: "42" }] }) // whaleCount
+      .mockResolvedValueOnce({ rows: [{ count: "35" }] }) // whaleCountLastWeek
+      .mockResolvedValueOnce({ rows: [{ sum: "15750000" }] }) // totalVolume
+      .mockResolvedValueOnce({ rows: [{ sum: "14500000" }] }) // volumeLastWeek
+      .mockResolvedValueOnce({ rows: [{ count: "12" }] }) // alertsToday
+      .mockResolvedValueOnce({ rows: [{ count: "5" }] }); // newWhalesThisWeek
+
+    const { db } = await import("./database.js");
+    const result = await db.getStats();
+
+    expect(result).toEqual({
+      whaleCount: 42,
+      whaleCountTrend: 20, // (42-35)/35 * 100 = 20%
+      totalVolume: 15750000,
+      totalVolumeTrend: 8.62, // (15750000-14500000)/14500000 * 100 = 8.62%
+      alertsToday: 12,
+      newWhalesThisWeek: 5,
+    });
+  });
+
+  it("should return 0 trends when previous period is 0", async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ count: "10" }] }) // whaleCount
+      .mockResolvedValueOnce({ rows: [{ count: "0" }] }) // whaleCountLastWeek (0)
+      .mockResolvedValueOnce({ rows: [{ sum: "5000000" }] }) // totalVolume
+      .mockResolvedValueOnce({ rows: [{ sum: "0" }] }) // volumeLastWeek (0)
+      .mockResolvedValueOnce({ rows: [{ count: "5" }] }) // alertsToday
+      .mockResolvedValueOnce({ rows: [{ count: "10" }] }); // newWhalesThisWeek
+
+    const { db } = await import("./database.js");
+    const result = await db.getStats();
+
+    expect(result.whaleCountTrend).toBe(0);
+    expect(result.totalVolumeTrend).toBe(0);
+  });
+
+  it("should return 0 for null values", async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [{ count: "0" }] })
+      .mockResolvedValueOnce({ rows: [{ count: "0" }] })
+      .mockResolvedValueOnce({ rows: [{ sum: null }] })
+      .mockResolvedValueOnce({ rows: [{ sum: null }] })
+      .mockResolvedValueOnce({ rows: [{ count: "0" }] })
+      .mockResolvedValueOnce({ rows: [{ count: "0" }] });
+
+    const { db } = await import("./database.js");
+    const result = await db.getStats();
+
+    expect(result).toEqual({
+      whaleCount: 0,
+      whaleCountTrend: 0,
+      totalVolume: 0,
+      totalVolumeTrend: 0,
+      alertsToday: 0,
+      newWhalesThisWeek: 0,
+    });
+  });
+});
+
+describe("getAllWallets", () => {
+  beforeEach(async () => {
+    vi.resetModules();
+    mockQuery.mockReset();
+  });
+
+  it("should return paginated wallets", async () => {
+    const mockWallets = [
+      { address: "0x1234", total_deposited: 50000, deposit_count: 5 },
+      { address: "0xabcd", total_deposited: 30000, deposit_count: 3 },
+    ];
+    mockQuery
+      .mockResolvedValueOnce({ rows: mockWallets })
+      .mockResolvedValueOnce({ rows: [{ count: "10" }] });
+
+    const { db } = await import("./database.js");
+    const result = await db.getAllWallets(1, 20);
+
+    expect(result.wallets).toEqual(mockWallets);
+    expect(result.total).toBe(10);
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(20);
+  });
+
+  it("should apply pagination offset", async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ count: "50" }] });
+
+    const { db } = await import("./database.js");
+    await db.getAllWallets(3, 10);
+
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("LIMIT $1 OFFSET $2"),
+      [10, 20] // page 3 with limit 10 = offset 20
+    );
+  });
+});
+
+describe("getRecentDeposits", () => {
+  beforeEach(async () => {
+    vi.resetModules();
+    mockQuery.mockReset();
+  });
+
+  it("should return paginated deposits", async () => {
+    const mockDeposits = [
+      { id: "1", wallet_address: "0x1234", amount: 50000, created_at: new Date() },
+    ];
+    mockQuery
+      .mockResolvedValueOnce({ rows: mockDeposits })
+      .mockResolvedValueOnce({ rows: [{ count: "100" }] });
+
+    const { db } = await import("./database.js");
+    const result = await db.getRecentDeposits(1, 20);
+
+    expect(result.deposits).toEqual(mockDeposits);
+    expect(result.total).toBe(100);
+  });
+
+  it("should filter by wallet address when provided", async () => {
+    mockQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [{ count: "5" }] });
+
+    const { db } = await import("./database.js");
+    await db.getRecentDeposits(1, 20, "0xABCDEF");
+
+    expect(mockQuery).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("WHERE wallet_address = $3"),
+      [20, 0, "0xabcdef"]
+    );
+  });
+});
+
 describe("Wallet interface", () => {
   it("should export Wallet type with correct properties", async () => {
     // This test validates the interface at compile time

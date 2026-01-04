@@ -13,6 +13,16 @@ import { notifications } from "./notifications.js";
 import { cache } from "./cache.js";
 import pino from "pino";
 
+// Dynamic import to avoid circular dependency in tests
+let broadcastDeposit: ((event: any) => Promise<void>) | null = null;
+import("../api/websocket.js")
+  .then((ws) => {
+    broadcastDeposit = ws.broadcastDeposit;
+  })
+  .catch(() => {
+    // WebSocket module not available (e.g., in tests)
+  });
+
 const logger = pino({ level: "info" });
 
 // Create WebSocket client for real-time events
@@ -85,6 +95,18 @@ export const blockchain = {
       // Send notification for all deposits >= threshold
       if (depositId) {
         console.log(`🚨 Sending alert for $${amount.toLocaleString()} deposit!`);
+
+        // Broadcast to WebSocket clients instantly (if available)
+        if (broadcastDeposit) {
+          await broadcastDeposit({
+            walletAddress: from,
+            amount,
+            txHash: log.transactionHash,
+            blockNumber: log.blockNumber,
+            isNewWallet: isNew,
+            depositId,
+          });
+        }
 
         await notifications.sendTelegramAlert({
           walletAddress: from,

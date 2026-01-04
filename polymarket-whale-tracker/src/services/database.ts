@@ -96,6 +96,137 @@ export const db = {
     return result.rows[0] || null;
   },
 
+  // Get dashboard statistics with trend calculations
+  async getStats(): Promise<{
+    whaleCount: number;
+    whaleCountTrend: number;
+    totalVolume: number;
+    totalVolumeTrend: number;
+    alertsToday: number;
+    newWhalesThisWeek: number;
+  }> {
+    // Get current whale count
+    const whaleCountResult = await pool.query("SELECT COUNT(*) as count FROM wallets");
+    const whaleCount = parseInt(whaleCountResult.rows[0]?.count || "0", 10);
+
+    // Get whale count from 7 days ago (for trend)
+    const whaleCountLastWeekResult = await pool.query(
+      "SELECT COUNT(*) as count FROM wallets WHERE created_at < NOW() - INTERVAL '7 days'"
+    );
+    const whaleCountLastWeek = parseInt(whaleCountLastWeekResult.rows[0]?.count || "0", 10);
+
+    // Calculate whale trend: % change week over week
+    const whaleCountTrend = whaleCountLastWeek > 0
+      ? Math.round(((whaleCount - whaleCountLastWeek) / whaleCountLastWeek) * 100 * 100) / 100
+      : 0;
+
+    // Get total volume (all time)
+    const totalVolumeResult = await pool.query("SELECT SUM(amount) as sum FROM deposits");
+    const totalVolume = parseInt(totalVolumeResult.rows[0]?.sum || "0", 10);
+
+    // Get volume from before last 7 days (for trend)
+    const volumeLastWeekResult = await pool.query(
+      "SELECT SUM(amount) as sum FROM deposits WHERE created_at < NOW() - INTERVAL '7 days'"
+    );
+    const volumeLastWeek = parseInt(volumeLastWeekResult.rows[0]?.sum || "0", 10);
+
+    // Calculate volume trend: % change week over week
+    const totalVolumeTrend = volumeLastWeek > 0
+      ? Math.round(((totalVolume - volumeLastWeek) / volumeLastWeek) * 100 * 100) / 100
+      : 0;
+
+    // Get alerts today (deposits in last 24 hours)
+    const alertsTodayResult = await pool.query(
+      "SELECT COUNT(*) as count FROM deposits WHERE created_at >= NOW() - INTERVAL '24 hours'"
+    );
+    const alertsToday = parseInt(alertsTodayResult.rows[0]?.count || "0", 10);
+
+    // Get new whales this week
+    const newWhalesResult = await pool.query(
+      "SELECT COUNT(*) as count FROM wallets WHERE created_at >= NOW() - INTERVAL '7 days'"
+    );
+    const newWhalesThisWeek = parseInt(newWhalesResult.rows[0]?.count || "0", 10);
+
+    return {
+      whaleCount,
+      whaleCountTrend,
+      totalVolume,
+      totalVolumeTrend,
+      alertsToday,
+      newWhalesThisWeek,
+    };
+  },
+
+  // Get all wallets with pagination
+  async getAllWallets(
+    page: number,
+    limit: number
+  ): Promise<{
+    wallets: Wallet[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const offset = (page - 1) * limit;
+
+    const walletsResult = await pool.query(
+      `SELECT * FROM wallets ORDER BY total_deposited DESC LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
+
+    const countResult = await pool.query("SELECT COUNT(*) as count FROM wallets");
+    const total = parseInt(countResult.rows[0]?.count || "0", 10);
+
+    return {
+      wallets: walletsResult.rows,
+      total,
+      page,
+      limit,
+    };
+  },
+
+  // Get recent deposits with pagination and optional wallet filter
+  async getRecentDeposits(
+    page: number,
+    limit: number,
+    walletAddress?: string
+  ): Promise<{
+    deposits: any[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const offset = (page - 1) * limit;
+
+    let depositsQuery: string;
+    let countQuery: string;
+    let queryParams: any[];
+
+    if (walletAddress) {
+      depositsQuery = `SELECT * FROM deposits WHERE wallet_address = $3 ORDER BY created_at DESC LIMIT $1 OFFSET $2`;
+      countQuery = `SELECT COUNT(*) as count FROM deposits WHERE wallet_address = $1`;
+      queryParams = [limit, offset, walletAddress.toLowerCase()];
+    } else {
+      depositsQuery = `SELECT * FROM deposits ORDER BY created_at DESC LIMIT $1 OFFSET $2`;
+      countQuery = `SELECT COUNT(*) as count FROM deposits`;
+      queryParams = [limit, offset];
+    }
+
+    const depositsResult = await pool.query(depositsQuery, queryParams);
+    const countResult = await pool.query(
+      countQuery,
+      walletAddress ? [walletAddress.toLowerCase()] : []
+    );
+    const total = parseInt(countResult.rows[0]?.count || "0", 10);
+
+    return {
+      deposits: depositsResult.rows,
+      total,
+      page,
+      limit,
+    };
+  },
+
   // Close pool (for cleanup)
   async close(): Promise<void> {
     await pool.end();
