@@ -70,8 +70,10 @@ function parseHash(): ParsedHash {
   return { view: 'dashboard', walletAddress: null };
 }
 
-// WebSocket URL - same port as API
-const WS_URL = 'ws://localhost:3002';
+// WebSocket URL - derived from API URL or defaults to localhost
+const WS_URL = import.meta.env.VITE_API_URL
+  ? import.meta.env.VITE_API_URL.replace('http', 'ws')
+  : 'ws://localhost:3002';
 
 function App() {
   const isMobile = useMobile();
