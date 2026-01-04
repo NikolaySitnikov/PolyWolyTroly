@@ -119,17 +119,36 @@ export function createApp(): Express {
 }
 
 /**
- * Start the server with WebSocket support
+ * Start the server with WebSocket support and blockchain listener
  */
-export function startServer(port: number = 3001): void {
+export async function startServer(port: number = 3001): Promise<void> {
   const app = createApp();
+
+  // Import WebSocket module
+  const { initWebSocket } = await import('./websocket.js');
+
   const server = app.listen(port, () => {
     console.log(`API server running on http://localhost:${port}`);
     console.log(`WebSocket server running on ws://localhost:${port}`);
   });
 
   // Initialize WebSocket on the same server
-  import('./websocket.js').then(({ initWebSocket }) => {
-    initWebSocket(server);
+  initWebSocket(server);
+
+  // Start blockchain listener for instant deposit detection
+  try {
+    const { blockchain } = await import('../services/blockchain.js');
+    await blockchain.startListening();
+    console.log('Blockchain listener started - deposits will push instantly');
+  } catch (error) {
+    console.error('Failed to start blockchain listener:', error);
+    console.log('WebSocket will still work, but deposits won\'t push automatically');
+  }
+
+  // Keep the process alive
+  process.on('SIGINT', () => {
+    console.log('Shutting down...');
+    server.close();
+    process.exit(0);
   });
 }

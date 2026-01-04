@@ -32,3 +32,45 @@ export async function fetchStats(): Promise<StatsResponse> {
 
   return response.json();
 }
+
+/**
+ * Raw wallet data from API
+ */
+export interface WalletApiResponse {
+  address: string;
+  first_seen_at: string;
+  first_deposit_amount: string;
+  first_deposit_tx: string;
+  total_deposited: string;
+  deposit_count: number;
+  is_notified: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Paginated wallets response from API
+ */
+export interface WalletsResponse {
+  wallets: WalletApiResponse[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+/**
+ * Fetches paginated list of tracked whale wallets.
+ * @param page - Page number (default 1)
+ * @param limit - Items per page (default 20)
+ * @returns Promise resolving to paginated wallet data
+ * @throws Error if the request fails
+ */
+export async function fetchWhales(page = 1, limit = 20): Promise<WalletsResponse> {
+  const response = await fetch(`${api.baseUrl}/api/wallets?page=${page}&limit=${limit}`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch wallets: ${response.status}`);
+  }
+
+  return response.json();
+}

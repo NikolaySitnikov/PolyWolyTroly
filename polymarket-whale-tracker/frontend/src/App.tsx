@@ -6,6 +6,7 @@
  *
  * Step 5: Connected to real backend API with loading/error states.
  * Step 5b: Live updates via WebSocket - data updates instantly!
+ * Step 6: Whale List/Table with search & sort.
  *
  * @see ../Design docs/DESIGN_SYSTEM.md
  */
@@ -15,12 +16,15 @@ import './styles/globals.css';
 import { tokens } from './styles/tokens';
 import { useMobile } from './hooks/useMobile';
 import { useStats } from './hooks/useStats';
+import { useWhales } from './hooks/useWhales';
 import { useWebSocket } from './hooks/useWebSocket';
 import { Header } from './components/Header';
 import { MobileNav } from './components/MobileNav';
 import { Dashboard } from './components/Dashboard';
 import { DashboardLoading } from './components/DashboardLoading';
 import { DashboardError } from './components/DashboardError';
+import { WhaleTable } from './components/WhaleTable';
+import { GlowText } from './components/GlowText';
 import type { ViewId } from './types/navigation';
 
 // WebSocket URL - same port as API
@@ -30,18 +34,30 @@ function App() {
   const isMobile = useMobile();
   const [currentView, setCurrentView] = useState<ViewId>('dashboard');
   const { data: stats, loading, error, refetch, updateStats } = useStats();
+  const {
+    whales,
+    loading: whalesLoading,
+    error: whalesError,
+    refetch: refetchWhales,
+  } = useWhales();
 
   // Connect to WebSocket for instant live updates
   const { connected } = useWebSocket(WS_URL, {
     onStats: updateStats,
     onDeposit: (deposit) => {
       console.log('New deposit:', deposit);
-      // Future: show toast notification
+      // Refetch whales to get updated data
+      refetchWhales();
     },
   });
 
   const handleNavigate = (view: ViewId) => {
     setCurrentView(view);
+  };
+
+  const handleWhaleClick = (address: string) => {
+    console.log('Whale clicked:', address);
+    // Future: navigate to wallet profile view
   };
 
   const renderDashboardContent = () => {
@@ -58,6 +74,116 @@ function App() {
     }
 
     return null;
+  };
+
+  const renderWhalesContent = () => {
+    return (
+      <div>
+        {/* Page header */}
+        <div style={{ marginBottom: tokens.spacing[6] }}>
+          <h1
+            style={{
+              fontFamily: tokens.fonts.display,
+              fontSize: isMobile ? tokens.fontSizes['2xl'] : tokens.fontSizes['3xl'],
+              fontWeight: tokens.fontWeights.extrabold,
+              color: tokens.colors.textPrimary,
+              marginBottom: tokens.spacing[2],
+              letterSpacing: '-0.02em',
+            }}
+          >
+            🐋 Tracked <GlowText>Whales</GlowText>
+          </h1>
+          <p
+            style={{
+              fontFamily: tokens.fonts.body,
+              fontSize: tokens.fontSizes.sm,
+              color: tokens.colors.textSecondary,
+            }}
+          >
+            Smart money wallets with significant Polymarket activity
+          </p>
+        </div>
+
+        {/* Loading state */}
+        {whalesLoading && (
+          <div
+            style={{
+              background: tokens.colors.surface,
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: '12px',
+              padding: '48px',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '32px',
+                marginBottom: tokens.spacing[4],
+                animation: 'pulse 2s ease-in-out infinite',
+              }}
+            >
+              🐋
+            </div>
+            <p style={{ color: tokens.colors.textSecondary }}>Loading whales...</p>
+          </div>
+        )}
+
+        {/* Error state */}
+        {whalesError && (
+          <div
+            style={{
+              background: tokens.colors.surface,
+              border: `1px solid ${tokens.colors.loss}`,
+              borderRadius: '12px',
+              padding: '48px',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '32px',
+                marginBottom: tokens.spacing[4],
+              }}
+            >
+              ⚠️
+            </div>
+            <p
+              style={{
+                color: tokens.colors.loss,
+                marginBottom: tokens.spacing[4],
+              }}
+            >
+              {whalesError}
+            </p>
+            <button
+              onClick={refetchWhales}
+              style={{
+                padding: '10px 24px',
+                background: tokens.colors.cyan,
+                border: 'none',
+                borderRadius: '8px',
+                fontFamily: tokens.fonts.body,
+                fontSize: '14px',
+                fontWeight: 600,
+                color: tokens.colors.void,
+                cursor: 'pointer',
+              }}
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Whale table */}
+        {!whalesLoading && !whalesError && (
+          <WhaleTable
+            whales={whales}
+            isMobile={isMobile}
+            onWhaleClick={handleWhaleClick}
+          />
+        )}
+      </div>
+    );
   };
 
   return (
@@ -123,9 +249,10 @@ function App() {
       >
         {/* View content */}
         {currentView === 'dashboard' && renderDashboardContent()}
+        {currentView === 'whales' && renderWhalesContent()}
 
         {/* Placeholder for other views - will be implemented in future steps */}
-        {currentView !== 'dashboard' && (
+        {(currentView === 'alerts' || currentView === 'settings') && (
           <div style={{ textAlign: 'center', paddingTop: tokens.spacing[8] }}>
             <h1
               style={{
@@ -137,7 +264,6 @@ function App() {
                 letterSpacing: '-0.02em',
               }}
             >
-              {currentView === 'whales' && 'Tracked Whales'}
               {currentView === 'alerts' && 'Live Alerts'}
               {currentView === 'settings' && 'Settings'}
             </h1>
@@ -152,8 +278,6 @@ function App() {
                 marginBottom: tokens.spacing[8],
               }}
             >
-              {currentView === 'whales' &&
-                'Browse all tracked whale wallets and their activity.'}
               {currentView === 'alerts' &&
                 'Real-time alerts for whale deposits and trades.'}
               {currentView === 'settings' &&
@@ -179,7 +303,7 @@ function App() {
                   color: tokens.colors.textMuted,
                 }}
               >
-                Coming in Step {currentView === 'whales' ? '6' : currentView === 'alerts' ? '7' : '10'}
+                Coming in Step {currentView === 'alerts' ? '7' : '10'}
               </span>
             </div>
           </div>

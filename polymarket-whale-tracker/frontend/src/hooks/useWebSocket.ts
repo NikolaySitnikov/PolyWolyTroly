@@ -41,16 +41,19 @@ export function useWebSocket(
   optionsRef.current = options;
 
   useEffect(() => {
+    console.log('[WebSocket] Connecting to:', url);
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
     ws.onopen = () => {
+      console.log('[WebSocket] Connected!');
       setConnected(true);
     };
 
     ws.onmessage = (event) => {
       try {
         const message: WebSocketMessage = JSON.parse(event.data);
+        console.log('[WebSocket] Received:', message.type, message.data);
 
         switch (message.type) {
           case 'stats_update':
@@ -60,20 +63,23 @@ export function useWebSocket(
             optionsRef.current.onDeposit?.(message.data as DepositEvent);
             break;
         }
-      } catch {
-        // Ignore malformed messages
+      } catch (e) {
+        console.error('[WebSocket] Parse error:', e);
       }
     };
 
     ws.onclose = () => {
+      console.log('[WebSocket] Disconnected');
       setConnected(false);
     };
 
-    ws.onerror = () => {
+    ws.onerror = (error) => {
+      console.error('[WebSocket] Error:', error);
       setConnected(false);
     };
 
     return () => {
+      console.log('[WebSocket] Closing connection');
       ws.close();
     };
   }, [url]);

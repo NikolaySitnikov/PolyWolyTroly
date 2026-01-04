@@ -1002,7 +1002,181 @@ cd frontend && npm test
 
 ---
 
-## Step 6-10: [PENDING]
+## Step 6: Build Whale List/Table with Search & Sort
+
+### Status: COMPLETE
+
+### Goal
+Create a searchable, sortable table of tracked whale wallets with responsive design (table on desktop, cards on mobile).
+
+### Requirements
+- [x] WhaleTable component with desktop table and mobile card views
+- [x] Search functionality to filter wallets by address
+- [x] Sortable columns (Total Deposited, Deposit Count, First Seen)
+- [x] Whale type definitions
+- [x] useWhales hook for fetching wallet data
+- [x] API integration with /api/wallets endpoint
+- [x] Responsive layout (table on desktop, cards on mobile)
+- [x] Loading and error states
+- [x] Integration with App.tsx navigation
+
+### TDD Implementation
+
+**RED Phase:** Wrote 31 failing tests first
+- `WhaleTable.test.tsx` - 20 tests for table component
+- `useWhales.test.tsx` - 11 tests for data fetching hook
+
+**GREEN Phase:** Implemented components to pass all tests
+- Created Whale type definitions
+- Created useWhales hook with pagination
+- Created WhaleTable with search, sort, and responsive views
+- Integrated into App.tsx
+
+**REFACTOR Phase:** Fixed test assertions and styling
+- Fixed search test to use unique search term
+- Applied design system styling from DESIGN_SYSTEM.md
+
+### Tests Written & Passing (31 new tests, 166 frontend total)
+
+**`src/hooks/useWhales.test.tsx`** (11 tests)
+
+*Initial State* (3 tests)
+- Returns loading true initially
+- Returns empty whales array initially
+- Returns null error initially
+
+*Successful Fetch* (3 tests)
+- Sets loading to false after fetch completes
+- Sets whales data after successful fetch
+- Transforms API response to Whale type
+
+*Failed Fetch* (3 tests)
+- Sets error message on failure
+- Sets loading to false on failure
+- Keeps whales empty on failure
+
+*Refetch* (2 tests)
+- Provides a refetch function
+- Refetches data when refetch is called
+
+**`src/components/WhaleTable.test.tsx`** (20 tests)
+
+*Rendering* (4 tests)
+- Renders without crashing
+- Displays all whale addresses
+- Shows whale avatar with first 2 chars
+- Shows truncated address format (0x1234...5678)
+
+*Desktop View* (3 tests)
+- Displays table header on desktop
+- Shows all column headers (Address, Total Deposited, Deposits, First Seen)
+- Shows whale data in table rows
+
+*Mobile View* (3 tests)
+- Shows cards on mobile instead of table
+- Each card shows whale address
+- Each card shows total deposited amount
+
+*Interactions* (3 tests)
+- Calls onWhaleClick when row clicked
+- Filters whales by search term
+- Shows empty state when search has no results
+
+*Sorting* (4 tests)
+- Sorts by total deposited by default
+- Can sort by deposit count
+- Can sort by first seen date
+- Toggles sort direction on click
+
+*Styling* (3 tests)
+- Uses design system colors
+- Has hover effect on rows
+- Uses monospace font for addresses
+
+### Files Created
+
+| File | Description |
+|------|-------------|
+| `src/types/whale.ts` | Whale interface, WhaleSortField, SortDirection types |
+| `src/hooks/useWhales.ts` | Hook for fetching paginated whale data |
+| `src/hooks/useWhales.test.tsx` | 11 tests for useWhales hook |
+| `src/components/WhaleTable.tsx` | Searchable, sortable whale table with responsive design |
+| `src/components/WhaleTable.test.tsx` | 20 tests for WhaleTable component |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/services/api.ts` | Added `fetchWhales()`, `WalletApiResponse`, `WalletsResponse` |
+| `src/App.tsx` | Integrated useWhales, WhaleTable, added whales view routing |
+
+### WhaleTable Features
+
+**Desktop View (Table):**
+- Full table with columns: Address, Total Deposited, Deposits, First Seen
+- Sortable column headers with sort direction indicator (↑/↓)
+- Hover effect with cyan border glow
+- Clickable rows for future wallet profile navigation
+- Monospace font for addresses
+- Currency formatting for deposits
+
+**Mobile View (Cards):**
+- Stacked card layout
+- Each card shows: Avatar, Address, Stats row (Total/Deposits/Days)
+- Touch-friendly with full-width click target
+
+**Search:**
+- Search input at top of table
+- Filters by wallet address (case-insensitive)
+- Empty state with ASCII whale when no results
+
+**Sorting:**
+- Default: Total Deposited (descending)
+- Click column header to sort
+- Click again to toggle direction
+
+### Visual Verification
+
+**Prerequisites:**
+1. Start API server: `cd polymarket-whale-tracker && npm run dev`
+2. Start frontend: `cd frontend && npm run dev`
+
+**Desktop (> 768px):**
+- Navigate to "Whales" tab
+- See table with tracked whale addresses
+- Type in search box to filter
+- Click column headers to sort
+- Hover over rows for cyan glow effect
+- Click a row (console logs address)
+
+**Mobile (< 768px):**
+- Navigate to "Whales" via bottom nav
+- See card layout instead of table
+- Each card shows whale avatar and stats
+- Search still works
+- Cards are touch-friendly
+
+**Empty State:**
+- Search for non-existent address
+- See ASCII whale art with "No whales found" message
+
+### Test Command
+```bash
+cd frontend && npm test
+# Output: 166 tests passing
+```
+
+### API Verification
+```bash
+curl "http://localhost:3002/api/wallets?limit=3"
+# Returns paginated wallet data with total count
+```
+
+### Total Tests: 326 (166 frontend + 160 backend)
+
+---
+
+## Step 7-10: [PENDING]
 
 *See IMPLEMENTATION_PLAN.md for full details*
 
