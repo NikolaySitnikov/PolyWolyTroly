@@ -5,6 +5,7 @@
  * Implements the cyberpunk terminal aesthetic from the design system.
  *
  * Step 5: Connected to real backend API with loading/error states.
+ * Step 5b: Live updates via WebSocket - data updates instantly!
  *
  * @see ../Design docs/DESIGN_SYSTEM.md
  */
@@ -14,6 +15,7 @@ import './styles/globals.css';
 import { tokens } from './styles/tokens';
 import { useMobile } from './hooks/useMobile';
 import { useStats } from './hooks/useStats';
+import { useWebSocket } from './hooks/useWebSocket';
 import { Header } from './components/Header';
 import { MobileNav } from './components/MobileNav';
 import { Dashboard } from './components/Dashboard';
@@ -21,10 +23,22 @@ import { DashboardLoading } from './components/DashboardLoading';
 import { DashboardError } from './components/DashboardError';
 import type { ViewId } from './types/navigation';
 
+// WebSocket URL - same port as API
+const WS_URL = 'ws://localhost:3002';
+
 function App() {
   const isMobile = useMobile();
   const [currentView, setCurrentView] = useState<ViewId>('dashboard');
-  const { data: stats, loading, error, refetch } = useStats();
+  const { data: stats, loading, error, refetch, updateStats } = useStats();
+
+  // Connect to WebSocket for instant live updates
+  const { connected } = useWebSocket(WS_URL, {
+    onStats: updateStats,
+    onDeposit: (deposit) => {
+      console.log('New deposit:', deposit);
+      // Future: show toast notification
+    },
+  });
 
   const handleNavigate = (view: ViewId) => {
     setCurrentView(view);

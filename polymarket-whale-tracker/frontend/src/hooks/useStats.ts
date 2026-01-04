@@ -3,6 +3,7 @@
  *
  * React hook for fetching and managing dashboard statistics.
  * Handles loading, error, and data states with automatic initial fetch.
+ * Supports live updates via WebSocket.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -13,6 +14,7 @@ interface UseStatsResult {
   loading: boolean;
   error: string | null;
   refetch: () => void;
+  updateStats: (stats: StatsResponse) => void;
 }
 
 export function useStats(): UseStatsResult {
@@ -34,6 +36,13 @@ export function useStats(): UseStatsResult {
     }
   }, []);
 
+  // Allow external updates (from WebSocket)
+  const updateStats = useCallback((stats: StatsResponse) => {
+    setData(stats);
+    setLoading(false);
+    setError(null);
+  }, []);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -43,5 +52,6 @@ export function useStats(): UseStatsResult {
     loading,
     error,
     refetch: fetchData,
+    updateStats,
   };
 }

@@ -119,11 +119,17 @@ export function createApp(): Express {
 }
 
 /**
- * Start the server (only when run directly, not in tests)
+ * Start the server with WebSocket support
  */
 export function startServer(port: number = 3001): void {
   const app = createApp();
-  app.listen(port, () => {
+  const server = app.listen(port, () => {
     console.log(`API server running on http://localhost:${port}`);
+    console.log(`WebSocket server running on ws://localhost:${port}`);
+  });
+
+  // Initialize WebSocket on the same server
+  import('./websocket.js').then(({ initWebSocket }) => {
+    initWebSocket(server);
   });
 }

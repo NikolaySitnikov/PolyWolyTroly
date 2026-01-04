@@ -782,6 +782,108 @@ Open **http://localhost:5173/** and verify:
 
 ---
 
+## Step 5b: WebSocket for Instant Live Updates
+
+### Status: COMPLETE
+
+### Goal
+Dashboard data updates instantly when new deposits happen - no polling, no refresh needed.
+
+### Requirements
+- [x] WebSocket server integrated with Express API
+- [x] Frontend connects to WebSocket on mount
+- [x] Stats update instantly when blockchain listener detects deposits
+- [x] New deposits broadcast to all connected clients
+- [x] Graceful handling of connection/disconnection
+
+### TDD Implementation
+
+**RED Phase:** Wrote 7 failing tests for `useWebSocket` hook
+- Connection tests (3): connect on mount, set connected true, close on unmount
+- Message handling tests (3): onStats callback, onDeposit callback, ignore unknown types
+- Reconnection test (1): set connected false on close
+
+**GREEN Phase:** Implemented WebSocket hook and server
+
+### Architecture
+
+```
+┌─────────────────┐     WebSocket      ┌──────────────────┐
+│   React App     │◄──────────────────►│   API Server     │
+│                 │  ws://localhost:3002│                  │
+│  useWebSocket() │                     │  initWebSocket() │
+└────────┬────────┘                     └────────┬─────────┘
+         │                                       │
+         │ onStats(data)                         │ broadcastDeposit()
+         │ onDeposit(data)                       │
+         ▼                                       ▼
+┌─────────────────┐                     ┌──────────────────┐
+│   Dashboard     │                     │ Blockchain       │
+│   (live data)   │                     │ Listener         │
+└─────────────────┘                     └──────────────────┘
+```
+
+### Files Created
+
+| File | Description |
+|------|-------------|
+| `frontend/src/hooks/useWebSocket.ts` | WebSocket hook for live updates |
+| `frontend/src/hooks/useWebSocket.test.tsx` | 7 tests for WebSocket hook |
+| `src/api/websocket.ts` | WebSocket server with broadcast functions |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `package.json` | Added `ws` and `@types/ws` dependencies |
+| `src/api/server.ts` | Initialize WebSocket on server start |
+| `src/services/blockchain.ts` | Call `broadcastDeposit()` on new deposits |
+| `frontend/src/hooks/useStats.ts` | Added `updateStats()` for live updates |
+| `frontend/src/App.tsx` | Connect WebSocket, wire up callbacks |
+
+### WebSocket Messages
+
+**Server → Client:**
+```typescript
+// Stats update (sent on connect and after each deposit)
+{ type: 'stats_update', data: { whaleCount, totalVolume, alertsToday, newWhalesThisWeek } }
+
+// New deposit notification
+{ type: 'new_deposit', data: { walletAddress, amount, txHash, isNewWallet } }
+```
+
+### Test Results
+
+```bash
+# Frontend tests: 135 passing (7 new)
+cd frontend && npm test
+
+# Backend tests: 159 passing
+cd polymarket-whale-tracker && npm test
+
+# Total: 294 tests passing
+```
+
+### Visual Verification
+
+1. Open **http://localhost:5173/**
+2. Open browser DevTools → Console
+3. Watch for "WebSocket client connected" in API server logs
+4. When a deposit happens on Polymarket, dashboard updates **instantly**
+5. Console shows: `New deposit: { walletAddress: "0x...", amount: 50000, ... }`
+
+### How It Works
+
+1. **Frontend connects** to `ws://localhost:3002` on mount
+2. **Server sends current stats** immediately on connection
+3. **Blockchain listener detects deposit** via Polygon WebSocket
+4. **Server broadcasts** to all connected clients:
+   - `new_deposit` event with deposit details
+   - `stats_update` event with refreshed stats
+5. **Frontend updates** Dashboard instantly via `updateStats()` callback
+
+---
+
 ## Step 6-10: [PENDING]
 
 *See IMPLEMENTATION_PLAN.md for full details*
