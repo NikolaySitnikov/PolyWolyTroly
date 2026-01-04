@@ -28,11 +28,12 @@ export function useStats(): UseStatsResult {
     if (isInitialLoad.current) {
       setLoading(true);
     }
-    setError(null);
+    // Don't clear error until fetch succeeds to prevent flicker on retry
 
     try {
       const stats = await fetchStats();
       setData(stats);
+      setError(null); // Clear error only on success
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {

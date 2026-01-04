@@ -4,10 +4,13 @@
  * React hook for fetching and managing trending Polymarket prediction markets.
  * Handles loading, error, and data states with automatic initial fetch.
  * Auto-refreshes every 5 minutes to keep data current.
+ *
+ * Also fetches price history for each market in the background to display
+ * sparkline charts showing 1-week price trends.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchTrendingMarkets, type TrendingMarketResponse } from '../services/api';
+import { fetchTrendingMarkets, fetchPriceHistory, type TrendingMarketResponse } from '../services/api';
 
 /** Refresh interval: 5 minutes */
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
@@ -60,12 +63,48 @@ export function useTrendingMarkets(limit = 8): UseTrendingMarketsResult {
   // Track if this is the initial load (show loading state only on first fetch)
   const isInitialLoad = useRef(true);
 
+  /**
+   * Fetch price history for all markets in parallel (background, non-blocking).
+   * Updates each market with priceHistory data as it arrives.
+   */
+  const fetchAllPriceHistories = useCallback(async (marketsList: TrendingMarketResponse[]) => {
+    // Set all markets to loading state for sparklines
+    setMarkets(prevMarkets =>
+      prevMarkets.map(m => ({ ...m, priceHistoryLoading: true }))
+    );
+
+    // Fetch price history for each market in parallel
+    const historyPromises = marketsList.map(async (market) => {
+      if (!market.clobTokenId) {
+        return { id: market.id, history: [] };
+      }
+      const history = await fetchPriceHistory(market.clobTokenId);
+      return { id: market.id, history };
+    });
+
+    // Process results as they complete
+    const results = await Promise.all(historyPromises);
+
+    if (isMounted.current) {
+      setMarkets(prevMarkets =>
+        prevMarkets.map(market => {
+          const result = results.find(r => r.id === market.id);
+          return {
+            ...market,
+            priceHistory: result?.history || [],
+            priceHistoryLoading: false,
+          };
+        })
+      );
+    }
+  }, []);
+
   const fetchData = useCallback(async () => {
     // Only show loading on initial load, not on background refresh
     if (isInitialLoad.current) {
       setLoading(true);
     }
-    setError(null);
+    // Don't clear error until fetch succeeds to prevent flicker on retry
 
     try {
       const response = await fetchTrendingMarkets(limit);
@@ -73,6 +112,10 @@ export function useTrendingMarkets(limit = 8): UseTrendingMarketsResult {
       if (isMounted.current) {
         setMarkets(response.markets);
         setUpdatedAt(response.updatedAt);
+        setError(null); // Clear error only on success
+
+        // Fetch price histories in the background (non-blocking)
+        fetchAllPriceHistories(response.markets);
       }
     } catch (err) {
       if (isMounted.current) {
@@ -84,7 +127,7 @@ export function useTrendingMarkets(limit = 8): UseTrendingMarketsResult {
         isInitialLoad.current = false;
       }
     }
-  }, [limit]);
+  }, [limit, fetchAllPriceHistories]);
 
   // Initial fetch and auto-refresh setup
   useEffect(() => {

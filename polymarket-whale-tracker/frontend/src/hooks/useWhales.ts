@@ -56,7 +56,7 @@ export function useWhales(limit = 1000): UseWhalesResult {
     if (isInitialLoad.current) {
       setLoading(true);
     }
-    setError(null);
+    // Don't clear error until fetch succeeds to prevent flicker on retry
 
     try {
       const response = await fetchWhales(page, limit);
@@ -64,6 +64,7 @@ export function useWhales(limit = 1000): UseWhalesResult {
       setTotal(response.total);
       // Clear pending whales when refreshing data
       setPendingNewWhales(0);
+      setError(null); // Clear error only on success
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {

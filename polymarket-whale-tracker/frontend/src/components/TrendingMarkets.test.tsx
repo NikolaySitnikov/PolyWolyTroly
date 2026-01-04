@@ -266,4 +266,49 @@ describe('TrendingMarkets Component', () => {
       expect(cards[0].style.transition).toContain('all');
     });
   });
+
+  describe('Sparklines', () => {
+    it('should render sparkline for each market card when priceHistory is provided', () => {
+      const marketsWithHistory = mockMarkets.map(market => ({
+        ...market,
+        priceHistory: [
+          { t: 1704067200, p: 0.45 },
+          { t: 1704153600, p: 0.50 },
+          { t: 1704240000, p: 0.55 },
+        ],
+      }));
+
+      render(
+        <TrendingMarkets
+          markets={marketsWithHistory}
+          loading={false}
+          error={null}
+          isMobile={false}
+        />
+      );
+
+      const sparklines = screen.getAllByTestId('sparkline');
+      expect(sparklines).toHaveLength(2);
+    });
+
+    it('should show loading shimmer when sparkline data is loading', () => {
+      const marketsWithLoading = mockMarkets.map(market => ({
+        ...market,
+        priceHistory: [],
+        priceHistoryLoading: true,
+      }));
+
+      render(
+        <TrendingMarkets
+          markets={marketsWithLoading}
+          loading={false}
+          error={null}
+          isMobile={false}
+        />
+      );
+
+      const sparklines = screen.getAllByTestId('sparkline');
+      expect(sparklines[0].style.animation).toContain('shimmer');
+    });
+  });
 });

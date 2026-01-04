@@ -2,13 +2,19 @@
  * TrendingMarkets Component
  *
  * Displays trending prediction markets from Polymarket.
- * Shows market question, current probability, 24h volume, and links to Polymarket.
+ * Shows market question, current probability, 24h volume, sparkline chart,
+ * and links to Polymarket.
  *
- * @see ../Design docs/DESIGN_SYSTEM.md
+ * GROUP 2: Data Visualization & Charts
+ * - Sparklines show 1-week price history for each market
+ * - Color indicates trend direction (cyan=up, red=down)
+ *
+ * @see ../Design docs/DESIGN_SYSTEM.md - Chart specifications
  */
 
 import { tokens } from '../styles/tokens';
 import { EmptyState } from './EmptyState';
+import { Sparkline } from './Sparkline';
 import type { TrendingMarketResponse } from '../services/api';
 
 interface TrendingMarketsProps {
@@ -141,12 +147,13 @@ function MarketCard({
         />
       </div>
 
-      {/* Stats row */}
+      {/* Stats row with sparkline */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          gap: '12px',
         }}
       >
         {/* Yes probability */}
@@ -173,12 +180,21 @@ function MarketCard({
           </span>
         </div>
 
+        {/* Sparkline - price history chart */}
+        <Sparkline
+          data={market.priceHistory || []}
+          loading={market.priceHistoryLoading}
+          width={60}
+          height={24}
+        />
+
         {/* 24h volume */}
         <div
           style={{
             fontFamily: tokens.fonts.mono,
             fontSize: '12px',
             color: tokens.colors.textSecondary,
+            whiteSpace: 'nowrap',
           }}
         >
           {formatVolume(market.volume24hr)} 24h

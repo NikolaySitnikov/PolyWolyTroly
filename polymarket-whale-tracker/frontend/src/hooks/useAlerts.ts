@@ -51,12 +51,13 @@ export function useAlerts(limit = 20): UseAlertsResult {
     if (isInitialLoad.current) {
       setLoading(true);
     }
-    setError(null);
+    // Don't clear error until fetch succeeds to prevent flicker on retry
 
     try {
       const response = await fetchDeposits(page, limit);
       setAlerts(response.deposits.map(transformDeposit));
       setTotal(response.total);
+      setError(null); // Clear error only on success
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {

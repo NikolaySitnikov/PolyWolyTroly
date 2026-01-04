@@ -153,6 +153,9 @@ export interface TrendingMarketResponse {
   category: string;
   active: boolean;
   clobTokenId: string; // CLOB token ID for price history lookups
+  // Optional fields for enhanced display (populated by frontend)
+  priceHistory?: PriceHistoryPoint[];
+  priceHistoryLoading?: boolean;
 }
 
 /**
