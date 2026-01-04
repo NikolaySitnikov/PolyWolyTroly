@@ -1492,6 +1492,64 @@ Add pagination to the Alerts view, similar to the Whales table.
 
 ---
 
+## Step 10.11: Silent Background Refresh (No Loading Flash)
+
+### Status: COMPLETE
+
+### Goal
+Eliminate visible loading flashes during background data refreshes. All updates should be seamless and instant.
+
+### Problem
+Users reported the dashboard was "refreshing periodically" with visible loading states. Investigation revealed:
+- `useTrendingMarkets` was setting `loading: true` every 5 minutes during auto-refresh
+- `useStats` was setting `loading: true` on every refetch call
+
+This caused visible "loading skeleton" flashes even when data was already present.
+
+### Solution
+Applied the `isInitialLoad` ref pattern (already used in `useWhales` and `useAlerts`) to all hooks:
+
+```typescript
+const isInitialLoad = useRef(true);
+
+const fetchData = useCallback(async () => {
+  // Only show loading on initial load, not on background refresh
+  if (isInitialLoad.current) {
+    setLoading(true);
+  }
+  // ... fetch logic ...
+  finally {
+    setLoading(false);
+    isInitialLoad.current = false;
+  }
+}, []);
+```
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/hooks/useStats.ts` | Added `isInitialLoad` ref, only show loading on first fetch |
+| `src/hooks/useTrendingMarkets.ts` | Added `isInitialLoad` ref, silent 5-minute background refresh |
+
+### Result
+- Initial page load: Shows loading skeleton (expected)
+- Background refresh (every 5 min): Silent update, no UI flicker
+- WebSocket updates: Instant, seamless
+- Manual refetch: Silent update, data just appears
+
+### Pattern Consistency
+All data-fetching hooks now use the same pattern:
+
+| Hook | Initial Load | Background Refresh | Live Updates |
+|------|-------------|-------------------|--------------|
+| `useStats` | ✅ Loading | ✅ Silent | ✅ WebSocket |
+| `useWhales` | ✅ Loading | ✅ Silent | ✅ WebSocket |
+| `useAlerts` | ✅ Loading | ✅ Silent | ✅ WebSocket |
+| `useTrendingMarkets` | ✅ Loading | ✅ Silent (5 min) | N/A |
+
+---
+
 ## Summary
 
 ### Total Tests: 282 (frontend)
@@ -1508,6 +1566,7 @@ Add pagination to the Alerts view, similar to the Whales table.
 7. ✅ Live Alert Feed with Real-Time Updates
 10.9. ✅ Settings Page with Alert Threshold
 10.10. ✅ Alerts Pagination
+10.11. ✅ Silent Background Refresh
 
 ---
 
