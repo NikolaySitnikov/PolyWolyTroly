@@ -93,13 +93,6 @@ body {
   outline-offset: 2px;
 }
 
-/* Input focus styles - use box-shadow since outline may be removed inline */
-input:focus-visible,
-textarea:focus-visible {
-  outline: none !important;
-  box-shadow: 0 0 0 2px var(--color-cyan);
-}
-
 /* Remove default button styles */
 button {
   font-family: inherit;
