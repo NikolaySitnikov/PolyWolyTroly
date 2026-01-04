@@ -47,6 +47,7 @@ function App() {
   const isMobile = useMobile();
   const [currentView, setCurrentView] = useState<ViewId>(getInitialView);
   const { data: stats, loading, error, refetch, updateStats } = useStats();
+  const WHALES_PER_PAGE = 20;
   const {
     whales,
     loading: whalesLoading,
@@ -54,7 +55,10 @@ function App() {
     refetch: refetchWhales,
     updateWhale,
     addWhale,
-  } = useWhales();
+    total: totalWhales,
+    page: whalesPage,
+    setPage: setWhalesPage,
+  } = useWhales(WHALES_PER_PAGE);
 
   const {
     alerts,
@@ -372,6 +376,10 @@ function App() {
             whales={whales}
             isMobile={isMobile}
             onWhaleClick={handleWhaleClick}
+            currentPage={whalesPage}
+            itemsPerPage={WHALES_PER_PAGE}
+            totalItems={totalWhales}
+            onPageChange={setWhalesPage}
           />
         )}
       </div>

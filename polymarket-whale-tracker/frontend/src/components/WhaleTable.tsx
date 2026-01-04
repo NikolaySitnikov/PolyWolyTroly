@@ -2,21 +2,30 @@
  * WhaleTable Component
  *
  * Displays a list of tracked whale wallets.
- * Desktop: Table view with sortable columns
- * Mobile: Card stack view
+ * Desktop: Table view with sortable columns in contained scrollable area
+ * Mobile: Card stack view with pagination
  *
- * Design: Based on App.jsx reference from design expert
+ * Design: Based on App.jsx reference and PAGINATION_GUIDELINES.md
  */
 
 import { useState, useMemo } from 'react';
 import { tokens } from '../styles/tokens';
 import { formatUSD } from '../utils/formatters';
+import { Pagination } from './Pagination';
 import type { Whale, WhaleSortField, SortDirection } from '../types/whale';
 
 interface WhaleTableProps {
   whales: Whale[];
   isMobile: boolean;
   onWhaleClick: (address: string) => void;
+  /** Current page (1-indexed) */
+  currentPage?: number;
+  /** Items per page */
+  itemsPerPage?: number;
+  /** Total items in database (for pagination) */
+  totalItems?: number;
+  /** Callback when page changes */
+  onPageChange?: (page: number) => void;
 }
 
 /**
@@ -42,7 +51,17 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) {
+const DEFAULT_ITEMS_PER_PAGE = 20;
+
+export function WhaleTable({
+  whales,
+  isMobile,
+  onWhaleClick,
+  currentPage = 1,
+  itemsPerPage = DEFAULT_ITEMS_PER_PAGE,
+  totalItems,
+  onPageChange,
+}: WhaleTableProps) {
   const [filter, setFilter] = useState('');
   const [sortBy, setSortBy] = useState<WhaleSortField>('totalDeposited');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
@@ -65,6 +84,10 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
         }
       });
   }, [whales, filter, sortBy, sortDir]);
+
+  // Calculate pagination
+  const actualTotal = totalItems ?? sortedWhales.length;
+  const totalPages = Math.ceil(actualTotal / itemsPerPage);
 
   // Handle column header click for sorting
   const handleSort = (field: WhaleSortField) => {
@@ -411,7 +434,7 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
         backgroundColor: tokens.colors.surface,
       }}
     >
-      {/* Search bar */}
+      {/* Header with search */}
       <div
         style={{
           padding: '16px 20px',
@@ -421,20 +444,38 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
           gap: '12px',
         }}
       >
-        <span style={{ color: tokens.colors.textMuted }}>🔍</span>
-        {/* Search input container - keeps clear button close to text */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '16px' }}>🐋</span>
+          <span
+            style={{
+              fontFamily: tokens.fonts.body,
+              fontWeight: 600,
+              fontSize: '14px',
+              color: tokens.colors.textPrimary,
+            }}
+          >
+            Whale Directory
+          </span>
+        </div>
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+        {/* Search input */}
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
-            maxWidth: '300px',
-            flex: '0 1 300px',
+            gap: '8px',
+            padding: '8px 12px',
+            background: tokens.colors.void,
+            border: `1px solid ${tokens.colors.border}`,
+            borderRadius: '8px',
+            maxWidth: '250px',
           }}
         >
+          <span style={{ color: tokens.colors.textMuted, fontSize: '14px' }}>🔍</span>
           <input
             type="text"
-            placeholder="Search by address..."
+            placeholder="Search address..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             style={{
@@ -443,9 +484,9 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
               border: 'none',
               outline: 'none',
               fontFamily: tokens.fonts.body,
-              fontSize: '14px',
+              fontSize: '13px',
               color: tokens.colors.textPrimary,
-              minWidth: 0,
+              minWidth: '120px',
             }}
           />
           {filter && (
@@ -455,14 +496,13 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
               style={{
                 background: 'transparent',
                 border: 'none',
-                padding: '4px 8px',
+                padding: '2px 6px',
                 cursor: 'pointer',
                 color: tokens.colors.textMuted,
-                fontSize: '16px',
+                fontSize: '14px',
                 lineHeight: 1,
                 borderRadius: '4px',
                 transition: 'color 0.15s ease',
-                flexShrink: 0,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = tokens.colors.textPrimary;
@@ -475,8 +515,7 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
             </button>
           )}
         </div>
-        {/* Spacer to push whale count to the right */}
-        <div style={{ flex: 1 }} />
+        {/* Whale count badge */}
         <span
           style={{
             display: 'inline-flex',
@@ -492,14 +531,25 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
             color: tokens.colors.cyan,
           }}
         >
-          {sortedWhales.length} whales
+          {actualTotal.toLocaleString()} whales
         </span>
       </div>
 
-      {/* Table */}
-      <div>
+      {/* Scrollable table container */}
+      <div
+        style={{
+          maxHeight: '500px',
+          overflowY: 'auto',
+        }}
+      >
         <table role="table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-          <thead>
+          <thead
+            style={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 1,
+            }}
+          >
             <tr style={{ background: tokens.colors.void }}>
               <th
                 style={{
@@ -661,6 +711,19 @@ export function WhaleTable({ whales, isMobile, onWhaleClick }: WhaleTableProps) 
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {onPageChange && totalPages > 1 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={actualTotal}
+          itemsPerPage={itemsPerPage}
+          onPageChange={onPageChange}
+          entityName="whales"
+          isMobile={isMobile}
+        />
+      )}
     </div>
   );
 }
