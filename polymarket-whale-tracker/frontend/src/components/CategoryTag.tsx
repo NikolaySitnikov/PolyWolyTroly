@@ -20,6 +20,106 @@ export type MarketCategory =
   | 'world'
   | 'other';
 
+/** Valid category values for validation */
+export const VALID_CATEGORIES: MarketCategory[] = [
+  'politics', 'crypto', 'sports', 'finance', 'tech',
+  'entertainment', 'science', 'world', 'other'
+];
+
+/**
+ * Map Polymarket API tag labels to our category system.
+ * Polymarket uses tags like "Politics", "Sports", "Crypto", etc.
+ * Returns null if no mapping found (caller should use inferCategory as fallback).
+ *
+ * @see https://docs.polymarket.com/api-reference/tags/list-tags
+ */
+export function mapApiCategory(apiCategory: string | undefined): MarketCategory | null {
+  if (!apiCategory) return null;
+
+  const normalized = apiCategory.toLowerCase().trim();
+
+  // Direct matches to our categories
+  if (VALID_CATEGORIES.includes(normalized as MarketCategory) && normalized !== 'other') {
+    return normalized as MarketCategory;
+  }
+
+  // Map common Polymarket tags to our categories
+  const tagMappings: Record<string, MarketCategory> = {
+    // Politics
+    'politics': 'politics',
+    'elections': 'politics',
+    'us politics': 'politics',
+    'trump': 'politics',
+    'biden': 'politics',
+    'government': 'politics',
+
+    // Crypto
+    'crypto': 'crypto',
+    'cryptocurrency': 'crypto',
+    'bitcoin': 'crypto',
+    'ethereum': 'crypto',
+    'defi': 'crypto',
+
+    // Sports
+    'sports': 'sports',
+    'nba': 'sports',
+    'nfl': 'sports',
+    'mlb': 'sports',
+    'nhl': 'sports',
+    'soccer': 'sports',
+    'football': 'sports',
+    'basketball': 'sports',
+    'baseball': 'sports',
+    'ufc': 'sports',
+    'boxing': 'sports',
+    'f1': 'sports',
+    'formula 1': 'sports',
+    'tennis': 'sports',
+    'golf': 'sports',
+
+    // Finance
+    'finance': 'finance',
+    'business': 'finance',
+    'economics': 'finance',
+    'fed': 'finance',
+    'markets': 'finance',
+    'stocks': 'finance',
+
+    // Tech
+    'tech': 'tech',
+    'technology': 'tech',
+    'ai': 'tech',
+    'artificial intelligence': 'tech',
+
+    // Entertainment
+    'entertainment': 'entertainment',
+    'pop culture': 'entertainment',
+    'movies': 'entertainment',
+    'music': 'entertainment',
+    'tv': 'entertainment',
+    'television': 'entertainment',
+    'celebrities': 'entertainment',
+    'awards': 'entertainment',
+
+    // Science
+    'science': 'science',
+    'space': 'science',
+    'weather': 'science',
+    'health': 'science',
+    'medicine': 'science',
+
+    // World
+    'world': 'world',
+    'geopolitics': 'world',
+    'international': 'world',
+    'global': 'world',
+    'war': 'world',
+    'conflict': 'world',
+  };
+
+  return tagMappings[normalized] || null;
+}
+
 type TagSize = 'small' | 'default' | 'large';
 
 interface CategoryTagProps {
@@ -148,28 +248,36 @@ export function CategoryTag({
 export function inferCategory(question: string): MarketCategory {
   const q = question.toLowerCase();
 
-  if (/trump|biden|election|president|congress|senate|governor|vote|democrat|republican/i.test(q)) {
+  // Politics - elections, politicians, government
+  if (/trump|biden|election|president|congress|senate|governor|vote|democrat|republican|nominee|cabinet|administration/i.test(q)) {
     return 'politics';
   }
-  if (/bitcoin|btc|ethereum|eth|crypto|defi|token|blockchain|solana/i.test(q)) {
+  // Crypto - cryptocurrencies and blockchain
+  if (/bitcoin|btc|ethereum|eth|crypto|defi|blockchain|solana|altcoin/i.test(q)) {
     return 'crypto';
   }
-  if (/nfl|nba|mlb|world cup|championship|playoff|game|match|team|player/i.test(q)) {
+  // Sports - leagues, teams, athletes, competitions
+  if (/nfl|nba|mlb|nhl|world cup|championship|playoff|game|match|team|player|finals|super bowl|lakers|pacers|yankees|cowboys/i.test(q)) {
     return 'sports';
   }
-  if (/stock|fed|rate|inflation|gdp|earnings|ipo|market|s&p|nasdaq/i.test(q)) {
+  // Finance - markets, rates, economic indicators
+  if (/stock|fed\b|interest rate|inflation|gdp|earnings|ipo|s&p|nasdaq|dow|treasury|bond|bps/i.test(q)) {
     return 'finance';
   }
-  if (/apple|google|microsoft|ai|gpt|launch|iphone|android|startup/i.test(q)) {
+  // Tech - companies, products, AI
+  if (/apple|google|microsoft|ai\b|gpt|openai|iphone|android|startup|meta|amazon|tesla/i.test(q)) {
     return 'tech';
   }
-  if (/oscar|grammy|movie|film|album|award|netflix|disney|celebrity/i.test(q)) {
+  // Entertainment - shows, movies, music, awards
+  if (/oscar|grammy|movie|film|album|award|netflix|disney|celebrity|stranger things|season|episode|emmy|golden globe/i.test(q)) {
     return 'entertainment';
   }
-  if (/nasa|space|climate|research|study|vaccine|species|discovery/i.test(q)) {
+  // Science - research, space, health
+  if (/nasa|space|climate|research|study|vaccine|species|discovery|spacex|mars|moon/i.test(q)) {
     return 'science';
   }
-  if (/war|treaty|country|nation|international|un|nato|summit/i.test(q)) {
+  // World - geopolitics, conflicts, international affairs
+  if (/war|treaty|country|nation|international|un\b|nato|summit|invade|military|custody|venezuela|ukraine|russia|china|iran|israel/i.test(q)) {
     return 'world';
   }
 

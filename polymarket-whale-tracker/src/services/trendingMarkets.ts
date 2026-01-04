@@ -37,8 +37,21 @@ interface GammaEvent {
 }
 
 /**
+ * Tag data from Gamma API
+ * @see https://docs.polymarket.com/api-reference/tags/list-tags
+ */
+interface GammaTag {
+  id: string;
+  label: string;
+  slug: string;
+  forceShow?: boolean | null;
+  forceHide?: boolean | null;
+}
+
+/**
  * Raw market response from Gamma API.
  * Note: outcomes, outcomePrices, and clobTokenIds are JSON-encoded strings, not arrays.
+ * @see https://docs.polymarket.com/developers/gamma-markets-api/gamma-structure
  */
 interface GammaMarket {
   id: string;
@@ -50,7 +63,7 @@ interface GammaMarket {
   volume24hr: number;
   liquidityNum: number;
   endDate: string;
-  category: string;
+  tags?: GammaTag[]; // Array of tag objects with label, slug, etc.
   active: boolean;
   closed: boolean;
   events: GammaEvent[]; // Parent events for this market
@@ -89,6 +102,17 @@ function parseClobTokenId(clobTokenIds: string): string {
 }
 
 /**
+ * Extract primary category from tags array.
+ * Returns the first tag's label, or empty string if no tags.
+ * Frontend will infer category from question if this is empty/generic.
+ */
+function extractCategory(tags?: GammaTag[]): string {
+  if (!tags || tags.length === 0) return "";
+  // Return the first tag's label (primary category)
+  return tags[0]?.label || "";
+}
+
+/**
  * Transform Gamma API market to our TrendingMarket format
  */
 function transformMarket(market: GammaMarket): TrendingMarket {
@@ -97,6 +121,8 @@ function transformMarket(market: GammaMarket): TrendingMarket {
   const eventSlug = market.events?.[0]?.slug || market.slug;
   // Get the Yes outcome token ID for price history lookups
   const clobTokenId = parseClobTokenId(market.clobTokenIds);
+  // Extract category from tags array
+  const category = extractCategory(market.tags);
 
   return {
     id: market.id,
@@ -108,7 +134,7 @@ function transformMarket(market: GammaMarket): TrendingMarket {
     volume24hr: market.volume24hr || 0,
     liquidity: market.liquidityNum || 0,
     endDate: market.endDate,
-    category: market.category || "Other",
+    category,
     active: market.active,
     clobTokenId,
   };
