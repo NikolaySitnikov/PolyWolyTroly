@@ -4,7 +4,7 @@
  * Main App component - the shell for the entire application.
  * Implements the cyberpunk terminal aesthetic from the design system.
  *
- * Step 4: Added Dashboard with StatCards (mock data).
+ * Step 5: Connected to real backend API with loading/error states.
  *
  * @see ../Design docs/DESIGN_SYSTEM.md
  */
@@ -13,25 +13,37 @@ import { useState } from 'react';
 import './styles/globals.css';
 import { tokens } from './styles/tokens';
 import { useMobile } from './hooks/useMobile';
+import { useStats } from './hooks/useStats';
 import { Header } from './components/Header';
 import { MobileNav } from './components/MobileNav';
 import { Dashboard } from './components/Dashboard';
+import { DashboardLoading } from './components/DashboardLoading';
+import { DashboardError } from './components/DashboardError';
 import type { ViewId } from './types/navigation';
-
-// Mock stats data (will be replaced with API data in Step 5)
-const MOCK_STATS = {
-  whaleCount: 42,
-  totalVolume: 15750000,
-  alertsToday: 12,
-  newWhalesThisWeek: 5,
-};
 
 function App() {
   const isMobile = useMobile();
   const [currentView, setCurrentView] = useState<ViewId>('dashboard');
+  const { data: stats, loading, error, refetch } = useStats();
 
   const handleNavigate = (view: ViewId) => {
     setCurrentView(view);
+  };
+
+  const renderDashboardContent = () => {
+    if (loading) {
+      return <DashboardLoading isMobile={isMobile} />;
+    }
+
+    if (error) {
+      return <DashboardError error={error} onRetry={refetch} isMobile={isMobile} />;
+    }
+
+    if (stats) {
+      return <Dashboard stats={stats} isMobile={isMobile} />;
+    }
+
+    return null;
   };
 
   return (
@@ -96,9 +108,7 @@ function App() {
         }}
       >
         {/* View content */}
-        {currentView === 'dashboard' && (
-          <Dashboard stats={MOCK_STATS} isMobile={isMobile} />
-        )}
+        {currentView === 'dashboard' && renderDashboardContent()}
 
         {/* Placeholder for other views - will be implemented in future steps */}
         {currentView !== 'dashboard' && (

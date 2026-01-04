@@ -5,19 +5,41 @@
  * Verifies the app renders with correct branding and styling
  */
 
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import App from './App';
+import * as api from './services/api';
+
+// Mock the API module
+vi.mock('./services/api');
+
+const mockStats: api.StatsResponse = {
+  whaleCount: 42,
+  totalVolume: 15750000,
+  alertsToday: 12,
+  newWhalesThisWeek: 5,
+};
 
 describe('App Component', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Default to successful fetch
+    vi.mocked(api.fetchStats).mockResolvedValue(mockStats);
+  });
+
+  afterEach(() => {
+    vi.resetAllMocks();
+  });
+
   describe('Rendering', () => {
-    it('should render without crashing', () => {
+    it('should render without crashing', async () => {
       render(<App />);
-      // App should be in the document
-      expect(document.body).toBeInTheDocument();
+      await waitFor(() => {
+        expect(document.body).toBeInTheDocument();
+      });
     });
 
-    it('should have the app container with correct test id', () => {
+    it('should have the app container with correct test id', async () => {
       render(<App />);
       const appContainer = screen.getByTestId('app-container');
       expect(appContainer).toBeInTheDocument();
@@ -25,40 +47,106 @@ describe('App Component', () => {
   });
 
   describe('Branding', () => {
-    it('should display the PolyWolyTroly brand name', () => {
+    it('should display the PolyWolyTroly brand name', async () => {
       render(<App />);
-      // The brand name should appear somewhere in the app
-      expect(screen.getByText(/PolyWolyTroly/i)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText(/PolyWolyTroly/i)).toBeInTheDocument();
+      });
     });
 
-    it('should display the tagline "Whale Intelligence"', () => {
+    it('should display the tagline "Whale Intelligence"', async () => {
       render(<App />);
-      // There may be multiple instances (header and content), use getAllBy
-      const elements = screen.getAllByText(/Whale Intelligence/i);
-      expect(elements.length).toBeGreaterThan(0);
+      await waitFor(() => {
+        // There may be multiple instances (header and content), use getAllBy
+        const elements = screen.getAllByText(/Whale Intelligence/i);
+        expect(elements.length).toBeGreaterThan(0);
+      });
     });
   });
 
   describe('Styling', () => {
-    it('should have void black background color', () => {
+    it('should have void black background color', async () => {
       render(<App />);
-      const appContainer = screen.getByTestId('app-container');
-      // Check background is set (exact value depends on CSS loading)
-      expect(appContainer).toHaveStyle({ backgroundColor: 'rgb(10, 10, 15)' });
+      await waitFor(() => {
+        const appContainer = screen.getByTestId('app-container');
+        expect(appContainer).toHaveStyle({ backgroundColor: 'rgb(10, 10, 15)' });
+      });
     });
 
-    it('should have primary text color', () => {
+    it('should have primary text color', async () => {
       render(<App />);
-      const appContainer = screen.getByTestId('app-container');
-      expect(appContainer).toHaveStyle({ color: 'rgb(240, 240, 245)' });
+      await waitFor(() => {
+        const appContainer = screen.getByTestId('app-container');
+        expect(appContainer).toHaveStyle({ color: 'rgb(240, 240, 245)' });
+      });
     });
   });
 
   describe('Structure', () => {
-    it('should have a main content area', () => {
+    it('should have a main content area', async () => {
       render(<App />);
-      const main = screen.getByRole('main');
-      expect(main).toBeInTheDocument();
+      await waitFor(() => {
+        const main = screen.getByRole('main');
+        expect(main).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Data Fetching', () => {
+    it('should show loading state initially', () => {
+      // Never resolving promise to keep loading state
+      vi.mocked(api.fetchStats).mockImplementation(() => new Promise(() => {}));
+
+      render(<App />);
+
+      expect(screen.getByTestId('dashboard-loading')).toBeInTheDocument();
+    });
+
+    it('should fetch stats on mount', async () => {
+      render(<App />);
+
+      await waitFor(() => {
+        expect(api.fetchStats).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('should display dashboard with data after successful fetch', async () => {
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dashboard')).toBeInTheDocument();
+      });
+
+      // Verify the data is displayed
+      expect(screen.getByText('42')).toBeInTheDocument();
+    });
+
+    it('should display error state when fetch fails', async () => {
+      vi.mocked(api.fetchStats).mockRejectedValueOnce(
+        new Error('Failed to fetch stats: 500')
+      );
+
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dashboard-error')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText(/Failed to fetch stats/i)).toBeInTheDocument();
+    });
+
+    it('should have a retry button in error state', async () => {
+      vi.mocked(api.fetchStats).mockRejectedValueOnce(
+        new Error('Network error')
+      );
+
+      render(<App />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('dashboard-error')).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
     });
   });
 });

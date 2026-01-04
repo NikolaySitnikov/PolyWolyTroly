@@ -481,7 +481,175 @@ cd frontend && npm test
 
 ---
 
-## Step 5-10: [PENDING]
+## Step 5: Connect Dashboard to Real Backend Data
+
+### Status: COMPLETE
+
+### Goal
+Replace mock data with real API calls to the Express backend.
+
+### Requirements
+- [x] API service module with typed fetch functions
+- [x] useStats custom hook for data fetching
+- [x] Loading state with skeleton animation
+- [x] Error state with retry functionality
+- [x] Dashboard displays real data from API
+- [x] Graceful handling of network failures
+
+### TDD Implementation
+
+**RED Phase:** Wrote 23 failing tests first
+- `api.test.ts` - 6 tests for API service
+- `useStats.test.tsx` - 11 tests for stats hook
+- Updated `App.test.tsx` - 5 new tests for data fetching states
+
+**GREEN Phase:** Implemented components to pass all tests
+- Created API service with fetchStats function
+- Created useStats hook with loading/error/data states
+- Created DashboardLoading skeleton component
+- Created DashboardError component with retry button
+- Integrated into App.tsx
+
+### Tests Written & Passing (35 new tests, 128 frontend total)
+
+**`src/services/api.test.ts`** (6 tests)
+
+*api object* (2 tests)
+- Has a baseUrl property
+- Defaults to localhost:3002
+
+*fetchStats* (4 tests)
+- Fetches stats from /api/stats endpoint
+- Returns stats data on success
+- Throws error when response is not ok
+- Throws error when network fails
+
+**`src/hooks/useStats.test.tsx`** (11 tests)
+
+*Initial State* (3 tests)
+- Returns loading true initially
+- Returns null data initially
+- Returns null error initially
+
+*Successful Fetch* (3 tests)
+- Sets loading to false after fetch completes
+- Sets data after successful fetch
+- Keeps error null after successful fetch
+
+*Failed Fetch* (3 tests)
+- Sets error message on failure
+- Sets loading to false on failure
+- Keeps data null on failure
+
+*Refetch* (2 tests)
+- Provides a refetch function
+- Refetches data when refetch is called
+
+**`src/components/DashboardLoading.test.tsx`** (6 tests)
+
+*Rendering* (3 tests)
+- Renders with correct test id
+- Displays loading message
+- Displays 4 skeleton cards
+
+*Layout* (2 tests)
+- Uses 4-column grid on desktop
+- Uses 2-column grid on mobile
+
+*Animation* (1 test)
+- Has shimmer animation on skeleton cards
+
+**`src/components/DashboardError.test.tsx`** (7 tests)
+
+*Rendering* (5 tests)
+- Renders with correct test id
+- Displays error icon
+- Displays error title
+- Displays the error message
+- Displays a retry button
+
+*Interactions* (1 test)
+- Calls onRetry when retry button is clicked
+
+*Styling* (1 test)
+- Centers content on mobile
+
+**`src/App.test.tsx`** (5 new tests added)
+
+*Data Fetching* (5 tests)
+- Shows loading state initially
+- Fetches stats on mount
+- Displays dashboard with data after successful fetch
+- Displays error state when fetch fails
+- Has a retry button in error state
+
+### Files Created
+
+| File | Description |
+|------|-------------|
+| `src/services/api.ts` | API client with fetchStats and StatsResponse type |
+| `src/services/api.test.ts` | 6 tests for API service |
+| `src/hooks/useStats.ts` | Custom hook for fetching and managing stats |
+| `src/hooks/useStats.test.tsx` | 11 tests for useStats hook |
+| `src/components/DashboardLoading.tsx` | Skeleton loading state with shimmer |
+| `src/components/DashboardLoading.test.tsx` | 6 tests for loading state |
+| `src/components/DashboardError.tsx` | Error state with retry button |
+| `src/components/DashboardError.test.tsx` | 7 tests for error state |
+
+### Files Modified
+
+| File | Description |
+|------|-------------|
+| `src/App.tsx` | Replaced mock data with useStats hook, added loading/error states |
+| `src/App.test.tsx` | Added 5 tests for data fetching, mocked API module |
+
+### Visual Verification
+
+**Prerequisites:**
+1. Start API server: `cd polymarket-whale-tracker && npm run dev:api`
+2. Start frontend: `cd frontend && npm run dev`
+
+**With API Running (http://localhost:3002):**
+- Dashboard loads data from API
+- Shows "Whales Tracked: 42", "Total Volume: $15.75M", etc.
+- Data comes from `/api/stats` endpoint
+- Real-time updates on refetch
+
+**Without API Running:**
+- Shows loading skeleton initially
+- After timeout, shows error state
+- "Something went wrong" title with ⚠ icon
+- Error message displayed in red box
+- "Retry" button with cyan glow
+- Hint: "Make sure the API server is running on port 3002"
+- Clicking Retry attempts to fetch again
+
+**Loading State:**
+- Skeleton cards with shimmer animation
+- 4 skeleton cards matching dashboard layout
+- "Loading whale data..." message
+
+### Test Command
+```bash
+cd frontend && npm test
+# Output: 128 tests passing
+```
+
+### API Verification
+```bash
+# Health check
+curl http://localhost:3002/api/health
+
+# Get stats
+curl http://localhost:3002/api/stats
+# {"whaleCount":42,"totalVolume":15750000,"alertsToday":12,"newWhalesThisWeek":5}
+```
+
+### Total Tests: 278 (128 frontend + 150 backend)
+
+---
+
+## Step 6-10: [PENDING]
 
 *See IMPLEMENTATION_PLAN.md for full details*
 
