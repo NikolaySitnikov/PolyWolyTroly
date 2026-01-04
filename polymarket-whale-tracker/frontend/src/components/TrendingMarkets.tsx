@@ -227,7 +227,7 @@ function MarketCard({
           <Sparkline
             data={market.priceHistory || []}
             loading={market.priceHistoryLoading}
-            width={50}
+            width={70}
             height={24}
           />
           {changeDisplay && (
