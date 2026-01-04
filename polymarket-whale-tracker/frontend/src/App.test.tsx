@@ -8,10 +8,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import App from './App';
+import { SettingsProvider } from './contexts/SettingsContext';
 import * as api from './services/api';
 
 // Mock the API module
 vi.mock('./services/api');
+
+// Wrapper to provide SettingsContext
+function renderApp() {
+  return render(
+    <SettingsProvider>
+      <App />
+    </SettingsProvider>
+  );
+}
 
 const mockStats: api.StatsResponse = {
   whaleCount: 42,
@@ -33,14 +43,14 @@ describe('App Component', () => {
 
   describe('Rendering', () => {
     it('should render without crashing', async () => {
-      render(<App />);
+      renderApp();
       await waitFor(() => {
         expect(document.body).toBeInTheDocument();
       });
     });
 
     it('should have the app container with correct test id', async () => {
-      render(<App />);
+      renderApp();
       const appContainer = screen.getByTestId('app-container');
       expect(appContainer).toBeInTheDocument();
     });
@@ -48,14 +58,14 @@ describe('App Component', () => {
 
   describe('Branding', () => {
     it('should display the PolyWolyTroly brand name', async () => {
-      render(<App />);
+      renderApp();
       await waitFor(() => {
         expect(screen.getByText(/PolyWolyTroly/i)).toBeInTheDocument();
       });
     });
 
     it('should display the tagline "Whale Intelligence"', async () => {
-      render(<App />);
+      renderApp();
       await waitFor(() => {
         // There may be multiple instances (header and content), use getAllBy
         const elements = screen.getAllByText(/Whale Intelligence/i);
@@ -66,7 +76,7 @@ describe('App Component', () => {
 
   describe('Styling', () => {
     it('should have void black background color', async () => {
-      render(<App />);
+      renderApp();
       await waitFor(() => {
         const appContainer = screen.getByTestId('app-container');
         expect(appContainer).toHaveStyle({ backgroundColor: 'rgb(10, 10, 15)' });
@@ -74,7 +84,7 @@ describe('App Component', () => {
     });
 
     it('should have primary text color', async () => {
-      render(<App />);
+      renderApp();
       await waitFor(() => {
         const appContainer = screen.getByTestId('app-container');
         expect(appContainer).toHaveStyle({ color: 'rgb(240, 240, 245)' });
@@ -84,7 +94,7 @@ describe('App Component', () => {
 
   describe('Structure', () => {
     it('should have a main content area', async () => {
-      render(<App />);
+      renderApp();
       await waitFor(() => {
         const main = screen.getByRole('main');
         expect(main).toBeInTheDocument();
@@ -97,13 +107,13 @@ describe('App Component', () => {
       // Never resolving promise to keep loading state
       vi.mocked(api.fetchStats).mockImplementation(() => new Promise(() => {}));
 
-      render(<App />);
+      renderApp();
 
       expect(screen.getByTestId('dashboard-loading')).toBeInTheDocument();
     });
 
     it('should fetch stats on mount', async () => {
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
         expect(api.fetchStats).toHaveBeenCalledTimes(1);
@@ -111,7 +121,7 @@ describe('App Component', () => {
     });
 
     it('should display dashboard with data after successful fetch', async () => {
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
         expect(screen.getByTestId('dashboard')).toBeInTheDocument();
@@ -126,7 +136,7 @@ describe('App Component', () => {
         new Error('Failed to fetch stats: 500')
       );
 
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
         expect(screen.getByTestId('dashboard-error')).toBeInTheDocument();
@@ -140,7 +150,7 @@ describe('App Component', () => {
         new Error('Network error')
       );
 
-      render(<App />);
+      renderApp();
 
       await waitFor(() => {
         expect(screen.getByTestId('dashboard-error')).toBeInTheDocument();

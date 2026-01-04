@@ -37,6 +37,7 @@ import { WalletProfileError } from './components/WalletProfileError';
 import { InlineLoading } from './components/InlineLoading';
 import { GlowText } from './components/GlowText';
 import { Settings } from './components/Settings';
+import { useSettings } from './contexts/SettingsContext';
 import type { ViewId } from './types/navigation';
 import type { Alert } from './types/alert';
 
@@ -74,6 +75,7 @@ const WS_URL = 'ws://localhost:3002';
 
 function App() {
   const isMobile = useMobile();
+  const { settings } = useSettings();
   const initialHash = parseHash();
   const [currentView, setCurrentView] = useState<ViewId>(initialHash.view);
   const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | null>(
@@ -309,7 +311,7 @@ function App() {
 
         {/* Alert feed */}
         {!alertsLoading && !alertsError && (
-          <AlertFeed alerts={alerts} isMobile={isMobile} onAlertClick={handleAlertClick} />
+          <AlertFeed alerts={alerts} isMobile={isMobile} onAlertClick={handleAlertClick} minThreshold={settings.minAlertThreshold} />
         )}
       </div>
     );

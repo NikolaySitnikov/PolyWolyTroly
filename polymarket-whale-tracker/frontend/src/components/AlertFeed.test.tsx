@@ -113,4 +113,30 @@ describe('AlertFeed', () => {
 
     expect(handleClick).toHaveBeenCalledWith(mockAlerts[0]);
   });
+
+  describe('Minimum Threshold Filter', () => {
+    it('should show all alerts when minThreshold is 0', () => {
+      render(<AlertFeed alerts={mockAlerts} isMobile={false} minThreshold={0} />);
+      const alertItems = screen.getAllByTestId('alert-item');
+      expect(alertItems).toHaveLength(3);
+    });
+
+    it('should filter alerts below minThreshold', () => {
+      render(<AlertFeed alerts={mockAlerts} isMobile={false} minThreshold={100000} />);
+      const alertItems = screen.getAllByTestId('alert-item');
+      // Only alerts with amount >= 100000 should be shown (125K and 1.5M)
+      expect(alertItems).toHaveLength(2);
+    });
+
+    it('should show no alerts when minThreshold is higher than all amounts', () => {
+      render(<AlertFeed alerts={mockAlerts} isMobile={false} minThreshold={2000000} />);
+      expect(screen.queryAllByTestId('alert-item')).toHaveLength(0);
+      expect(screen.getByText(/no alerts/i)).toBeInTheDocument();
+    });
+
+    it('should show empty state message when all alerts filtered out', () => {
+      render(<AlertFeed alerts={mockAlerts} isMobile={false} minThreshold={10000000} />);
+      expect(screen.getByText(/waiting for whale activity/i)).toBeInTheDocument();
+    });
+  });
 });

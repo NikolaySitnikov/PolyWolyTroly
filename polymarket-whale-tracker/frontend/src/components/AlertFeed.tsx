@@ -17,6 +17,8 @@ interface AlertFeedProps {
   alerts: Alert[];
   isMobile: boolean;
   onAlertClick?: (alert: Alert) => void;
+  /** Minimum amount to display (filters out smaller alerts) */
+  minThreshold?: number;
 }
 
 /**
@@ -98,16 +100,27 @@ function AlertTypeBadge({ type }: { type: Alert['type'] }) {
   );
 }
 
-export function AlertFeed({ alerts, isMobile, onAlertClick }: AlertFeedProps) {
+export function AlertFeed({ alerts, isMobile, onAlertClick, minThreshold = 0 }: AlertFeedProps) {
   const [filter, setFilter] = useState('');
 
-  // Filter alerts by wallet address
+  // Filter alerts by wallet address and minimum threshold
   const filteredAlerts = useMemo(() => {
-    if (!filter) return alerts;
-    return alerts.filter((alert) =>
-      alert.walletAddress.toLowerCase().includes(filter.toLowerCase())
-    );
-  }, [alerts, filter]);
+    let result = alerts;
+
+    // Apply minimum threshold filter
+    if (minThreshold > 0) {
+      result = result.filter((alert) => alert.amount >= minThreshold);
+    }
+
+    // Apply address search filter
+    if (filter) {
+      result = result.filter((alert) =>
+        alert.walletAddress.toLowerCase().includes(filter.toLowerCase())
+      );
+    }
+
+    return result;
+  }, [alerts, filter, minThreshold]);
 
   return (
     <div
