@@ -174,7 +174,7 @@ export function StatCard({
               fontWeight: 500,
             }}
           >
-            {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}%
+            {trend !== 0 && (trend > 0 ? '↑ ' : '↓ ')}{Math.abs(trend)}%
           </span>
         )}
         {subValue && (
