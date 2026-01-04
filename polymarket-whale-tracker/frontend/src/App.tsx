@@ -12,14 +12,14 @@
  * @see ../Design docs/DESIGN_SYSTEM.md
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import './styles/globals.css';
 import { tokens } from './styles/tokens';
 import { useMobile } from './hooks/useMobile';
 import { useStats } from './hooks/useStats';
 import { useWhales } from './hooks/useWhales';
 import { useAlerts } from './hooks/useAlerts';
-import { useWebSocket } from './hooks/useWebSocket';
+import { useWebSocket, type DepositEvent } from './hooks/useWebSocket';
 import { Header } from './components/Header';
 import { MobileNav } from './components/MobileNav';
 import { Dashboard } from './components/Dashboard';
@@ -31,12 +31,21 @@ import { GlowText } from './components/GlowText';
 import type { ViewId } from './types/navigation';
 import type { Alert } from './types/alert';
 
+/**
+ * Get initial view from URL hash or default to dashboard
+ */
+function getInitialView(): ViewId {
+  const hash = window.location.hash.slice(1); // Remove #
+  const validViews: ViewId[] = ['dashboard', 'whales', 'alerts', 'settings'];
+  return validViews.includes(hash as ViewId) ? (hash as ViewId) : 'dashboard';
+}
+
 // WebSocket URL - same port as API
 const WS_URL = 'ws://localhost:3002';
 
 function App() {
   const isMobile = useMobile();
-  const [currentView, setCurrentView] = useState<ViewId>('dashboard');
+  const [currentView, setCurrentView] = useState<ViewId>(getInitialView);
   const { data: stats, loading, error, refetch, updateStats } = useStats();
   const {
     whales,
@@ -55,12 +64,29 @@ function App() {
     addAlert,
   } = useAlerts();
 
-  // Connect to WebSocket for instant live updates
-  // Uses seamless updates - no loading states, no page refresh
-  useWebSocket(WS_URL, {
-    onStats: updateStats,
-    onDeposit: (deposit) => {
-      console.log('New deposit:', deposit);
+  // Keep refs updated for WebSocket callbacks to avoid stale closures
+  const whalesRef = useRef(whales);
+  whalesRef.current = whales;
+
+  // Sync URL hash with current view
+  useEffect(() => {
+    window.location.hash = currentView;
+  }, [currentView]);
+
+  // Listen for browser back/forward navigation
+  useEffect(() => {
+    const handleHashChange = () => {
+      const view = getInitialView();
+      setCurrentView(view);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Stable callback for deposit handling - uses refs to avoid stale closures
+  const handleDeposit = useCallback(
+    (deposit: DepositEvent) => {
+      console.log('🔥 New deposit received via WebSocket:', deposit);
 
       // Add to live alert feed instantly
       const newAlert: Alert = {
@@ -84,8 +110,8 @@ function App() {
         });
       } else {
         // Existing whale - update their deposit count and total
-        // Find the existing whale and increment their values
-        const existingWhale = whales.find(
+        // Use ref to get current whales to avoid stale closure
+        const existingWhale = whalesRef.current.find(
           (w) => w.address.toLowerCase() === deposit.walletAddress.toLowerCase()
         );
         if (existingWhale) {
@@ -96,6 +122,14 @@ function App() {
         }
       }
     },
+    [addAlert, addWhale, updateWhale]
+  );
+
+  // Connect to WebSocket for instant live updates
+  // Uses seamless updates - no loading states, no page refresh
+  useWebSocket(WS_URL, {
+    onStats: updateStats,
+    onDeposit: handleDeposit,
   });
 
   const handleNavigate = (view: ViewId) => {
