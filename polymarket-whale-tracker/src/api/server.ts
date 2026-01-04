@@ -12,6 +12,7 @@ import cors from "cors";
 import type { Express, Request, Response, NextFunction } from "express";
 import { db } from "../services/database.js";
 import { trendingMarketsService } from "../services/trendingMarkets.js";
+import { blockchain } from "../services/blockchain.js";
 
 /**
  * Creates and configures the Express application.
@@ -24,11 +25,20 @@ export function createApp(): Express {
   app.use(cors());
   app.use(express.json());
 
-  // Health check endpoint
+  // Health check endpoint - includes blockchain listener status
   app.get("/api/health", (_req: Request, res: Response) => {
+    const healthStatus = blockchain.getHealthStatus();
+
     res.json({
       status: "ok",
       timestamp: new Date().toISOString(),
+      blockchain: {
+        listening: healthStatus.isRunning,
+        healthy: healthStatus.healthy,
+        lastEventTime: healthStatus.lastEventTime?.toISOString() || null,
+        startTime: healthStatus.startTime?.toISOString() || null,
+        consecutiveErrors: healthStatus.consecutiveErrors,
+      },
     });
   });
 

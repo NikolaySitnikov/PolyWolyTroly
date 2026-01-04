@@ -14,6 +14,21 @@ export interface StatsResponse {
   newWhalesThisWeek: number;
 }
 
+/**
+ * Health check response from API
+ */
+export interface HealthResponse {
+  status: string;
+  timestamp: string;
+  blockchain: {
+    listening: boolean;
+    healthy: boolean;
+    lastEventTime: string | null;
+    startTime: string | null;
+    consecutiveErrors: number;
+  };
+}
+
 export const api = {
   baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:3002',
 };
@@ -229,4 +244,19 @@ export async function fetchPriceHistory(clobTokenId: string): Promise<PriceHisto
     console.error('Error fetching price history:', error);
     return [];
   }
+}
+
+/**
+ * Fetches health status including blockchain listener state.
+ * @returns Promise resolving to health data
+ * @throws Error if the request fails
+ */
+export async function fetchHealth(): Promise<HealthResponse> {
+  const response = await fetch(`${api.baseUrl}/api/health`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch health: ${response.status}`);
+  }
+
+  return response.json();
 }
