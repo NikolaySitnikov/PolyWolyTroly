@@ -130,7 +130,8 @@ function App() {
     refetch();
     refetchWhales();
     refetchAlerts();
-  }, [refetch, refetchWhales, refetchAlerts]);
+    refetchTrending();
+  }, [refetch, refetchWhales, refetchAlerts, refetchTrending]);
 
   // Sync URL hash with current view and wallet address
   useEffect(() => {
