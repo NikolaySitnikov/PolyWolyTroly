@@ -1336,9 +1336,178 @@ curl "http://localhost:3002/api/deposits?limit=5"
 
 ---
 
-## Step 8-10: [PENDING]
+## Step 10.9: Settings Page with Alert Threshold
 
-*See IMPLEMENTATION_PLAN.md for full details*
+### Status: COMPLETE
+
+### Goal
+Implement a Settings page with minimum deposit threshold for alerts, sound toggle, and Telegram connection placeholder.
+
+### Requirements
+- [x] SettingsContext for global settings state
+- [x] localStorage persistence for settings
+- [x] Settings page with threshold slider ($1K - $1M)
+- [x] Preset buttons ($10K, $50K, $100K)
+- [x] Sound notifications toggle (UI only)
+- [x] Telegram connection placeholder
+- [x] Reset to defaults button
+- [x] Alert threshold integration with AlertFeed
+
+### TDD Implementation
+
+**RED Phase:** Wrote 9 failing tests for SettingsContext and Settings component
+
+**GREEN Phase:** Implemented settings system
+
+### Tests Written & Passing (9 new tests, 282 frontend total)
+
+**`src/contexts/SettingsContext.test.tsx`** (9 tests)
+
+*Context Provider*
+- Provides default settings
+- Persists settings to localStorage
+- Loads settings from localStorage on mount
+
+*Settings Values*
+- minAlertThreshold defaults to 10000
+- soundEnabled defaults to false
+- updateSettings updates values
+
+*Reset*
+- resetSettings restores defaults
+
+**`src/components/Settings.test.tsx`** (additional tests)
+- Renders threshold slider
+- Updates threshold on change
+- Shows preset buttons
+- Applies preset on click
+- Sound toggle works
+- Reset button works
+
+### Files Created
+
+| File | Description |
+|------|-------------|
+| `src/contexts/SettingsContext.tsx` | Global settings state with localStorage persistence |
+| `src/contexts/SettingsContext.test.tsx` | 9 tests for settings context |
+| `src/components/Settings.tsx` | Settings page with slider, toggles, presets |
+| `src/components/Settings.test.tsx` | Tests for Settings component |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/main.tsx` | Wrap App in SettingsProvider |
+| `src/App.tsx` | Use settings for alert threshold filtering |
+| `src/App.test.tsx` | Wrap in SettingsProvider for tests |
+| `src/components/AlertFeed.tsx` | Accept minThreshold prop for filtering |
+
+### Settings Features
+
+**Minimum Alert Threshold:**
+- Slider from $1K to $1M (log scale)
+- Current value display
+- Preset buttons: $10K, $50K, $100K
+- Active preset highlighted in cyan
+
+**Sound Notifications:**
+- Toggle switch (UI only, placeholder)
+- "Coming soon" indicator
+
+**Telegram Connection:**
+- Placeholder section
+- "Connect Telegram" button (non-functional)
+- Future integration planned
+
+**Reset:**
+- "Reset to Defaults" button
+- Restores all settings to initial values
+
+### Visual Verification
+
+**Settings Page:**
+- Navigate to "Settings" (⚙️) tab
+- See threshold slider with $10K default
+- Click preset buttons to quickly set values
+- Toggle sound switch
+- See Telegram placeholder
+- Click Reset to restore defaults
+
+**Alert Filtering:**
+- Set threshold to $100K
+- Navigate to Alerts tab
+- Only deposits ≥ $100K are shown
+
+---
+
+## Step 10.10: Alerts Pagination
+
+### Status: COMPLETE
+
+### Goal
+Add pagination to the Alerts view, similar to the Whales table.
+
+### Requirements
+- [x] Update useAlerts hook to expose pagination state
+- [x] Add pagination props to AlertFeed component
+- [x] Add Pagination component to AlertFeed
+- [x] Wire up pagination in App.tsx
+- [x] 20 alerts per page (matching Whales table)
+
+### Implementation
+
+**useAlerts Hook Updates:**
+- Changed default limit from 50 to 20
+- Added `page` state (default 1)
+- Added `totalPages` calculation
+- Added `setPage` function
+- Returns all pagination values
+
+**AlertFeed Component Updates:**
+- Added optional pagination props (currentPage, totalPages, totalItems, itemsPerPage, onPageChange)
+- Conditionally renders Pagination component when props provided
+- Maintains existing filtering functionality
+
+**App.tsx Integration:**
+- Destructures pagination values from useAlerts
+- Passes pagination props to AlertFeed
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/hooks/useAlerts.ts` | Added pagination state, changed limit to 20 |
+| `src/hooks/useAlerts.test.tsx` | Updated test to expect limit=20 |
+| `src/components/AlertFeed.tsx` | Added pagination props and Pagination component |
+| `src/App.tsx` | Pass pagination props to AlertFeed |
+
+### Visual Verification
+
+**Alerts View with Pagination:**
+- Navigate to "Alerts" tab
+- See 20 alerts per page
+- See pagination controls at bottom
+- Navigate between pages
+- Total alert count shown
+
+---
+
+## Summary
+
+### Total Tests: 282 (frontend)
+
+### Completed Steps:
+1. ✅ Project Setup, Design Tokens, Base Styles
+2. ✅ Header, Navigation, Mobile Bottom Nav
+3. ✅ Express API Backend with REST Endpoints
+4. ✅ Dashboard View with StatCards
+5. ✅ Connect Dashboard to Real Backend Data
+5b. ✅ WebSocket for Instant Live Updates
+5c. ✅ Fix Hardcoded Trends
+6. ✅ Whale List/Table with Search & Sort
+7. ✅ Live Alert Feed with Real-Time Updates
+10.9. ✅ Settings Page with Alert Threshold
+10.10. ✅ Alerts Pagination
 
 ---
 
