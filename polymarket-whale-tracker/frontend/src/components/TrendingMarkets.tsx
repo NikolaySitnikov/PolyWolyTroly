@@ -148,8 +148,8 @@ function MarketCard({
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
-      {/* Category tag */}
-      <div style={{ marginBottom: '8px' }}>
+      {/* Category tag - positioned in top-left corner */}
+      <div style={{ marginTop: '-12px', marginLeft: '-12px', marginBottom: '12px' }}>
         <CategoryTag category={category} size="small" />
       </div>
 
