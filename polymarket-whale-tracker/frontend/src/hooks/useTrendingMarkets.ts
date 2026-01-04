@@ -57,9 +57,14 @@ export function useTrendingMarkets(limit = 8): UseTrendingMarketsResult {
 
   // Track if component is mounted to avoid state updates after unmount
   const isMounted = useRef(true);
+  // Track if this is the initial load (show loading state only on first fetch)
+  const isInitialLoad = useRef(true);
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    // Only show loading on initial load, not on background refresh
+    if (isInitialLoad.current) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -76,6 +81,7 @@ export function useTrendingMarkets(limit = 8): UseTrendingMarketsResult {
     } finally {
       if (isMounted.current) {
         setLoading(false);
+        isInitialLoad.current = false;
       }
     }
   }, [limit]);
@@ -85,7 +91,7 @@ export function useTrendingMarkets(limit = 8): UseTrendingMarketsResult {
     isMounted.current = true;
     fetchData();
 
-    // Set up auto-refresh interval
+    // Set up silent background refresh - no loading state shown
     const intervalId = setInterval(fetchData, REFRESH_INTERVAL_MS);
 
     return () => {

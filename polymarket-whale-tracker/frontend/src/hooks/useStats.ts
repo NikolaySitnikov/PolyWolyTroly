@@ -6,7 +6,7 @@
  * Supports live updates via WebSocket.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchStats, type StatsResponse } from '../services/api';
 
 interface UseStatsResult {
@@ -21,9 +21,13 @@ export function useStats(): UseStatsResult {
   const [data, setData] = useState<StatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Only show loading on initial load, not on refetch
+  const isInitialLoad = useRef(true);
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    if (isInitialLoad.current) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -33,6 +37,7 @@ export function useStats(): UseStatsResult {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
+      isInitialLoad.current = false;
     }
   }, []);
 
