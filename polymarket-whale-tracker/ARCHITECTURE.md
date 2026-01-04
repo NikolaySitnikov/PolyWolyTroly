@@ -2,7 +2,7 @@
 
 ## What This System Does
 
-PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymarket's Exchange contract. When someone deposits $9,000+ USDC, it:
+PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymarket's Exchange contract. When someone deposits $7,500+ USDC, it:
 1. Detects the deposit in real-time
 2. Determines if this is a **first-time Polymarket user** or a **returning trader**
 3. Sends a Telegram alert with the details
@@ -27,7 +27,7 @@ PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymar
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                          BLOCKCHAIN SERVICE                                  │
 │  • Listens for USDC transfers TO Polymarket Exchange                        │
-│  • Filters deposits >= $9,000                                               │
+│  • Filters deposits >= $7,500                                               │
 │  • Extracts: wallet address, amount, tx hash                                │
 └──────────────────────────────────┬──────────────────────────────────────────┘
                                    │
@@ -98,7 +98,7 @@ PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymar
     │  • blockNumber: 12345678                                             │
     └─────────────────────────────────────────────────────────────────────┘
                               │
-                              │ Amount >= $9,000?
+                              │ Amount >= $7,500?
                               ▼
                      ┌────────────────┐
                      │  YES: Process  │

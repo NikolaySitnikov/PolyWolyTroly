@@ -97,7 +97,7 @@ Queries `https://data-api.polymarket.com/activity?user={address}` to determine i
 - `DATABASE_URL` - PostgreSQL connection string
 - `REDIS_URL` - Redis connection string
 - `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` - Alert destination
-- `MIN_DEPOSIT_AMOUNT` - Threshold in USD (default: 9000)
+- `MIN_DEPOSIT_AMOUNT` - Threshold in USD (default: 7500)
 
 ## Testing Patterns
 

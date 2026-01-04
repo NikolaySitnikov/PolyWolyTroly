@@ -12,7 +12,7 @@ Real-time monitoring of large USDC deposits to Polymarket on Polygon. Sends Tele
 
 ### Backend Tracker
 - Monitors USDC transfers to Polymarket Exchange contract in real-time via WebSocket
-- Configurable minimum deposit threshold (default: $9,000)
+- Configurable minimum deposit threshold (default: $7,500)
 - Detects truly new Polymarket users by checking historical activity via Polymarket API
 - Sends Telegram notifications with wallet links and deposit details
 - Tracks all deposits in PostgreSQL for historical analysis
@@ -61,7 +61,7 @@ Open http://localhost:5173 to view the dashboard.
 | `REDIS_URL` | Redis connection string |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token from @BotFather |
 | `TELEGRAM_CHAT_ID` | Telegram chat ID to send alerts to |
-| `MIN_DEPOSIT_AMOUNT` | Minimum deposit in USD to trigger alert (default: 9000) |
+| `MIN_DEPOSIT_AMOUNT` | Minimum deposit in USD to trigger alert (default: 7500) |
 
 ## How It Works
 

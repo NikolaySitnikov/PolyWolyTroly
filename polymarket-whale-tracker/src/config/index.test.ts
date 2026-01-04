@@ -46,7 +46,7 @@ describe("config", () => {
 
     it("should use default minDepositAmount when not set", async () => {
       const { config } = await import("./index.js");
-      expect(config.app.minDepositAmount).toBe(9000);
+      expect(config.app.minDepositAmount).toBe(7500);
     });
 
     it("should use custom minDepositAmount when set", async () => {
