@@ -19,6 +19,7 @@ import { useMobile } from './hooks/useMobile';
 import { useStats } from './hooks/useStats';
 import { useWhales } from './hooks/useWhales';
 import { useAlerts } from './hooks/useAlerts';
+import { useWallet } from './hooks/useWallet';
 import { useWebSocket, type DepositEvent } from './hooks/useWebSocket';
 import { Header } from './components/Header';
 import { MobileNav } from './components/MobileNav';
@@ -27,17 +28,40 @@ import { DashboardLoading } from './components/DashboardLoading';
 import { DashboardError } from './components/DashboardError';
 import { WhaleTable } from './components/WhaleTable';
 import { AlertFeed } from './components/AlertFeed';
+import { WalletProfile } from './components/WalletProfile';
+import { WalletProfileLoading } from './components/WalletProfileLoading';
+import { WalletProfileError } from './components/WalletProfileError';
 import { GlowText } from './components/GlowText';
 import type { ViewId } from './types/navigation';
 import type { Alert } from './types/alert';
 
 /**
- * Get initial view from URL hash or default to dashboard
+ * Parse URL hash to determine view and wallet address
+ * Supports: #dashboard, #whales, #alerts, #settings, #wallet/0x...
  */
-function getInitialView(): ViewId {
+interface ParsedHash {
+  view: ViewId;
+  walletAddress: string | null;
+}
+
+function parseHash(): ParsedHash {
   const hash = window.location.hash.slice(1); // Remove #
   const validViews: ViewId[] = ['dashboard', 'whales', 'alerts', 'settings'];
-  return validViews.includes(hash as ViewId) ? (hash as ViewId) : 'dashboard';
+
+  // Check for wallet profile: #wallet/0x...
+  if (hash.startsWith('wallet/')) {
+    const address = hash.slice(7); // Remove 'wallet/'
+    if (/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      return { view: 'wallet', walletAddress: address };
+    }
+  }
+
+  // Standard views
+  if (validViews.includes(hash as ViewId)) {
+    return { view: hash as ViewId, walletAddress: null };
+  }
+
+  return { view: 'dashboard', walletAddress: null };
 }
 
 // WebSocket URL - same port as API
@@ -45,9 +69,15 @@ const WS_URL = 'ws://localhost:3002';
 
 function App() {
   const isMobile = useMobile();
-  const [currentView, setCurrentView] = useState<ViewId>(getInitialView);
+  const initialHash = parseHash();
+  const [currentView, setCurrentView] = useState<ViewId>(initialHash.view);
+  const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | null>(
+    initialHash.walletAddress
+  );
+
   const { data: stats, loading, error, refetch, updateStats } = useStats();
   const WHALES_PER_PAGE = 20;
+  const DEPOSITS_PER_PAGE = 10;
   const {
     whales,
     loading: whalesLoading,
@@ -68,20 +98,38 @@ function App() {
     addAlert,
   } = useAlerts();
 
+  // Wallet profile data
+  const {
+    wallet: walletData,
+    deposits: walletDeposits,
+    loading: walletLoading,
+    error: walletError,
+    depositsLoading,
+    depositsTotal,
+    depositsPage,
+    setDepositsPage,
+    refetch: refetchWallet,
+  } = useWallet(selectedWalletAddress, DEPOSITS_PER_PAGE);
+
   // Keep refs updated for WebSocket callbacks to avoid stale closures
   const whalesRef = useRef(whales);
   whalesRef.current = whales;
 
-  // Sync URL hash with current view
+  // Sync URL hash with current view and wallet address
   useEffect(() => {
-    window.location.hash = currentView;
-  }, [currentView]);
+    if (currentView === 'wallet' && selectedWalletAddress) {
+      window.location.hash = `wallet/${selectedWalletAddress}`;
+    } else {
+      window.location.hash = currentView;
+    }
+  }, [currentView, selectedWalletAddress]);
 
   // Listen for browser back/forward navigation
   useEffect(() => {
     const handleHashChange = () => {
-      const view = getInitialView();
-      setCurrentView(view);
+      const parsed = parseHash();
+      setCurrentView(parsed.view);
+      setSelectedWalletAddress(parsed.walletAddress);
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
@@ -138,16 +186,25 @@ function App() {
 
   const handleNavigate = (view: ViewId) => {
     setCurrentView(view);
+    if (view !== 'wallet') {
+      setSelectedWalletAddress(null);
+    }
   };
 
   const handleWhaleClick = (address: string) => {
-    console.log('Whale clicked:', address);
-    // Future: navigate to wallet profile view
+    setSelectedWalletAddress(address);
+    setCurrentView('wallet');
   };
 
   const handleAlertClick = (alert: Alert) => {
-    console.log('Alert clicked:', alert);
-    // Future: navigate to wallet profile or show alert details
+    // Navigate to wallet profile for the alert's wallet
+    setSelectedWalletAddress(alert.walletAddress);
+    setCurrentView('wallet');
+  };
+
+  const handleBackFromWallet = () => {
+    setSelectedWalletAddress(null);
+    setCurrentView('whales');
   };
 
   const renderAlertsContent = () => {
@@ -386,6 +443,41 @@ function App() {
     );
   };
 
+  const renderWalletContent = () => {
+    if (walletLoading) {
+      return <WalletProfileLoading isMobile={isMobile} />;
+    }
+
+    if (walletError) {
+      return (
+        <WalletProfileError
+          error={walletError}
+          onBack={handleBackFromWallet}
+          onRetry={refetchWallet}
+          isMobile={isMobile}
+        />
+      );
+    }
+
+    if (walletData) {
+      return (
+        <WalletProfile
+          wallet={walletData}
+          deposits={walletDeposits}
+          depositsLoading={depositsLoading}
+          depositsTotal={depositsTotal}
+          depositsPage={depositsPage}
+          depositsPerPage={DEPOSITS_PER_PAGE}
+          onDepositsPageChange={setDepositsPage}
+          onBack={handleBackFromWallet}
+          isMobile={isMobile}
+        />
+      );
+    }
+
+    return null;
+  };
+
   return (
     <div
       data-testid="app-container"
@@ -451,6 +543,7 @@ function App() {
         {currentView === 'dashboard' && renderDashboardContent()}
         {currentView === 'whales' && renderWhalesContent()}
         {currentView === 'alerts' && renderAlertsContent()}
+        {currentView === 'wallet' && renderWalletContent()}
 
         {/* Placeholder for settings - will be implemented in Step 10 */}
         {currentView === 'settings' && (

@@ -6,8 +6,9 @@
 
 /**
  * Available navigation views in the application
+ * 'wallet' is a dynamic view that displays a specific wallet profile
  */
-export type ViewId = 'dashboard' | 'whales' | 'alerts' | 'settings';
+export type ViewId = 'dashboard' | 'whales' | 'alerts' | 'settings' | 'wallet';
 
 /**
  * Navigation item configuration

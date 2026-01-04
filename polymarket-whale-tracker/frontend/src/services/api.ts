@@ -100,14 +100,38 @@ export interface DepositsResponse {
  * Fetches paginated list of recent deposits.
  * @param page - Page number (default 1)
  * @param limit - Items per page (default 50)
+ * @param walletAddress - Optional wallet address to filter by
  * @returns Promise resolving to paginated deposit data
  * @throws Error if the request fails
  */
-export async function fetchDeposits(page = 1, limit = 50): Promise<DepositsResponse> {
-  const response = await fetch(`${api.baseUrl}/api/deposits?page=${page}&limit=${limit}`);
+export async function fetchDeposits(page = 1, limit = 50, walletAddress?: string): Promise<DepositsResponse> {
+  let url = `${api.baseUrl}/api/deposits?page=${page}&limit=${limit}`;
+  if (walletAddress) {
+    url += `&wallet=${walletAddress}`;
+  }
+  const response = await fetch(url);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch deposits: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetches a single wallet by address.
+ * @param address - Wallet address to fetch
+ * @returns Promise resolving to wallet data
+ * @throws Error if the request fails or wallet not found
+ */
+export async function fetchWallet(address: string): Promise<WalletApiResponse> {
+  const response = await fetch(`${api.baseUrl}/api/wallets/${address}`);
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Wallet not found');
+    }
+    throw new Error(`Failed to fetch wallet: ${response.status}`);
   }
 
   return response.json();
