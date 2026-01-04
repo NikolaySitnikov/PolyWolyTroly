@@ -238,7 +238,7 @@ function MarketCard({
                 fontSize: '11px',
                 fontWeight: 500,
                 color: changeDisplay.isNeutral
-                  ? tokens.colors.textMuted
+                  ? tokens.colors.purple
                   : changeDisplay.isPositive
                     ? tokens.colors.profit
                     : tokens.colors.loss,

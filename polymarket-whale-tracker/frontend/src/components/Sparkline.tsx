@@ -29,21 +29,27 @@ interface SparklineProps {
   loading?: boolean;
 }
 
+/** Threshold for considering a trend as "neutral" (percentage) */
+const NEUTRAL_THRESHOLD = 0.5; // ±0.5%
+
 /**
  * Calculate trend direction from price history data.
- * Compares first and last data points.
+ * Compares first and last data points with threshold for neutral.
  */
 function calculateTrend(data: PriceHistoryPoint[]): 'up' | 'down' | 'neutral' {
   if (data.length < 2) return 'neutral';
   const first = data[0].p;
   const last = data[data.length - 1].p;
-  if (last > first) return 'up';
-  if (last < first) return 'down';
-  return 'neutral';
+  if (first === 0) return 'neutral';
+  const changePercent = ((last - first) / first) * 100;
+  if (Math.abs(changePercent) < NEUTRAL_THRESHOLD) return 'neutral';
+  if (changePercent > 0) return 'up';
+  return 'down';
 }
 
 /**
  * Get stroke color based on trend direction per design system.
+ * Uses purple for neutral/flat trends to match Alerts Today accent.
  */
 function getTrendColor(trend: 'up' | 'down' | 'neutral'): string {
   switch (trend) {
@@ -52,7 +58,7 @@ function getTrendColor(trend: 'up' | 'down' | 'neutral'): string {
     case 'down':
       return tokens.colors.loss;
     default:
-      return tokens.colors.textSecondary;
+      return tokens.colors.purple;
   }
 }
 
@@ -127,7 +133,7 @@ export function Sparkline({
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
           <Line
-            type="monotone"
+            type="linear"
             dataKey="p"
             stroke={strokeColor}
             strokeWidth={1.5}
