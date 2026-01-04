@@ -113,6 +113,7 @@ function PageButton({
           : isHovered
             ? `0 0 15px ${tokens.colors.cyanGlow}`
             : 'none',
+        animation: isActive ? 'activePulse 2s ease-in-out infinite' : 'none',
       }}
     >
       {page}

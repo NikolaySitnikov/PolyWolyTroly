@@ -1759,4 +1759,42 @@ animation: 0s ease 0s 1 normal none running none ✅ (cleared)
 
 ---
 
+### Task 6: Add Active Page Pulse Animation to Pagination
+
+**Status**: ✅ COMPLETE
+
+**Goal**: Add a subtle pulsing glow animation to the active page button in the Pagination component.
+
+**Implementation**:
+- Added `animation: activePulse 2s ease-in-out infinite` to PageButton when `isActive=true`
+- The activePulse keyframe (added in Task 1) creates a subtle cyan glow pulse
+- Animation pulses between `box-shadow: 0 0 15px rgba(0, 255, 240, 0.3)` and `0 0 25px rgba(0, 255, 240, 0.5)`
+- Non-active buttons have `animation: none`
+
+**TDD Approach**:
+1. **RED**: Added 3 tests for pulse animation (2 failed)
+2. **GREEN**: Added animation property to PageButton style
+3. **REFACTOR**: No refactoring needed - single line change
+
+**Tests Added**:
+- `should apply activePulse animation to the active page button`
+- `should NOT apply activePulse animation to inactive page buttons`
+- `should apply activePulse animation with infinite iteration`
+
+**Files Modified**:
+| File | Changes |
+|------|---------|
+| `src/components/Pagination.tsx` | Added animation style to PageButton |
+| `src/components/Pagination.test.tsx` | Added 3 tests for pulse animation |
+
+**Tests**: All 297 tests pass (3 new tests added)
+
+**How to Verify**:
+- Open http://localhost:5173/#whales
+- Scroll to the bottom to see the pagination
+- The active page button has a subtle pulsing cyan glow
+- Click another page - the pulse animation moves to the new active page
+
+---
+
 *"In the void, whales move in silence. We see them."*

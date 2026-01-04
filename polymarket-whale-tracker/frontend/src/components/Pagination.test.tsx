@@ -116,4 +116,24 @@ describe('Pagination', () => {
     const { container } = render(<Pagination {...defaultProps} totalPages={1} totalItems={15} />);
     expect(container.firstChild).toBeNull();
   });
+
+  describe('Active Page Pulse Animation', () => {
+    it('should apply activePulse animation to the active page button', () => {
+      render(<Pagination {...defaultProps} currentPage={3} totalPages={5} />);
+      const activeButton = screen.getByRole('button', { name: /page 3/i });
+      expect(activeButton.style.animation).toContain('activePulse');
+    });
+
+    it('should NOT apply activePulse animation to inactive page buttons', () => {
+      render(<Pagination {...defaultProps} currentPage={3} totalPages={5} />);
+      const inactiveButton = screen.getByRole('button', { name: /page 1/i });
+      expect(inactiveButton.style.animation).not.toContain('activePulse');
+    });
+
+    it('should apply activePulse animation with infinite iteration', () => {
+      render(<Pagination {...defaultProps} currentPage={2} totalPages={5} />);
+      const activeButton = screen.getByRole('button', { name: /page 2/i });
+      expect(activeButton.style.animation).toContain('infinite');
+    });
+  });
 });
