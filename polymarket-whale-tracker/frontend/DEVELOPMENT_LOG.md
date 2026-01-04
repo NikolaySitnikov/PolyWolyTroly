@@ -1570,4 +1570,49 @@ All data-fetching hooks now use the same pattern:
 
 ---
 
+---
+
+## GROUP 1: Core Animations & Visual Effects
+
+### Task 1: Add Missing Keyframe Animations to globals.css
+
+**Status**: ✅ COMPLETE
+
+**Goal**: Add the missing keyframe animations specified in DESIGN_SYSTEM.md to enable brand-defining visual effects.
+
+**Animations Added**:
+
+1. **`tickUp`** - Number ticker animation for updating values
+   - Per DESIGN_SYSTEM.md: 0.3s with ease-out-expo
+   - Translates from bottom with fade-in effect
+
+2. **`flashGreen`** - For positive value changes
+   - Per BRAND_GUIDELINES_EXTENDED.md: 0.6s ease
+   - Flash green background + glow, then fade to transparent
+   - Uses profit color: rgba(0, 255, 136, 0.3)
+
+3. **`flashRed`** - For negative value changes
+   - Per BRAND_GUIDELINES_EXTENDED.md: 0.6s ease
+   - Flash red background + glow, then fade to transparent
+   - Uses loss color: rgba(255, 51, 102, 0.3)
+
+4. **`activePulse`** - For active pagination button
+   - Subtle glow pulse to indicate current page
+   - Uses cyan glow: rgba(0, 255, 240, 0.3-0.5)
+
+5. **`scanline`** - CRT scanline effect
+   - Per DESIGN_SYSTEM.md: Moves from top to bottom of viewport
+   - Creates subtle retro terminal feel
+
+**Files Modified**:
+| File | Changes |
+|------|---------|
+| `src/styles/globals.css` | Added 5 new @keyframes animations with documentation |
+
+**Tests**: All 282 existing tests pass
+
+**Visual Verification**: Animations are now available via CSS class names using these keyframes.
+
+---
+
 *"In the void, whales move in silence. We see them."*
