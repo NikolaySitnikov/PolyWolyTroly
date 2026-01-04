@@ -421,6 +421,20 @@ describe("blockchain service", () => {
       );
     });
 
+    it("should use polling mode for PublicNode compatibility", async () => {
+      mockWatchContractEvent.mockReturnValue(() => {});
+
+      const { blockchain } = await import("./blockchain.js");
+      await blockchain.startListening();
+
+      expect(mockWatchContractEvent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          poll: true,
+          pollingInterval: 2000,
+        })
+      );
+    });
+
     it("should not start multiple listeners", async () => {
       mockWatchContractEvent.mockReturnValue(() => {});
 
@@ -470,6 +484,177 @@ describe("blockchain service", () => {
       await capturedOnLogs!(mockLogs);
 
       expect(mockProcessDeposit).toHaveBeenCalled();
+    });
+  });
+
+  describe("health tracking", () => {
+    it("should expose getHealthStatus method", async () => {
+      const { blockchain } = await import("./blockchain.js");
+      expect(typeof blockchain.getHealthStatus).toBe("function");
+    });
+
+    it("should return initial health status before starting", async () => {
+      const { blockchain } = await import("./blockchain.js");
+      const status = blockchain.getHealthStatus();
+
+      expect(status).toEqual({
+        isRunning: false,
+        lastEventTime: null,
+        healthy: false,
+        startTime: null,
+        consecutiveErrors: 0,
+      });
+    });
+
+    it("should update isRunning and startTime when listener starts", async () => {
+      mockWatchContractEvent.mockReturnValue(() => {});
+
+      const { blockchain } = await import("./blockchain.js");
+      const beforeStart = Date.now();
+      await blockchain.startListening();
+      const afterStart = Date.now();
+
+      const status = blockchain.getHealthStatus();
+      expect(status.isRunning).toBe(true);
+      expect(status.startTime).not.toBeNull();
+      expect(status.startTime!.getTime()).toBeGreaterThanOrEqual(beforeStart);
+      expect(status.startTime!.getTime()).toBeLessThanOrEqual(afterStart);
+    });
+
+    it("should update lastEventTime and set healthy=true when logs are received", async () => {
+      let capturedOnLogs: ((logs: Log[]) => Promise<void>) | undefined;
+
+      mockWatchContractEvent.mockImplementation((options) => {
+        capturedOnLogs = options.onLogs;
+        return () => {};
+      });
+
+      mockProcessDeposit.mockResolvedValue({ isNew: false, depositId: null });
+
+      const { blockchain } = await import("./blockchain.js");
+      await blockchain.startListening();
+
+      const beforeEvent = Date.now();
+      await capturedOnLogs!([
+        {
+          address: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+          topics: [
+            "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+            "0x000000000000000000000000abc1234567890abcdef1234567890abcdef12345",
+            "0x0000000000000000000000004bfb41d5b3570defd03c39a9a4d8de6bd8b8982e",
+          ],
+          data: "0x000000000000000000000000000000000000000000000000000000003b9aca00", // Below threshold
+          blockHash: "0xblockhash",
+          blockNumber: BigInt(50000000),
+          transactionHash: "0xtxhash123",
+          transactionIndex: 0,
+          logIndex: 0,
+          removed: false,
+        },
+      ]);
+      const afterEvent = Date.now();
+
+      const status = blockchain.getHealthStatus();
+      expect(status.healthy).toBe(true);
+      expect(status.lastEventTime).not.toBeNull();
+      expect(status.lastEventTime!.getTime()).toBeGreaterThanOrEqual(beforeEvent);
+      expect(status.lastEventTime!.getTime()).toBeLessThanOrEqual(afterEvent);
+      expect(status.consecutiveErrors).toBe(0);
+    });
+
+    it("should increment consecutiveErrors on polling error", async () => {
+      let capturedOnError: ((error: Error) => void) | undefined;
+
+      mockWatchContractEvent.mockImplementation((options) => {
+        capturedOnError = options.onError;
+        return () => {};
+      });
+
+      const { blockchain } = await import("./blockchain.js");
+      await blockchain.startListening();
+
+      // Simulate an error
+      capturedOnError!(new Error("Polling failed"));
+
+      const status = blockchain.getHealthStatus();
+      expect(status.consecutiveErrors).toBe(1);
+    });
+
+    it("should reset consecutiveErrors when logs are received after errors", async () => {
+      let capturedOnLogs: ((logs: Log[]) => Promise<void>) | undefined;
+      let capturedOnError: ((error: Error) => void) | undefined;
+
+      mockWatchContractEvent.mockImplementation((options) => {
+        capturedOnLogs = options.onLogs;
+        capturedOnError = options.onError;
+        return () => {};
+      });
+
+      mockProcessDeposit.mockResolvedValue({ isNew: false, depositId: null });
+
+      const { blockchain } = await import("./blockchain.js");
+      await blockchain.startListening();
+
+      // Simulate some errors
+      capturedOnError!(new Error("Error 1"));
+      capturedOnError!(new Error("Error 2"));
+      expect(blockchain.getHealthStatus().consecutiveErrors).toBe(2);
+
+      // Then receive logs
+      await capturedOnLogs!([
+        {
+          address: "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+          topics: [
+            "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+            "0x000000000000000000000000abc1234567890abcdef1234567890abcdef12345",
+            "0x0000000000000000000000004bfb41d5b3570defd03c39a9a4d8de6bd8b8982e",
+          ],
+          data: "0x000000000000000000000000000000000000000000000000000000003b9aca00",
+          blockHash: "0xblockhash",
+          blockNumber: BigInt(50000000),
+          transactionHash: "0xtxhash123",
+          transactionIndex: 0,
+          logIndex: 0,
+          removed: false,
+        },
+      ]);
+
+      expect(blockchain.getHealthStatus().consecutiveErrors).toBe(0);
+    });
+
+    it("should restart listener after MAX_CONSECUTIVE_ERRORS", async () => {
+      const MAX_CONSECUTIVE_ERRORS = 5;
+      const RESTART_DELAY_MS = 2000;
+      let capturedOnError: ((error: Error) => void) | undefined;
+      let unwatchCalled = false;
+
+      mockWatchContractEvent.mockImplementation((options) => {
+        capturedOnError = options.onError;
+        return () => { unwatchCalled = true; };
+      });
+
+      const { blockchain } = await import("./blockchain.js");
+      await blockchain.startListening();
+
+      // Reset to track new calls
+      mockWatchContractEvent.mockClear();
+      mockWatchContractEvent.mockImplementation((options) => {
+        capturedOnError = options.onError;
+        return () => {};
+      });
+
+      // Simulate MAX_CONSECUTIVE_ERRORS errors
+      for (let i = 0; i < MAX_CONSECUTIVE_ERRORS; i++) {
+        capturedOnError!(new Error(`Error ${i + 1}`));
+      }
+
+      // The restart happens after RESTART_DELAY_MS, so we need to wait
+      // Use vi.useFakeTimers or wait for the actual delay
+      await new Promise((r) => setTimeout(r, RESTART_DELAY_MS + 100));
+
+      // Should have restarted - watchContractEvent called again
+      expect(mockWatchContractEvent).toHaveBeenCalled();
+      expect(unwatchCalled).toBe(true);
     });
   });
 });

@@ -25,6 +25,10 @@ import("../api/websocket.js")
 
 const logger = pino({ level: "info" });
 
+// Configuration for robustness
+const MAX_CONSECUTIVE_ERRORS = 5;
+const RESTART_DELAY_MS = 2000;
+
 // Create WebSocket client for real-time events
 const wsClient = createPublicClient({
   chain: polygon,
@@ -42,10 +46,34 @@ const httpClient = createPublicClient({
   transport: http(config.alchemy.httpUrl),
 });
 
-// Track if we're currently running
+// Health tracking state
 let isRunning = false;
+let lastEventTime: Date | null = null;
+let listenerHealthy = false;
+let listenerStartTime: Date | null = null;
+let consecutiveErrors = 0;
+let currentUnwatch: (() => void) | null = null;
 
 export const blockchain = {
+  /**
+   * Get listener health status for monitoring
+   */
+  getHealthStatus(): {
+    isRunning: boolean;
+    lastEventTime: Date | null;
+    healthy: boolean;
+    startTime: Date | null;
+    consecutiveErrors: number;
+  } {
+    return {
+      isRunning,
+      lastEventTime,
+      healthy: listenerHealthy,
+      startTime: listenerStartTime,
+      consecutiveErrors,
+    };
+  },
+
   /**
    * Process a single transfer event
    * Uses distributed locking to prevent duplicate processing across multiple instances
@@ -129,6 +157,65 @@ export const blockchain = {
   },
 
   /**
+   * Internal method to set up the event watcher
+   */
+  _setupWatcher(): () => void {
+    return wsClient.watchContractEvent({
+      address: CONTRACTS.USDC as `0x${string}`,
+      abi: ERC20_TRANSFER_ABI,
+      eventName: "Transfer",
+      args: {
+        to: CONTRACTS.POLYMARKET_EXCHANGE as `0x${string}`,
+      },
+      poll: true,
+      pollingInterval: 2000,
+      onLogs: async (logs) => {
+        // Update health status - receiving logs means we're healthy
+        lastEventTime = new Date();
+        listenerHealthy = true;
+        consecutiveErrors = 0;
+
+        for (const log of logs) {
+          await this.processTransferEvent(log);
+        }
+      },
+      onError: (error) => {
+        consecutiveErrors++;
+        console.error(`Polling error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, error);
+
+        // Auto-restart after too many consecutive errors
+        if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+          console.warn("🔄 Too many consecutive errors, restarting listener...");
+          this._restartListener();
+        }
+      },
+    });
+  },
+
+  /**
+   * Restart the listener after errors
+   */
+  _restartListener(): void {
+    // Stop current watcher
+    if (currentUnwatch) {
+      currentUnwatch();
+      currentUnwatch = null;
+    }
+
+    // Reset state for restart
+    consecutiveErrors = 0;
+    listenerHealthy = false;
+
+    // Restart after delay
+    setTimeout(() => {
+      console.log("🔄 Restarting blockchain listener...");
+      currentUnwatch = this._setupWatcher();
+      listenerHealthy = true;
+      console.log("✅ Listener restarted successfully");
+    }, RESTART_DELAY_MS);
+  },
+
+  /**
    * Start listening for Transfer events
    */
   async startListening(): Promise<void> {
@@ -138,25 +225,14 @@ export const blockchain = {
     }
 
     isRunning = true;
+    listenerStartTime = new Date();
+    listenerHealthy = true;
+    consecutiveErrors = 0;
     console.log("🚀 Starting Polymarket whale tracker...");
 
     // Watch for USDC transfers TO Polymarket Exchange
-    const unwatch = wsClient.watchContractEvent({
-      address: CONTRACTS.USDC as `0x${string}`,
-      abi: ERC20_TRANSFER_ABI,
-      eventName: "Transfer",
-      args: {
-        to: CONTRACTS.POLYMARKET_EXCHANGE as `0x${string}`,
-      },
-      onLogs: async (logs) => {
-        for (const log of logs) {
-          await this.processTransferEvent(log);
-        }
-      },
-      onError: (error) => {
-        console.error("WebSocket error:", error);
-      },
-    });
+    // Note: PublicNode doesn't support eth_subscribe for logs, so we use polling
+    currentUnwatch = this._setupWatcher();
 
     console.log("✅ Now listening for USDC transfers to Polymarket");
     console.log(`📊 Minimum deposit threshold: $${config.app.minDepositAmount.toLocaleString()}`);
@@ -165,7 +241,11 @@ export const blockchain = {
     const shutdown = async () => {
       logger.info("Shutting down...");
       isRunning = false;
-      unwatch();
+      listenerHealthy = false;
+      if (currentUnwatch) {
+        currentUnwatch();
+        currentUnwatch = null;
+      }
       await cache.close();
       process.exit(0);
     };
