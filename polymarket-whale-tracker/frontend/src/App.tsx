@@ -15,6 +15,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import './styles/globals.css';
 import { tokens } from './styles/tokens';
+import { LAYOUT } from './constants/layout';
 import { useMobile } from './hooks/useMobile';
 import { useStats } from './hooks/useStats';
 import { useWhales } from './hooks/useWhales';
@@ -33,6 +34,7 @@ import { TrendingMarkets } from './components/TrendingMarkets';
 import { WalletProfile } from './components/WalletProfile';
 import { WalletProfileLoading } from './components/WalletProfileLoading';
 import { WalletProfileError } from './components/WalletProfileError';
+import { InlineLoading } from './components/InlineLoading';
 import { GlowText } from './components/GlowText';
 import type { ViewId } from './types/navigation';
 import type { Alert } from './types/alert';
@@ -255,26 +257,7 @@ function App() {
 
         {/* Loading state */}
         {alertsLoading && (
-          <div
-            style={{
-              background: tokens.colors.surface,
-              border: `1px solid ${tokens.colors.border}`,
-              borderRadius: '12px',
-              padding: '48px',
-              textAlign: 'center',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '32px',
-                marginBottom: tokens.spacing[4],
-                animation: 'pulse 2s ease-in-out infinite',
-              }}
-            >
-              ⚡
-            </div>
-            <p style={{ color: tokens.colors.textSecondary }}>Loading alerts...</p>
-          </div>
+          <InlineLoading icon="⚡" message="Loading alerts..." />
         )}
 
         {/* Error state */}
@@ -391,26 +374,7 @@ function App() {
 
         {/* Loading state */}
         {whalesLoading && (
-          <div
-            style={{
-              background: tokens.colors.surface,
-              border: `1px solid ${tokens.colors.border}`,
-              borderRadius: '12px',
-              padding: '48px',
-              textAlign: 'center',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '32px',
-                marginBottom: tokens.spacing[4],
-                animation: 'pulse 2s ease-in-out infinite',
-              }}
-            >
-              🐋
-            </div>
-            <p style={{ color: tokens.colors.textSecondary }}>Loading whales...</p>
-          </div>
+          <InlineLoading icon="🐋" message="Loading whales..." />
         )}
 
         {/* Error state */}
@@ -565,8 +529,8 @@ function App() {
           position: 'relative',
           zIndex: 2,
           padding: isMobile ? tokens.spacing[4] : tokens.spacing[8],
-          paddingTop: isMobile ? '80px' : '100px', // Account for fixed header
-          paddingBottom: isMobile ? '90px' : tokens.spacing[8], // Account for mobile nav
+          paddingTop: isMobile ? LAYOUT.content.paddingTop.mobile : LAYOUT.content.paddingTop.desktop,
+          paddingBottom: isMobile ? LAYOUT.content.paddingBottom.mobile : LAYOUT.content.paddingBottom.desktop,
           maxWidth: '1400px',
           margin: '0 auto',
         }}

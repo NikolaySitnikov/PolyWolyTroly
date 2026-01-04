@@ -8,6 +8,7 @@
  */
 
 import { tokens } from '../styles/tokens';
+import { EmptyState } from './EmptyState';
 import type { TrendingMarketResponse } from '../services/api';
 
 interface TrendingMarketsProps {
@@ -312,30 +313,22 @@ function ErrorState({ error, onRetry }: { error: string; onRetry?: () => void })
 }
 
 /**
- * Empty state component
+ * Empty state wrapper with grid spanning
  */
-function EmptyState() {
+function MarketsEmptyState() {
   return (
     <div
       style={{
         gridColumn: '1 / -1',
-        textAlign: 'center',
-        padding: '48px 20px',
         background: tokens.colors.surface,
         border: `1px solid ${tokens.colors.border}`,
-        borderRadius: '12px',
+        borderRadius: tokens.radius.lg,
       }}
     >
-      <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.5 }}>📈</div>
-      <div
-        style={{
-          fontFamily: tokens.fonts.body,
-          fontSize: '14px',
-          color: tokens.colors.textMuted,
-        }}
-      >
-        No trending markets available
-      </div>
+      <EmptyState
+        icon="📈"
+        message="No trending markets available"
+      />
     </div>
   );
 }
@@ -406,7 +399,7 @@ export function TrendingMarkets({
         ) : error ? (
           <ErrorState error={error} onRetry={onRetry} />
         ) : markets.length === 0 ? (
-          <EmptyState />
+          <MarketsEmptyState />
         ) : (
           markets.map((market, index) => (
             <MarketCard key={market.id} market={market} index={index} />

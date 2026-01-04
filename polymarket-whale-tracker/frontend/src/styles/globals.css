@@ -40,10 +40,11 @@
   --font-mono: 'JetBrains Mono', monospace;
   --font-body: 'Space Grotesk', sans-serif;
 
-  /* Animation */
+  /* Animation - matches tokens.animation */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --duration-fast: 150ms;
   --duration-normal: 250ms;
+  --duration-slow: 400ms;
 }
 
 /* Base styles */
@@ -92,6 +93,13 @@ body {
   outline-offset: 2px;
 }
 
+/* Input focus styles - use box-shadow since outline may be removed inline */
+input:focus-visible,
+textarea:focus-visible {
+  outline: none !important;
+  box-shadow: 0 0 0 2px var(--color-cyan);
+}
+
 /* Remove default button styles */
 button {
   font-family: inherit;
@@ -106,16 +114,24 @@ a {
   text-decoration: none;
 }
 
-/* Animations */
+/**
+ * Animation Keyframes
+ *
+ * Standard durations (from tokens.animation):
+ * - fast: 150ms - Micro-interactions, hovers
+ * - normal: 250ms - UI transitions
+ * - slow: 400ms - Card entrances, fadeInUp
+ * - shimmer: 1.5s - Loading skeletons
+ * - pulse: 2s - Live indicators
+ */
+
+/* Pulsing opacity for live indicators */
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
+/* Entrance animation for cards and list items */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -127,30 +143,27 @@ a {
   }
 }
 
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
+/* Shimmer effect for loading skeletons */
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
+/* Glow pulse for attention-grabbing elements */
 @keyframes pulseGlow {
-  0%, 100% {
-    box-shadow: 0 0 0 0 var(--color-cyan-glow);
+  0%, 100% { box-shadow: 0 0 0 0 var(--color-cyan-glow); }
+  50% { box-shadow: 0 0 20px 4px var(--color-cyan-glow); }
+}
+
+/* Scale in for new items appearing in lists */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
   }
-  50% {
-    box-shadow: 0 0 20px 4px var(--color-cyan-glow);
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 

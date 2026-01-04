@@ -10,6 +10,7 @@
 import { useState, useMemo } from 'react';
 import { tokens } from '../styles/tokens';
 import { LiveIndicator } from './LiveIndicator';
+import { EmptyState } from './EmptyState';
 import type { Alert } from '../types/alert';
 
 interface AlertFeedProps {
@@ -217,20 +218,15 @@ export function AlertFeed({ alerts, isMobile, onAlertClick }: AlertFeedProps) {
         }}
       >
         {filteredAlerts.length === 0 ? (
-          <div
-            style={{
-              padding: '48px 20px',
-              textAlign: 'center',
-              color: tokens.colors.textMuted,
-              fontFamily: tokens.fonts.body,
-              fontSize: '14px',
-            }}
-          >
-            <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.5 }}>🐋</div>
-            {filter
-              ? `No alerts found matching "${filter}"`
-              : 'No alerts yet - waiting for whale activity...'}
-          </div>
+          <EmptyState
+            icon="🐋"
+            message={
+              filter
+                ? `No alerts found matching "${filter}"`
+                : 'No alerts yet - waiting for whale activity...'
+            }
+            variant={filter ? 'search' : 'waiting'}
+          />
         ) : (
           filteredAlerts.map((alert, index) => (
             <div

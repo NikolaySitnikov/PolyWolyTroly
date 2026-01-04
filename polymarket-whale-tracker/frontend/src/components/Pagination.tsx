@@ -7,8 +7,9 @@
  * @see Design docs/PAGINATION_GUIDELINES.md
  */
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { tokens } from '../styles/tokens';
+import { useHover } from '../hooks/useHover';
 
 interface PaginationProps {
   currentPage: number;
@@ -82,13 +83,12 @@ function PageButton({
   isActive: boolean;
   onClick: () => void;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
+  const { isHovered, hoverProps } = useHover();
 
   return (
     <button
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      {...hoverProps}
       aria-label={`Page ${page}`}
       aria-current={isActive ? 'page' : undefined}
       style={{
@@ -132,14 +132,13 @@ function NavButton({
   onClick: () => void;
   disabled: boolean;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
+  const { isHovered, hoverProps } = useHover({ disabled });
   const isPrev = direction === 'prev';
 
   return (
     <button
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      {...hoverProps}
       disabled={disabled}
       aria-label={isPrev ? 'Previous page' : 'Next page'}
       style={{
