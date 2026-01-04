@@ -1624,11 +1624,14 @@ All data-fetching hooks now use the same pattern:
 **Implementation**:
 - Added `cursor: pointer` for interactivity indication
 - Added `transition: all 150ms ease-out-expo` for smooth hover
+- Added `onAnimationEnd` handler to clear entrance animation (fixes transform conflict)
 - On hover (desktop only via `@media (hover: hover)`):
   - `transform: translateY(-2px)` - card lifts
   - `borderColor: cyan` - border highlights
   - `boxShadow: 0 0 30px cyanGlow, inset 0 1px 0 cyan` - glow effect
 - On mouse leave: reset to default state
+
+**Bug Fix**: The `fadeInUp` entrance animation was using `animation-fill-mode: both` which kept the final transform state applied, preventing hover transforms from working. Fixed by clearing animation on `onAnimationEnd`.
 
 **Design System Compliance**:
 - Per DESIGN_SYSTEM.md "Elevated Card (hover)" specs

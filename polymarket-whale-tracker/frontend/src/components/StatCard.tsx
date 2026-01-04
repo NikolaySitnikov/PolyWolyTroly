@@ -59,6 +59,10 @@ export function StatCard({
         cursor: 'pointer',
         transition: `all ${tokens.animation.durationFast} ${tokens.animation.easeOutExpo}`,
       }}
+      onAnimationEnd={(e) => {
+        // Clear animation so hover transform can work
+        e.currentTarget.style.animation = 'none';
+      }}
       onMouseEnter={(e) => {
         // Only apply hover effects on devices with hover capability
         if (window.matchMedia('(hover: hover)').matches) {
