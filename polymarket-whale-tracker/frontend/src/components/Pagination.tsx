@@ -7,7 +7,7 @@
  * @see Design docs/PAGINATION_GUIDELINES.md
  */
 
-import { useMemo, useCallback, KeyboardEvent } from 'react';
+import { useMemo, useCallback, useRef, useEffect, KeyboardEvent } from 'react';
 import { tokens } from '../styles/tokens';
 import { useHover } from '../hooks/useHover';
 
@@ -207,6 +207,11 @@ export function Pagination({
   entityName = 'items',
   isMobile = false,
 }: PaginationProps) {
+  // Ref to maintain focus on the pagination container after page changes
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Track if keyboard navigation triggered the page change
+  const keyboardNavigatedRef = useRef(false);
+
   // Don't render if only one page or no pages
   if (totalPages <= 1) {
     return null;
@@ -218,13 +223,26 @@ export function Pagination({
   const pageNumbers = useMemo(() => getPageNumbers(currentPage, totalPages), [currentPage, totalPages]);
 
   /**
+   * Re-focus the container after keyboard-triggered page changes
+   * This prevents focus loss when React re-renders the component
+   */
+  useEffect(() => {
+    if (keyboardNavigatedRef.current && containerRef.current) {
+      containerRef.current.focus();
+      keyboardNavigatedRef.current = false;
+    }
+  }, [currentPage]);
+
+  /**
    * Keyboard navigation handler for arrow keys
    */
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
       if (e.key === 'ArrowLeft' && currentPage > 1) {
+        keyboardNavigatedRef.current = true;
         onPageChange(currentPage - 1);
       } else if (e.key === 'ArrowRight' && currentPage < totalPages) {
+        keyboardNavigatedRef.current = true;
         onPageChange(currentPage + 1);
       }
     },
@@ -235,6 +253,7 @@ export function Pagination({
   if (isMobile) {
     return (
       <div
+        ref={containerRef}
         data-testid="pagination"
         tabIndex={0}
         onKeyDown={handleKeyDown}
@@ -287,6 +306,7 @@ export function Pagination({
   // Desktop: Full layout
   return (
     <div
+      ref={containerRef}
       data-testid="pagination"
       tabIndex={0}
       onKeyDown={handleKeyDown}

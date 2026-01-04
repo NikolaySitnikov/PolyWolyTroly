@@ -187,5 +187,26 @@ describe('Pagination', () => {
       const pagination = screen.getByTestId('pagination');
       expect(pagination).toHaveAttribute('tabIndex', '0');
     });
+
+    it('should maintain focus after keyboard navigation', async () => {
+      const onPageChange = vi.fn();
+      const { rerender } = render(
+        <Pagination {...defaultProps} currentPage={5} onPageChange={onPageChange} />
+      );
+
+      const pagination = screen.getByTestId('pagination');
+      pagination.focus();
+      expect(document.activeElement).toBe(pagination);
+
+      await userEvent.keyboard('{ArrowRight}');
+      expect(onPageChange).toHaveBeenCalledWith(6);
+
+      // Simulate the page change by re-rendering with new page
+      rerender(<Pagination {...defaultProps} currentPage={6} onPageChange={onPageChange} />);
+
+      // Focus should be maintained on the pagination container
+      const newPagination = screen.getByTestId('pagination');
+      expect(document.activeElement).toBe(newPagination);
+    });
   });
 });

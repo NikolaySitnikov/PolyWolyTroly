@@ -1874,4 +1874,121 @@ animation: 0s ease 0s 1 normal none running none ✅ (cleared)
 
 ---
 
+### Task 9: Fix Keyboard Navigation Focus Loss Bug
+
+**Status**: ✅ COMPLETE
+
+**Goal**: Fix bug where keyboard navigation would sometimes get "stuck" when using arrow keys on middle pages with ellipsis gaps.
+
+**Root Cause**: When React re-renders the Pagination component after a page change, focus was being lost from the pagination container, preventing subsequent keyboard events.
+
+**Implementation**:
+- Added `containerRef` to reference the pagination container div
+- Added `keyboardNavigatedRef` to track when keyboard navigation triggered the page change
+- Added `useEffect` that refocuses the container after keyboard-triggered page changes
+- Applied to both desktop and mobile layouts
+
+**Files Modified**:
+| File | Changes |
+|------|---------|
+| `src/components/Pagination.tsx` | Added containerRef, keyboardNavigatedRef, useEffect for focus restoration |
+| `src/components/Pagination.test.tsx` | Added test for focus maintenance after navigation |
+
+**Tests**: All 324 tests pass (1 new test added)
+
+**How to Verify**:
+- Open http://localhost:5173/#whales
+- Navigate to a middle page (e.g., page 5)
+- Focus the pagination area
+- Press ← and → rapidly multiple times
+- Navigation should continue working without getting stuck
+
+---
+
+### Task 10: Fix Page Reset on WebSocket Update
+
+**Status**: ✅ COMPLETE
+
+**Goal**: Fix bug where the whale table would "refresh" unexpectedly when a new deposit was detected via WebSocket while viewing a paginated page (e.g., page 4).
+
+**Root Cause**: The `addWhale` function in `useWhales` hook was prepending new whales to the current page's data regardless of which page the user was on. This corrupted the view because page 4 should only show whales ranked 61-80, not include a newly detected whale.
+
+**Implementation**:
+- Added `pageRef` to track current page without stale closures
+- Added `pendingNewWhales` state to track new whales detected while on other pages
+- Modified `addWhale` to only add whales to visible list if on page 1
+- Modified `updateWhale` to only update if whale exists on current page
+- Clear pending count when data is refreshed
+
+**Key Code Changes**:
+```typescript
+// Only add to visible list if on page 1
+if (pageRef.current === 1) {
+  setWhales((prev) => [whale, ...prev]);
+} else {
+  // On other pages, track pending new whales for UI indicator
+  setPendingNewWhales((prev) => prev + 1);
+}
+```
+
+**Files Modified**:
+| File | Changes |
+|------|---------|
+| `src/hooks/useWhales.ts` | Added pageRef, pendingNewWhales state, page-aware addWhale/updateWhale |
+
+**Tests**: All 324 tests pass
+
+**How to Verify**:
+- Open http://localhost:5173/#whales
+- Navigate to page 4 or 5
+- Wait for a new deposit to be detected via WebSocket
+- The page should NOT refresh or jump - content stays stable
+- Only the total count in the header updates
+
+---
+
+### Task 11: Page Change Fade Effect (SKIPPED)
+
+**Status**: ⏭️ SKIPPED (by design)
+
+**Goal**: Add page change fade effect coordination between Pagination and table content.
+
+**Investigation**: Implemented a `pageFadeIn` animation that faded content from opacity 0 to 1 on page change. However, testing revealed this caused a janky visual experience.
+
+**Why It Was Removed**:
+1. The fade animation started content at opacity 0 (invisible) and faded to 1
+2. Individual table rows already have staggered `fadeInUp` animations
+3. These two animations conflicted, causing a double-animation effect
+4. The fade from invisible created a noticeable "flash" rather than smooth transition
+
+**Decision**: The existing row `fadeInUp` animations provide sufficient visual feedback when content changes. Adding another layer of animation degraded the user experience rather than improving it.
+
+**Files Affected** (reverted):
+- `src/styles/globals.css` - pageFadeIn keyframe was added then removed
+- `src/components/WhaleTable.tsx` - Page change tracking was added then removed
+
+**Tests**: All 324 tests pass
+
+---
+
+## GROUP 1 COMPLETE ✅
+
+All tasks from GROUP 1 (Core Animations & Visual Effects) have been completed:
+
+1. ✅ Add missing keyframe animations to globals.css
+2. ✅ Implement hover glow effects on StatCard component
+3. ✅ Implement hover effects on whale cards in WhaleTable
+4. ✅ Implement hover effects on market cards in TrendingMarkets
+5. ✅ Add value change flash animations (green/red) when P&L updates
+6. ✅ Add active page pulse animation to Pagination component
+7. ✅ Fix UTF-8 character encoding issues across components
+8. ✅ Add keyboard navigation to Pagination (Arrow keys)
+9. ✅ Fix keyboard navigation focus loss bug on page change
+10. ✅ Fix page reset on WebSocket update - preserve pagination state
+11. ⏭️ Page change fade effect - SKIPPED (existing animations sufficient)
+
+**Total Tests**: 324 passing
+
+---
+
 *"In the void, whales move in silence. We see them."*
