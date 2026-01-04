@@ -396,5 +396,53 @@ describe('TrendingMarkets Component', () => {
       const priceChange = screen.getByTestId('price-change');
       expect(priceChange).toHaveTextContent('↑5.0%');
     });
+
+    it('should show neutral style for zero or near-zero change', () => {
+      const marketsWithZeroChange = [{
+        ...mockMarkets[0],
+        priceHistory: [
+          { t: 1704067200, p: 0.50 },
+          { t: 1704153600, p: 0.50 }, // 0% change
+        ],
+      }];
+
+      render(
+        <TrendingMarkets
+          markets={marketsWithZeroChange}
+          loading={false}
+          error={null}
+          isMobile={false}
+        />
+      );
+
+      const priceChange = screen.getByTestId('price-change');
+      // Should show "0.0%" without arrow for neutral
+      expect(priceChange).toHaveTextContent('0.0%');
+      // Should NOT contain arrow
+      expect(priceChange.textContent).not.toMatch(/[↑↓]/);
+    });
+
+    it('should show neutral style for very small changes within threshold', () => {
+      const marketsWithTinyChange = [{
+        ...mockMarkets[0],
+        priceHistory: [
+          { t: 1704067200, p: 0.50 },
+          { t: 1704153600, p: 0.502 }, // 0.4% change - within neutral threshold
+        ],
+      }];
+
+      render(
+        <TrendingMarkets
+          markets={marketsWithTinyChange}
+          loading={false}
+          error={null}
+          isMobile={false}
+        />
+      );
+
+      const priceChange = screen.getByTestId('price-change');
+      // Should NOT contain arrow for near-zero
+      expect(priceChange.textContent).not.toMatch(/[↑↓]/);
+    });
   });
 });

@@ -69,16 +69,31 @@ function calculatePriceChange(priceHistory: { t: number; p: number }[] | undefin
   return ((lastPrice - firstPrice) / firstPrice) * 100;
 }
 
+/** Threshold for considering a change as "neutral" (no arrow) */
+const NEUTRAL_THRESHOLD = 0.5; // ±0.5%
+
 /**
  * Format price change with arrow indicator
+ * Returns neutral style (no arrow, gray) for changes within threshold
  */
-function formatPriceChange(change: number): { text: string; isPositive: boolean } {
-  const arrow = change >= 0 ? '↑' : '↓';
+function formatPriceChange(change: number): { text: string; isPositive: boolean; isNeutral: boolean } {
   const absChange = Math.abs(change);
+  const isNeutral = absChange < NEUTRAL_THRESHOLD;
   const formatted = absChange >= 10 ? absChange.toFixed(0) : absChange.toFixed(1);
+
+  if (isNeutral) {
+    return {
+      text: `${formatted}%`,
+      isPositive: false,
+      isNeutral: true,
+    };
+  }
+
+  const arrow = change > 0 ? '↑' : '↓';
   return {
     text: `${arrow}${formatted}%`,
-    isPositive: change >= 0,
+    isPositive: change > 0,
+    isNeutral: false,
   };
 }
 
@@ -222,7 +237,11 @@ function MarketCard({
                 fontFamily: tokens.fonts.mono,
                 fontSize: '11px',
                 fontWeight: 500,
-                color: changeDisplay.isPositive ? tokens.colors.profit : tokens.colors.loss,
+                color: changeDisplay.isNeutral
+                  ? tokens.colors.textMuted
+                  : changeDisplay.isPositive
+                    ? tokens.colors.profit
+                    : tokens.colors.loss,
                 whiteSpace: 'nowrap',
               }}
             >
