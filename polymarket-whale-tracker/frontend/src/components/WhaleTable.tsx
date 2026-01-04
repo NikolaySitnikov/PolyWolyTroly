@@ -538,7 +538,7 @@ export function WhaleTable({
       {/* Scrollable table container */}
       <div
         style={{
-          maxHeight: '500px',
+          maxHeight: isMobile ? '400px' : '600px',
           overflowY: 'auto',
         }}
       >
