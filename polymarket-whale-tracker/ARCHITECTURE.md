@@ -19,7 +19,7 @@ PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymar
                               ┌──────────────┐
                               │   Polygon    │
                               │  Blockchain  │
-                              │   (Alchemy)  │
+                              │ (PublicNode) │
                               └──────┬───────┘
                                      │ WebSocket
                                      │ USDC Transfer Events
@@ -198,12 +198,12 @@ PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymar
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  ALCHEMY (Polygon RPC Provider)                                             │
+│  PUBLICNODE (Polygon RPC Provider)                                          │
 │                                                                              │
-│  WebSocket: wss://polygon-mainnet.g.alchemy.com/v2/{KEY}                    │
+│  WebSocket: wss://polygon-bor-rpc.publicnode.com                            │
 │  └── Real-time listener for USDC Transfer events                            │
 │                                                                              │
-│  HTTP: https://polygon-mainnet.g.alchemy.com/v2/{KEY}                       │
+│  HTTP: https://polygon-bor-rpc.publicnode.com                               │
 │  └── One-off queries (e.g., get current block number at startup)            │
 └─────────────────────────────────────────────────────────────────────────────┘
 

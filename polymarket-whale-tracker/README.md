@@ -55,8 +55,8 @@ Open http://localhost:5173 to view the dashboard.
 
 | Variable | Description |
 |----------|-------------|
-| `ALCHEMY_WSS_URL` | Polygon WebSocket RPC endpoint (Alchemy) |
-| `ALCHEMY_HTTP_URL` | Polygon HTTP RPC endpoint (Alchemy) |
+| `ALCHEMY_WSS_URL` | Polygon WebSocket RPC endpoint (PublicNode) |
+| `ALCHEMY_HTTP_URL` | Polygon HTTP RPC endpoint (PublicNode) |
 | `DATABASE_URL` | PostgreSQL connection string |
 | `REDIS_URL` | Redis connection string |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token from @BotFather |
@@ -65,7 +65,7 @@ Open http://localhost:5173 to view the dashboard.
 
 ## How It Works
 
-1. **WebSocket Listener**: Connects to Polygon via Alchemy WebSocket and watches for USDC Transfer events to Polymarket's Exchange contract (`0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E`)
+1. **WebSocket Listener**: Connects to Polygon via PublicNode WebSocket and watches for USDC Transfer events to Polymarket's Exchange contract (`0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E`)
 
 2. **Wallet Detection**: For each deposit above threshold, determines if the wallet is new to Polymarket:
    - First checks Redis cache (fast path for recently seen wallets)

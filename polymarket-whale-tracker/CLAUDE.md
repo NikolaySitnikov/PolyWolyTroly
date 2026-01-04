@@ -93,7 +93,7 @@ Queries `https://data-api.polymarket.com/activity?user={address}` to determine i
 - USDC has 6 decimals
 
 ### Required Environment Variables
-- `ALCHEMY_WSS_URL` / `ALCHEMY_HTTP_URL` - Polygon RPC endpoints
+- `ALCHEMY_WSS_URL` / `ALCHEMY_HTTP_URL` - Polygon RPC endpoints (PublicNode)
 - `DATABASE_URL` - PostgreSQL connection string
 - `REDIS_URL` - Redis connection string
 - `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` - Alert destination
