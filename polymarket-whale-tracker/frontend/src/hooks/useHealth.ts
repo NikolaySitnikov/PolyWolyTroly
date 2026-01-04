@@ -51,12 +51,12 @@ export function useHealth(): UseHealthResult {
   }, [checkHealth]);
 
   // Determine if blockchain is actually healthy
-  const lastEventTime = health?.blockchain.lastEventTime
+  const lastEventTime = health?.blockchain?.lastEventTime
     ? new Date(health.blockchain.lastEventTime)
     : null;
 
   // Get server start time for grace period calculation
-  const serverStartTime = health?.blockchain.startTime
+  const serverStartTime = health?.blockchain?.startTime
     ? new Date(health.blockchain.startTime)
     : null;
 
@@ -74,8 +74,8 @@ export function useHealth(): UseHealthResult {
 
   const blockchainHealthy =
     healthCheckOk &&
-    health?.blockchain.listening === true &&
-    health?.blockchain.healthy === true &&
+    health?.blockchain?.listening === true &&
+    health?.blockchain?.healthy === true &&
     !isStale &&
     !neverReceivedEvents;
 
