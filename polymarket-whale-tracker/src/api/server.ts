@@ -11,6 +11,7 @@ import express from "express";
 import cors from "cors";
 import type { Express, Request, Response, NextFunction } from "express";
 import { db } from "../services/database.js";
+import { trendingMarketsService } from "../services/trendingMarkets.js";
 
 /**
  * Creates and configures the Express application.
@@ -97,6 +98,22 @@ export function createApp(): Express {
     } catch (error) {
       console.error("Error fetching deposits:", error);
       res.status(500).json({ error: "Failed to fetch deposits" });
+    }
+  });
+
+  // Trending markets endpoint - fetches from Polymarket Gamma API
+  app.get("/api/markets/trending", async (req: Request, res: Response) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 8;
+      const markets = await trendingMarketsService.getTrendingMarkets(limit);
+
+      res.json({
+        markets,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error fetching trending markets:", error);
+      res.status(500).json({ error: "Failed to fetch trending markets" });
     }
   });
 

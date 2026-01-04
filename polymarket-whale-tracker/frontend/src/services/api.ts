@@ -136,3 +136,43 @@ export async function fetchWallet(address: string): Promise<WalletApiResponse> {
 
   return response.json();
 }
+
+/**
+ * Trending market data from API
+ */
+export interface TrendingMarketResponse {
+  id: string;
+  question: string;
+  slug: string;
+  yesPrice: number;
+  noPrice: number;
+  volume24hr: number;
+  liquidity: number;
+  endDate: string;
+  category: string;
+  active: boolean;
+}
+
+/**
+ * Trending markets API response
+ */
+export interface TrendingMarketsResponse {
+  markets: TrendingMarketResponse[];
+  updatedAt: string;
+}
+
+/**
+ * Fetches trending prediction markets from Polymarket.
+ * @param limit - Maximum number of markets to fetch (default 8)
+ * @returns Promise resolving to trending markets data
+ * @throws Error if the request fails
+ */
+export async function fetchTrendingMarkets(limit = 8): Promise<TrendingMarketsResponse> {
+  const response = await fetch(`${api.baseUrl}/api/markets/trending?limit=${limit}`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch trending markets: ${response.status}`);
+  }
+
+  return response.json();
+}

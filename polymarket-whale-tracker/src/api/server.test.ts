@@ -21,9 +21,17 @@ vi.mock("../services/database.js", () => ({
   },
 }));
 
+// Mock the trending markets service
+vi.mock("../services/trendingMarkets.js", () => ({
+  trendingMarketsService: {
+    getTrendingMarkets: vi.fn(),
+  },
+}));
+
 // Import after mocking
 import { createApp } from "./server.js";
 import { db } from "../services/database.js";
+import { trendingMarketsService } from "../services/trendingMarkets.js";
 
 describe("API Server", () => {
   let app: Express;
@@ -250,6 +258,92 @@ describe("API Server", () => {
         .get("/api/health")
         .set("Origin", "http://localhost:5173");
       expect(response.headers["access-control-allow-origin"]).toBeDefined();
+    });
+  });
+
+  describe("GET /api/markets/trending", () => {
+    const mockTrendingMarkets = [
+      {
+        id: "market-1",
+        question: "Will BTC reach $100k?",
+        slug: "btc-100k",
+        yesPrice: 0.65,
+        noPrice: 0.35,
+        volume24hr: 500000,
+        liquidity: 100000,
+        endDate: "2025-12-31T00:00:00Z",
+        category: "Crypto",
+        active: true,
+      },
+      {
+        id: "market-2",
+        question: "Will ETH flip BTC?",
+        slug: "eth-flip-btc",
+        yesPrice: 0.25,
+        noPrice: 0.75,
+        volume24hr: 300000,
+        liquidity: 80000,
+        endDate: "2025-06-30T00:00:00Z",
+        category: "Crypto",
+        active: true,
+      },
+    ];
+
+    beforeEach(() => {
+      vi.mocked(trendingMarketsService.getTrendingMarkets).mockResolvedValue(mockTrendingMarkets);
+    });
+
+    it("should return 200 OK", async () => {
+      const response = await request(app).get("/api/markets/trending");
+      expect(response.status).toBe(200);
+    });
+
+    it("should return an array of markets", async () => {
+      const response = await request(app).get("/api/markets/trending");
+      expect(Array.isArray(response.body.markets)).toBe(true);
+    });
+
+    it("should return markets with required fields", async () => {
+      const response = await request(app).get("/api/markets/trending");
+      const market = response.body.markets[0];
+      expect(market).toHaveProperty("id");
+      expect(market).toHaveProperty("question");
+      expect(market).toHaveProperty("slug");
+      expect(market).toHaveProperty("yesPrice");
+      expect(market).toHaveProperty("noPrice");
+      expect(market).toHaveProperty("volume24hr");
+      expect(market).toHaveProperty("category");
+    });
+
+    it("should include updatedAt timestamp", async () => {
+      const response = await request(app).get("/api/markets/trending");
+      expect(response.body).toHaveProperty("updatedAt");
+      expect(typeof response.body.updatedAt).toBe("string");
+    });
+
+    it("should respect limit parameter", async () => {
+      await request(app).get("/api/markets/trending?limit=5");
+      expect(trendingMarketsService.getTrendingMarkets).toHaveBeenCalledWith(5);
+    });
+
+    it("should use default limit of 8", async () => {
+      await request(app).get("/api/markets/trending");
+      expect(trendingMarketsService.getTrendingMarkets).toHaveBeenCalledWith(8);
+    });
+
+    it("should return empty array when service returns empty", async () => {
+      vi.mocked(trendingMarketsService.getTrendingMarkets).mockResolvedValue([]);
+      const response = await request(app).get("/api/markets/trending");
+      expect(response.body.markets).toEqual([]);
+    });
+
+    it("should return 500 when service throws", async () => {
+      vi.mocked(trendingMarketsService.getTrendingMarkets).mockRejectedValue(
+        new Error("API error")
+      );
+      const response = await request(app).get("/api/markets/trending");
+      expect(response.status).toBe(500);
+      expect(response.body).toHaveProperty("error");
     });
   });
 

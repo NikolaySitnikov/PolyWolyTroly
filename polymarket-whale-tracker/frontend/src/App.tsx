@@ -20,6 +20,7 @@ import { useStats } from './hooks/useStats';
 import { useWhales } from './hooks/useWhales';
 import { useAlerts } from './hooks/useAlerts';
 import { useWallet } from './hooks/useWallet';
+import { useTrendingMarkets } from './hooks/useTrendingMarkets';
 import { useWebSocket, type DepositEvent } from './hooks/useWebSocket';
 import { Header } from './components/Header';
 import { MobileNav } from './components/MobileNav';
@@ -28,6 +29,7 @@ import { DashboardLoading } from './components/DashboardLoading';
 import { DashboardError } from './components/DashboardError';
 import { WhaleTable } from './components/WhaleTable';
 import { AlertFeed } from './components/AlertFeed';
+import { TrendingMarkets } from './components/TrendingMarkets';
 import { WalletProfile } from './components/WalletProfile';
 import { WalletProfileLoading } from './components/WalletProfileLoading';
 import { WalletProfileError } from './components/WalletProfileError';
@@ -97,6 +99,14 @@ function App() {
     refetch: refetchAlerts,
     addAlert,
   } = useAlerts();
+
+  // Trending markets data
+  const {
+    markets: trendingMarkets,
+    loading: trendingLoading,
+    error: trendingError,
+    refetch: refetchTrending,
+  } = useTrendingMarkets(8);
 
   // Wallet profile data
   const {
@@ -330,7 +340,21 @@ function App() {
     }
 
     if (stats) {
-      return <Dashboard stats={stats} isMobile={isMobile} />;
+      return (
+        <>
+          <Dashboard stats={stats} isMobile={isMobile} />
+          {/* Trending Markets Section */}
+          <div style={{ marginTop: tokens.spacing[6] }}>
+            <TrendingMarkets
+              markets={trendingMarkets}
+              loading={trendingLoading}
+              error={trendingError}
+              isMobile={isMobile}
+              onRetry={refetchTrending}
+            />
+          </div>
+        </>
+      );
     }
 
     return null;
