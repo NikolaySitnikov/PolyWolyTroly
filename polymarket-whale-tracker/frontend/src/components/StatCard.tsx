@@ -10,8 +10,10 @@
  * - Optional subValue for additional context
  * - Configurable accent color
  * - Animated entrance
+ * - Flash animation on value change (green for increase, red for decrease)
  */
 
+import { useRef, useEffect, useState } from 'react';
 import { tokens } from '../styles/tokens';
 
 type AccentColor = 'cyan' | 'magenta' | 'purple' | 'profit' | 'loss';
@@ -24,6 +26,8 @@ interface StatCardProps {
   trend?: number;
   accentColor?: AccentColor;
   delay?: number;
+  /** Numeric value for change detection (triggers flash animation) */
+  numericValue?: number;
 }
 
 const accentColors: Record<AccentColor, string> = {
@@ -42,8 +46,35 @@ export function StatCard({
   trend,
   accentColor = 'cyan',
   delay = 0,
+  numericValue,
 }: StatCardProps) {
   const accent = accentColors[accentColor];
+  const prevValueRef = useRef<number | undefined>(undefined);
+  const isInitialRender = useRef(true);
+  const [flashAnimation, setFlashAnimation] = useState<string>('');
+
+  // Track value changes and trigger flash animation
+  useEffect(() => {
+    if (numericValue === undefined) return;
+
+    // Skip initial render
+    if (isInitialRender.current) {
+      isInitialRender.current = false;
+      prevValueRef.current = numericValue;
+      return;
+    }
+
+    // Compare with previous value
+    if (prevValueRef.current !== undefined && prevValueRef.current !== numericValue) {
+      if (numericValue > prevValueRef.current) {
+        setFlashAnimation('flashGreen 0.6s ease');
+      } else if (numericValue < prevValueRef.current) {
+        setFlashAnimation('flashRed 0.6s ease');
+      }
+    }
+
+    prevValueRef.current = numericValue;
+  }, [numericValue]);
 
   return (
     <div
@@ -123,7 +154,10 @@ export function StatCard({
           fontWeight: 700,
           color: tokens.colors.textPrimary,
           marginBottom: '4px',
+          borderRadius: '4px',
+          animation: flashAnimation,
         }}
+        onAnimationEnd={() => setFlashAnimation('')}
       >
         {value}
       </div>

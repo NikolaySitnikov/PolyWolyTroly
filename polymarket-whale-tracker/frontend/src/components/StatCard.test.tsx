@@ -136,4 +136,65 @@ describe('StatCard Component', () => {
       expect(card.style.cursor).toBe('pointer');
     });
   });
+
+  describe('Value Change Flash Animations', () => {
+    it('should have a value container with data-testid', () => {
+      render(<StatCard {...defaultProps} numericValue={42} />);
+      const valueContainer = screen.getByTestId('stat-card-value');
+      expect(valueContainer).toBeInTheDocument();
+    });
+
+    it('should accept numericValue prop for change detection', () => {
+      const { rerender } = render(<StatCard {...defaultProps} numericValue={42} />);
+      // Should render without error
+      expect(screen.getByText('42')).toBeInTheDocument();
+
+      // Re-render with new value
+      rerender(<StatCard {...defaultProps} value="50" numericValue={50} />);
+      expect(screen.getByText('50')).toBeInTheDocument();
+    });
+
+    it('should apply flashGreen animation when value increases', () => {
+      const { rerender } = render(<StatCard {...defaultProps} numericValue={42} />);
+      const valueContainer = screen.getByTestId('stat-card-value');
+
+      // Re-render with increased value
+      rerender(<StatCard {...defaultProps} value="50" numericValue={50} />);
+
+      // Should have flashGreen animation
+      expect(valueContainer.style.animation).toContain('flashGreen');
+    });
+
+    it('should apply flashRed animation when value decreases', () => {
+      const { rerender } = render(<StatCard {...defaultProps} numericValue={42} />);
+      const valueContainer = screen.getByTestId('stat-card-value');
+
+      // Re-render with decreased value
+      rerender(<StatCard {...defaultProps} value="30" numericValue={30} />);
+
+      // Should have flashRed animation
+      expect(valueContainer.style.animation).toContain('flashRed');
+    });
+
+    it('should not apply flash animation on initial render', () => {
+      render(<StatCard {...defaultProps} numericValue={42} />);
+      const valueContainer = screen.getByTestId('stat-card-value');
+
+      // Should not have flash animation on initial render
+      expect(valueContainer.style.animation).not.toContain('flashGreen');
+      expect(valueContainer.style.animation).not.toContain('flashRed');
+    });
+
+    it('should not apply flash animation when value stays the same', () => {
+      const { rerender } = render(<StatCard {...defaultProps} numericValue={42} />);
+      const valueContainer = screen.getByTestId('stat-card-value');
+
+      // Re-render with same value
+      rerender(<StatCard {...defaultProps} numericValue={42} />);
+
+      // Should not have flash animation
+      expect(valueContainer.style.animation).not.toContain('flashGreen');
+      expect(valueContainer.style.animation).not.toContain('flashRed');
+    });
+  });
 });

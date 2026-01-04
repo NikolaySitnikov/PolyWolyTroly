@@ -77,6 +77,7 @@ export function Dashboard({ stats, isMobile }: DashboardProps) {
         <StatCard
           label="Whales Tracked"
           value={stats.whaleCount.toString()}
+          numericValue={stats.whaleCount}
           trend={stats.whaleCountTrend}
           icon="🐋"
           delay={0}
@@ -84,6 +85,7 @@ export function Dashboard({ stats, isMobile }: DashboardProps) {
         <StatCard
           label="Total Volume"
           value={formatUSD(stats.totalVolume)}
+          numericValue={stats.totalVolume}
           trend={stats.totalVolumeTrend}
           icon="📊"
           accentColor="magenta"
@@ -92,6 +94,7 @@ export function Dashboard({ stats, isMobile }: DashboardProps) {
         <StatCard
           label="Alerts Today"
           value={stats.alertsToday.toString()}
+          numericValue={stats.alertsToday}
           subValue="deposits & trades"
           icon="⚡"
           accentColor="purple"
@@ -100,6 +103,7 @@ export function Dashboard({ stats, isMobile }: DashboardProps) {
         <StatCard
           label="New This Week"
           value={stats.newWhalesThisWeek.toString()}
+          numericValue={stats.newWhalesThisWeek}
           icon="🆕"
           accentColor="profit"
           delay={150}

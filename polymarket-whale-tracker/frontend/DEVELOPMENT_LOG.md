@@ -1723,4 +1723,40 @@ animation: 0s ease 0s 1 normal none running none ✅ (cleared)
 
 ---
 
+### Task 5: Add Value Change Flash Animations
+
+**Status**: ✅ COMPLETE
+
+**Goal**: Add green/red flash animations when stat values change (increase = green, decrease = red).
+
+**Implementation**:
+- Added `numericValue` prop to StatCard for change detection
+- Used `useRef` to track previous value and `useEffect` to detect changes
+- Skip initial render to avoid flash on first load
+- Apply `flashGreen 0.6s ease` animation when value increases
+- Apply `flashRed 0.6s ease` animation when value decreases
+- Clear animation on `onAnimationEnd` to allow repeated flashes
+- Added `borderRadius: 4px` to value container for better flash appearance
+- Updated Dashboard to pass `numericValue` prop to all 4 StatCards
+
+**Design System Compliance**:
+- Per BRAND_GUIDELINES_EXTENDED.md: flashGreen/flashRed are 0.6s ease
+- Uses the keyframes added in Task 1
+
+**Files Modified**:
+| File | Changes |
+|------|---------|
+| `src/components/StatCard.tsx` | Added numericValue prop, flash animation logic |
+| `src/components/StatCard.test.tsx` | Added 6 tests for flash animations |
+| `src/components/Dashboard.tsx` | Pass numericValue to all StatCards |
+
+**Tests**: All 294 tests pass (6 new tests added)
+
+**How to Verify**:
+- Open http://localhost:5173
+- When a deposit happens (value increases), the affected stat card value will flash green
+- If a value were to decrease, it would flash red
+
+---
+
 *"In the void, whales move in silence. We see them."*
