@@ -5,7 +5,7 @@
  * Receives real-time stats updates and new deposit notifications.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { StatsResponse } from '../services/api';
 
 export interface DepositEvent {

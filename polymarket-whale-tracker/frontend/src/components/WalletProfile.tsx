@@ -42,13 +42,6 @@ function formatUSD(num: number): string {
 }
 
 /**
- * Format wallet address with truncation (0x1234...7890)
- */
-function formatAddress(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
-
-/**
  * Format timestamp as relative time
  */
 function formatRelativeTime(timestamp: string): string {
@@ -329,10 +322,10 @@ export function WalletProfile({
         }}
       >
         <StatCard label="Total Deposited" value={formatUSD(wallet.totalDeposited)} icon="💰" />
-        <StatCard label="Deposit Count" value={wallet.depositCount.toString()} icon="📊" />
+        <StatCard label="Deposit Count" value={depositsTotal.toString()} icon="📊" />
         <StatCard
           label="Avg. Deposit"
-          value={formatUSD(wallet.totalDeposited / wallet.depositCount)}
+          value={formatUSD(depositsTotal > 0 ? wallet.totalDeposited / depositsTotal : 0)}
           icon="📈"
         />
         <StatCard label="First Seen" value={formatDate(wallet.firstSeenAt)} icon="📅" />

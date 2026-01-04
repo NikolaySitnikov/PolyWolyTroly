@@ -16,8 +16,10 @@ export interface TrendingMarket {
   id: string;
   /** Market question/title */
   question: string;
-  /** URL-friendly slug for linking to Polymarket */
+  /** URL-friendly slug (market-level) */
   slug: string;
+  /** Event slug for Polymarket URL (polymarket.com/event/{eventSlug}) */
+  eventSlug: string;
   /** Current price for "Yes" outcome (0-1) */
   yesPrice: number;
   /** Current price for "No" outcome (0-1) */

@@ -32,6 +32,7 @@ describe("trendingMarkets service", () => {
           category: "Crypto",
           active: true,
           closed: false,
+          events: [{ id: "event-1", slug: "btc-100k-event", title: "BTC 100k" }],
         },
         {
           id: "market-2",
@@ -45,6 +46,7 @@ describe("trendingMarkets service", () => {
           category: "Crypto",
           active: true,
           closed: false,
+          events: [{ id: "event-2", slug: "eth-flip-btc-event", title: "ETH Flip" }],
         },
       ];
 
@@ -62,6 +64,7 @@ describe("trendingMarkets service", () => {
       expect(result[0].yesPrice).toBe(0.65);
       expect(result[0].noPrice).toBe(0.35);
       expect(result[0].volume24hr).toBe(500000);
+      expect(result[0].eventSlug).toBe("btc-100k-event");
     });
 
     it("should call Gamma API with correct parameters", async () => {
@@ -120,6 +123,7 @@ describe("trendingMarkets service", () => {
         category: "Politics",
         active: true,
         closed: false,
+        events: [{ id: "event-test", slug: "test-event-slug", title: "Test Event" }],
       };
 
       mockFetch.mockResolvedValue({
@@ -134,6 +138,7 @@ describe("trendingMarkets service", () => {
         id: "test-market",
         question: "Test question?",
         slug: "test-slug",
+        eventSlug: "test-event-slug",
         yesPrice: 0.72,
         noPrice: 0.28,
         volume24hr: 123456,
@@ -179,6 +184,7 @@ describe("trendingMarkets service", () => {
           category: "Test",
           active: true,
           closed: false,
+          events: [{ id: "e1", slug: "open-event", title: "Open" }],
         },
         {
           id: "closed-market",
@@ -192,6 +198,7 @@ describe("trendingMarkets service", () => {
           category: "Test",
           active: false,
           closed: true,
+          events: [{ id: "e2", slug: "closed-event", title: "Closed" }],
         },
       ];
 
@@ -220,6 +227,7 @@ describe("trendingMarkets service", () => {
         category: "Test",
         active: true,
         closed: false,
+        events: [],
       };
 
       mockFetch.mockResolvedValue({
@@ -232,6 +240,34 @@ describe("trendingMarkets service", () => {
 
       expect(result[0].yesPrice).toBe(0);
       expect(result[0].noPrice).toBe(0);
+    });
+
+    it("should fallback to market slug when events array is empty", async () => {
+      const mockMarket = {
+        id: "market-no-event",
+        question: "Market without event?",
+        slug: "market-slug-fallback",
+        outcomes: '["Yes", "No"]',
+        outcomePrices: '["0.5", "0.5"]',
+        volume24hr: 1000,
+        liquidityNum: 500,
+        endDate: "2025-12-31T00:00:00Z",
+        category: "Test",
+        active: true,
+        closed: false,
+        events: [], // Empty events array
+      };
+
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => [mockMarket],
+      });
+
+      const { trendingMarketsService } = await import("./trendingMarkets.js");
+      const result = await trendingMarketsService.getTrendingMarkets();
+
+      // Should fallback to market slug when no events
+      expect(result[0].eventSlug).toBe("market-slug-fallback");
     });
   });
 });

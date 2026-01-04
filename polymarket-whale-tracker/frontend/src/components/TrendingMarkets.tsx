@@ -44,10 +44,10 @@ function formatProbability(price: number): string {
 }
 
 /**
- * Get Polymarket URL for a market
+ * Get Polymarket URL for a market using event slug
  */
-function getMarketUrl(slug: string): string {
-  return `https://polymarket.com/event/${slug}`;
+function getMarketUrl(eventSlug: string): string {
+  return `https://polymarket.com/event/${eventSlug}`;
 }
 
 /**
@@ -64,7 +64,7 @@ function MarketCard({
 
   return (
     <a
-      href={getMarketUrl(market.slug)}
+      href={getMarketUrl(market.eventSlug)}
       target="_blank"
       rel="noopener noreferrer"
       data-testid="market-card"

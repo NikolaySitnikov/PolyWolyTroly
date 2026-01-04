@@ -14,6 +14,7 @@ const mockMarkets: TrendingMarketResponse[] = [
     id: 'market-1',
     question: 'Will BTC reach $100k?',
     slug: 'btc-100k',
+    eventSlug: 'btc-100k-event',
     yesPrice: 0.65,
     noPrice: 0.35,
     volume24hr: 500000,
@@ -26,6 +27,7 @@ const mockMarkets: TrendingMarketResponse[] = [
     id: 'market-2',
     question: 'Will ETH flip BTC?',
     slug: 'eth-flip-btc',
+    eventSlug: 'eth-flip-btc-event',
     yesPrice: 0.25,
     noPrice: 0.75,
     volume24hr: 1500000,
@@ -184,8 +186,8 @@ describe('TrendingMarkets Component', () => {
       );
 
       const links = screen.getAllByTestId('market-card');
-      expect(links[0]).toHaveAttribute('href', 'https://polymarket.com/event/btc-100k');
-      expect(links[1]).toHaveAttribute('href', 'https://polymarket.com/event/eth-flip-btc');
+      expect(links[0]).toHaveAttribute('href', 'https://polymarket.com/event/btc-100k-event');
+      expect(links[1]).toHaveAttribute('href', 'https://polymarket.com/event/eth-flip-btc-event');
     });
 
     it('should open links in new tab', () => {

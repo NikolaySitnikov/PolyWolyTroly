@@ -308,7 +308,7 @@ export function Pagination({
           disabled={currentPage === 1}
         />
 
-        {pageNumbers.map((page, i) =>
+        {pageNumbers.map((page) =>
           typeof page === 'string' ? (
             <Ellipsis key={page} />
           ) : (

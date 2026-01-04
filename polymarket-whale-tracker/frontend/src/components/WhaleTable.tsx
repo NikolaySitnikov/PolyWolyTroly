@@ -432,6 +432,10 @@ export function WhaleTable({
         borderRadius: '12px',
         overflow: 'hidden',
         backgroundColor: tokens.colors.surface,
+        // Fixed height on desktop to match AlertFeed container
+        height: '722px',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
       {/* Header with search */}
@@ -538,7 +542,7 @@ export function WhaleTable({
       {/* Scrollable table container */}
       <div
         style={{
-          maxHeight: isMobile ? '400px' : '600px',
+          flex: 1,
           overflowY: 'auto',
         }}
       >

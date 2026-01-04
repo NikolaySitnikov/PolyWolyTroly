@@ -16,6 +16,7 @@ export interface TrendingMarket {
   id: string;
   question: string;
   slug: string;
+  eventSlug: string; // Event slug for Polymarket URL (polymarket.com/event/{eventSlug})
   yesPrice: number;
   noPrice: number;
   volume24hr: number;
@@ -23,6 +24,15 @@ export interface TrendingMarket {
   endDate: string;
   category: string;
   active: boolean;
+}
+
+/**
+ * Event data from Gamma API (nested in market response)
+ */
+interface GammaEvent {
+  id: string;
+  slug: string;
+  title: string;
 }
 
 /**
@@ -41,6 +51,7 @@ interface GammaMarket {
   category: string;
   active: boolean;
   closed: boolean;
+  events: GammaEvent[]; // Parent events for this market
 }
 
 /**
@@ -64,11 +75,14 @@ function parseOutcomePrices(outcomePrices: string): [number, number] {
  */
 function transformMarket(market: GammaMarket): TrendingMarket {
   const [yesPrice, noPrice] = parseOutcomePrices(market.outcomePrices);
+  // Use the first event's slug for the Polymarket URL, fallback to market slug
+  const eventSlug = market.events?.[0]?.slug || market.slug;
 
   return {
     id: market.id,
     question: market.question,
     slug: market.slug,
+    eventSlug,
     yesPrice,
     noPrice,
     volume24hr: market.volume24hr || 0,

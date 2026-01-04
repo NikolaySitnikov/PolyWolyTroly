@@ -7,6 +7,7 @@
  * @see ../Design docs/DESIGN_SYSTEM.md - AlertFeed section
  */
 
+import { useState, useMemo } from 'react';
 import { tokens } from '../styles/tokens';
 import { LiveIndicator } from './LiveIndicator';
 import type { Alert } from '../types/alert';
@@ -97,6 +98,16 @@ function AlertTypeBadge({ type }: { type: Alert['type'] }) {
 }
 
 export function AlertFeed({ alerts, isMobile, onAlertClick }: AlertFeedProps) {
+  const [filter, setFilter] = useState('');
+
+  // Filter alerts by wallet address
+  const filteredAlerts = useMemo(() => {
+    if (!filter) return alerts;
+    return alerts.filter((alert) =>
+      alert.walletAddress.toLowerCase().includes(filter.toLowerCase())
+    );
+  }, [alerts, filter]);
+
   return (
     <div
       data-testid="alert-feed"
@@ -105,6 +116,10 @@ export function AlertFeed({ alerts, isMobile, onAlertClick }: AlertFeedProps) {
         border: `1px solid ${tokens.colors.border}`,
         borderRadius: '12px',
         overflow: 'hidden',
+        // Fixed height on desktop to match WhaleTable (including its pagination area)
+        height: isMobile ? 'auto' : '722px',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
       {/* Header */}
@@ -115,6 +130,7 @@ export function AlertFeed({ alerts, isMobile, onAlertClick }: AlertFeedProps) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          gap: '12px',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -130,17 +146,77 @@ export function AlertFeed({ alerts, isMobile, onAlertClick }: AlertFeedProps) {
             Live Feed
           </span>
         </div>
+        {/* Spacer to push search and indicator to the right */}
+        <div style={{ flex: 1 }} />
+        {/* Search input */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 12px',
+            background: tokens.colors.void,
+            border: `1px solid ${tokens.colors.border}`,
+            borderRadius: '8px',
+            maxWidth: '250px',
+            minWidth: '120px',
+          }}
+        >
+          <span style={{ color: tokens.colors.textMuted, fontSize: '14px' }}>🔍</span>
+          <input
+            type="text"
+            placeholder="Search address..."
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            style={{
+              flex: 1,
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              fontFamily: tokens.fonts.body,
+              fontSize: '13px',
+              color: tokens.colors.textPrimary,
+              minWidth: '80px',
+            }}
+          />
+          {filter && (
+            <button
+              onClick={() => setFilter('')}
+              aria-label="Clear search"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: '2px 6px',
+                cursor: 'pointer',
+                color: tokens.colors.textMuted,
+                fontSize: '14px',
+                lineHeight: 1,
+                borderRadius: '4px',
+                transition: 'color 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = tokens.colors.textPrimary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = tokens.colors.textMuted;
+              }}
+            >
+              ×
+            </button>
+          )}
+        </div>
         <LiveIndicator />
       </div>
 
       {/* Alert List */}
       <div
         style={{
-          maxHeight: isMobile ? '400px' : '600px',
+          flex: isMobile ? 'none' : 1,
+          maxHeight: isMobile ? '400px' : 'none',
           overflowY: 'auto',
         }}
       >
-        {alerts.length === 0 ? (
+        {filteredAlerts.length === 0 ? (
           <div
             style={{
               padding: '48px 20px',
@@ -151,10 +227,12 @@ export function AlertFeed({ alerts, isMobile, onAlertClick }: AlertFeedProps) {
             }}
           >
             <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.5 }}>🐋</div>
-            No alerts yet - waiting for whale activity...
+            {filter
+              ? `No alerts found matching "${filter}"`
+              : 'No alerts yet - waiting for whale activity...'}
           </div>
         ) : (
-          alerts.map((alert, index) => (
+          filteredAlerts.map((alert, index) => (
             <div
               key={alert.id}
               data-testid="alert-item"

@@ -144,6 +144,7 @@ export interface TrendingMarketResponse {
   id: string;
   question: string;
   slug: string;
+  eventSlug: string;
   yesPrice: number;
   noPrice: number;
   volume24hr: number;
