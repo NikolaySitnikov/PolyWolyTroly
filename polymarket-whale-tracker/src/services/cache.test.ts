@@ -179,4 +179,95 @@ describe("cache service", () => {
       expect(mockQuit).toHaveBeenCalled();
     });
   });
+
+  describe("acquireTransactionLock", () => {
+    it("should acquire lock when transaction not locked", async () => {
+      mockSet.mockResolvedValue("OK");
+
+      const { cache } = await import("./cache.js");
+      const result = await cache.acquireTransactionLock("0xTxHash123");
+
+      expect(result).toBe(true);
+      expect(mockSet).toHaveBeenCalledWith(
+        "tx_lock:0xtxhash123",
+        expect.any(String),
+        "EX",
+        60,
+        "NX"
+      );
+    });
+
+    it("should return false when transaction already locked", async () => {
+      mockSet.mockResolvedValue(null);
+
+      const { cache } = await import("./cache.js");
+      const result = await cache.acquireTransactionLock("0xTxHash123");
+
+      expect(result).toBe(false);
+    });
+
+    it("should lowercase the tx hash before locking", async () => {
+      mockSet.mockResolvedValue("OK");
+
+      const { cache } = await import("./cache.js");
+      await cache.acquireTransactionLock("0xABCDEF");
+
+      expect(mockSet).toHaveBeenCalledWith(
+        "tx_lock:0xabcdef",
+        expect.any(String),
+        "EX",
+        60,
+        "NX"
+      );
+    });
+  });
+
+  describe("isTransactionProcessed", () => {
+    it("should return true when transaction was processed", async () => {
+      mockExists.mockResolvedValue(1);
+
+      const { cache } = await import("./cache.js");
+      const result = await cache.isTransactionProcessed("0xTxHash123");
+
+      expect(result).toBe(true);
+      expect(mockExists).toHaveBeenCalledWith("tx_processed:0xtxhash123");
+    });
+
+    it("should return false when transaction not processed", async () => {
+      mockExists.mockResolvedValue(0);
+
+      const { cache } = await import("./cache.js");
+      const result = await cache.isTransactionProcessed("0xTxHash123");
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("markTransactionProcessed", () => {
+    it("should mark transaction as processed with 7-day TTL", async () => {
+      mockSetex.mockResolvedValue("OK");
+
+      const { cache } = await import("./cache.js");
+      await cache.markTransactionProcessed("0xTxHash123");
+
+      expect(mockSetex).toHaveBeenCalledWith(
+        "tx_processed:0xtxhash123",
+        7 * 24 * 60 * 60,
+        expect.any(String)
+      );
+    });
+
+    it("should lowercase the tx hash before marking", async () => {
+      mockSetex.mockResolvedValue("OK");
+
+      const { cache } = await import("./cache.js");
+      await cache.markTransactionProcessed("0xABCDEF");
+
+      expect(mockSetex).toHaveBeenCalledWith(
+        "tx_processed:0xabcdef",
+        expect.any(Number),
+        expect.any(String)
+      );
+    });
+  });
 });

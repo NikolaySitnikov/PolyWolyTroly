@@ -16,7 +16,7 @@ export const config = {
     chatId: process.env.TELEGRAM_CHAT_ID!,
   },
   app: {
-    minDepositAmount: Number(process.env.MIN_DEPOSIT_AMOUNT) || 5000,
+    minDepositAmount: Number(process.env.MIN_DEPOSIT_AMOUNT) || 9000,
     nodeEnv: process.env.NODE_ENV || "development",
   },
 };

@@ -20,10 +20,16 @@ vi.mock("./notifications.js", () => ({
 // Mock cache
 const mockSetLastBlock = vi.fn();
 const mockClose = vi.fn();
+const mockAcquireTransactionLock = vi.fn();
+const mockIsTransactionProcessed = vi.fn();
+const mockMarkTransactionProcessed = vi.fn();
 vi.mock("./cache.js", () => ({
   cache: {
     setLastBlock: mockSetLastBlock,
     close: mockClose,
+    acquireTransactionLock: mockAcquireTransactionLock,
+    isTransactionProcessed: mockIsTransactionProcessed,
+    markTransactionProcessed: mockMarkTransactionProcessed,
   },
 }));
 
@@ -82,6 +88,13 @@ describe("blockchain service", () => {
     mockClose.mockReset();
     mockWatchContractEvent.mockReset();
     mockGetBlockNumber.mockReset();
+    mockAcquireTransactionLock.mockReset();
+    mockIsTransactionProcessed.mockReset();
+    mockMarkTransactionProcessed.mockReset();
+    // Default: allow processing (lock acquired, not already processed)
+    mockAcquireTransactionLock.mockResolvedValue(true);
+    mockIsTransactionProcessed.mockResolvedValue(false);
+    mockMarkTransactionProcessed.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -299,6 +312,58 @@ describe("blockchain service", () => {
       const log = createMockLog();
       // Should not throw
       await expect(blockchain.processTransferEvent(log)).resolves.not.toThrow();
+    });
+
+    it("should skip processing if transaction already processed (deduplication)", async () => {
+      mockIsTransactionProcessed.mockResolvedValue(true);
+
+      const { blockchain } = await import("./blockchain.js");
+
+      const log = createMockLog();
+      await blockchain.processTransferEvent(log);
+
+      expect(mockProcessDeposit).not.toHaveBeenCalled();
+      expect(mockSendTelegramAlert).not.toHaveBeenCalled();
+    });
+
+    it("should skip processing if cannot acquire lock (another process handling)", async () => {
+      mockAcquireTransactionLock.mockResolvedValue(false);
+
+      const { blockchain } = await import("./blockchain.js");
+
+      const log = createMockLog();
+      await blockchain.processTransferEvent(log);
+
+      expect(mockProcessDeposit).not.toHaveBeenCalled();
+      expect(mockSendTelegramAlert).not.toHaveBeenCalled();
+    });
+
+    it("should mark transaction as processed after successful notification", async () => {
+      mockProcessDeposit.mockResolvedValue({ isNew: true, depositId: 1 });
+      mockSendTelegramAlert.mockResolvedValue(true);
+      mockSetLastBlock.mockResolvedValue(undefined);
+
+      const { blockchain } = await import("./blockchain.js");
+
+      const log = createMockLog();
+      await blockchain.processTransferEvent(log);
+
+      expect(mockMarkTransactionProcessed).toHaveBeenCalledWith("0xtxhash123");
+    });
+
+    it("should check transaction processed status before acquiring lock", async () => {
+      mockIsTransactionProcessed.mockResolvedValue(false);
+      mockAcquireTransactionLock.mockResolvedValue(true);
+      mockProcessDeposit.mockResolvedValue({ isNew: false, depositId: 1 });
+      mockSetLastBlock.mockResolvedValue(undefined);
+
+      const { blockchain } = await import("./blockchain.js");
+
+      const log = createMockLog();
+      await blockchain.processTransferEvent(log);
+
+      // Verify order: first check if processed, then acquire lock
+      expect(mockIsTransactionProcessed).toHaveBeenCalledBefore(mockAcquireTransactionLock);
     });
 
     it("should correctly decode address from topic", async () => {

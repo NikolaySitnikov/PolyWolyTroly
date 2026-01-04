@@ -38,6 +38,7 @@ let isRunning = false;
 export const blockchain = {
   /**
    * Process a single transfer event
+   * Uses distributed locking to prevent duplicate processing across multiple instances
    */
   async processTransferEvent(log: Log): Promise<void> {
     try {
@@ -58,6 +59,19 @@ export const blockchain = {
         return;
       }
 
+      // DEDUPLICATION: Check if this transaction was already fully processed
+      const alreadyProcessed = await cache.isTransactionProcessed(log.transactionHash);
+      if (alreadyProcessed) {
+        return;
+      }
+
+      // DEDUPLICATION: Try to acquire distributed lock for this transaction
+      // If another process is handling this transaction, skip it
+      const lockAcquired = await cache.acquireTransactionLock(log.transactionHash);
+      if (!lockAcquired) {
+        return;
+      }
+
       console.log(`💰 Deposit detected: $${amount.toLocaleString()} from ${from}`);
 
       // Process the deposit
@@ -68,7 +82,7 @@ export const blockchain = {
         log.blockNumber
       );
 
-      // TEST MODE: Notify for ALL deposits >= threshold
+      // Send notification for all deposits >= threshold
       if (depositId) {
         console.log(`🚨 Sending alert for $${amount.toLocaleString()} deposit!`);
 
@@ -80,6 +94,9 @@ export const blockchain = {
           isNewWallet: isNew,
           depositId,
         });
+
+        // DEDUPLICATION: Mark transaction as fully processed after successful notification
+        await cache.markTransactionProcessed(log.transactionHash);
       }
 
       // Update last processed block

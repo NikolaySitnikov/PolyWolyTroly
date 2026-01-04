@@ -2,7 +2,7 @@
 
 ## What This System Does
 
-PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymarket's Exchange contract. When someone deposits $5,000+ USDC, it:
+PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymarket's Exchange contract. When someone deposits $9,000+ USDC, it:
 1. Detects the deposit in real-time
 2. Determines if this is a **first-time Polymarket user** or a **returning trader**
 3. Sends a Telegram alert with the details
@@ -27,7 +27,7 @@ PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymar
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                          BLOCKCHAIN SERVICE                                  │
 │  • Listens for USDC transfers TO Polymarket Exchange                        │
-│  • Filters deposits >= $5,000                                               │
+│  • Filters deposits >= $9,000                                               │
 │  • Extracts: wallet address, amount, tx hash                                │
 └──────────────────────────────────┬──────────────────────────────────────────┘
                                    │
@@ -98,7 +98,7 @@ PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymar
     │  • blockNumber: 12345678                                             │
     └─────────────────────────────────────────────────────────────────────┘
                               │
-                              │ Amount >= $5,000?
+                              │ Amount >= $9,000?
                               ▼
                      ┌────────────────┐
                      │  YES: Process  │
@@ -387,6 +387,65 @@ PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymar
 
 ---
 
+## Deduplication Strategy (Multi-Instance Safe)
+
+The system is designed to run safely across multiple instances without sending duplicate alerts.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     THREE LAYERS OF DEDUPLICATION                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+   Transaction arrives at Instance A and Instance B simultaneously
+                              │
+                              ▼
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │ LAYER 1: Redis Transaction Processed Check                          │
+    │                                                                      │
+    │    Key: tx_processed:{txHash}                                       │
+    │    TTL: 7 days                                                       │
+    │                                                                      │
+    │    If key exists → Skip (already processed by another instance)     │
+    └─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │ LAYER 2: Redis Distributed Lock (Race Condition Prevention)         │
+    │                                                                      │
+    │    Key: tx_lock:{txHash}                                            │
+    │    TTL: 60 seconds                                                   │
+    │    Uses SET NX (only set if not exists)                             │
+    │                                                                      │
+    │    Instance A acquires lock → Proceeds                               │
+    │    Instance B fails to acquire → Skips (another instance handling)  │
+    └─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │ LAYER 3: PostgreSQL UNIQUE Constraint (Database Level)              │
+    │                                                                      │
+    │    deposits.tx_hash is UNIQUE                                       │
+    │    wallets.address has ON CONFLICT DO NOTHING                       │
+    │                                                                      │
+    │    If INSERT fails with code 23505 → Return null (duplicate)        │
+    │    depositId = null → No notification sent                          │
+    └─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │ AFTER SUCCESS: Mark Transaction as Processed                        │
+    │                                                                      │
+    │    Only after notification sent successfully:                       │
+    │    SET tx_processed:{txHash} with 7-day TTL                         │
+    │                                                                      │
+    │    This ensures any other instances will skip in Layer 1            │
+    └─────────────────────────────────────────────────────────────────────┘
+```
+
+**Result**: Even with multiple tracker instances running simultaneously (e.g., in different worktrees), each transaction is processed exactly once.
+
+---
+
 ## Error Handling Philosophy
 
 ```
@@ -399,5 +458,6 @@ PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymar
 │  Duplicate transaction detected    │  Skip gracefully (idempotent)          │
 │  Database connection lost          │  Connection pool handles reconnect     │
 │  Redis unavailable                 │  Continue with slower DB lookup        │
+│  Multiple instances running        │  Redis lock prevents duplicate alerts  │
 └────────────────────────────────────┴────────────────────────────────────────┘
 ```

@@ -3,7 +3,7 @@ import {
   CONTRACTS,
   USDC_DECIMALS,
   ERC20_TRANSFER_ABI,
-} from "./constants";
+} from "./constants.js";
 
 describe("constants", () => {
   describe("CONTRACTS", () => {

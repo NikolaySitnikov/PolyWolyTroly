@@ -33,7 +33,7 @@ Real-time Polymarket whale tracker that monitors large USDC deposits on Polygon 
 3. **polymarketApi.ts** - Queries Polymarket's public API to check wallet history
 4. **notifications.ts** - Sends Telegram alert with "FIRST TIME DEPOSIT" or "Returning user" status
 5. **database.ts** - PostgreSQL persistence (pg) for wallets/deposits/notifications
-6. **cache.ts** - Redis (ioredis) for fast wallet lookups and block tracking
+6. **cache.ts** - Redis (ioredis) for fast wallet lookups, block tracking, and deduplication
 
 ### Key Services
 
@@ -48,6 +48,11 @@ Queries `https://data-api.polymarket.com/activity?user={address}` to determine i
 - `ensureWalletExists(address, amount, txHash)` - Creates wallet record if not in DB
 - `processDeposit(address, amount, txHash, blockNumber)` - Main entry point, returns `{isNew, depositId}`
 
+#### cache.ts (Deduplication)
+- `acquireTransactionLock(txHash)` - Distributed lock (60s TTL, NX) prevents race conditions
+- `isTransactionProcessed(txHash)` - Check if notification was already sent (7-day TTL)
+- `markTransactionProcessed(txHash)` - Mark transaction as fully processed after notification
+
 ### Key Constants (src/utils/constants.ts)
 - USDC contract: `0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174`
 - Polymarket Exchange: `0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E`
@@ -58,7 +63,7 @@ Queries `https://data-api.polymarket.com/activity?user={address}` to determine i
 - `DATABASE_URL` - PostgreSQL connection string
 - `REDIS_URL` - Redis connection string
 - `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` - Alert destination
-- `MIN_DEPOSIT_AMOUNT` - Threshold in USD (default: 5000)
+- `MIN_DEPOSIT_AMOUNT` - Threshold in USD (default: 9000)
 
 ## Testing Patterns
 

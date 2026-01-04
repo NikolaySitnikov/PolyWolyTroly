@@ -1,4 +1,4 @@
-import { config } from "../config";
+import { config } from "../config/index.js";
 import pg from "pg";
 import Redis from "ioredis";
 
@@ -25,7 +25,7 @@ async function clearAllData() {
 
   // Clear Redis
   console.log("\n🔴 Clearing Redis cache...");
-  const redis = new Redis(config.redis.url);
+  const redis = new (Redis as any)(config.redis.url);
 
   try {
     await redis.flushdb();
