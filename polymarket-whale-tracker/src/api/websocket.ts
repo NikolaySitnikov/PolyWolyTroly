@@ -84,6 +84,8 @@ function broadcast(message: object): void {
  * Called from blockchain listener when a deposit is detected
  */
 export async function broadcastDeposit(event: DepositEvent): Promise<void> {
+  console.log(`[WebSocket] Broadcasting deposit to ${clients.size} clients: $${event.amount} from ${event.walletAddress}`);
+
   // Broadcast the deposit event
   broadcast({
     type: 'new_deposit',

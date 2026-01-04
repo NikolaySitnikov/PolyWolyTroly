@@ -18,9 +18,11 @@ let broadcastDeposit: ((event: any) => Promise<void>) | null = null;
 import("../api/websocket.js")
   .then((ws) => {
     broadcastDeposit = ws.broadcastDeposit;
+    console.log("[Blockchain] WebSocket broadcastDeposit loaded successfully");
   })
-  .catch(() => {
+  .catch((err) => {
     // WebSocket module not available (e.g., in tests)
+    console.log("[Blockchain] Failed to load WebSocket module:", err?.message || err);
   });
 
 const logger = pino({ level: "info" });
@@ -138,6 +140,7 @@ export const blockchain = {
         console.log(`🚨 Sending alert for $${amount.toLocaleString()} deposit!`);
 
         // Broadcast to WebSocket clients instantly (if available)
+        console.log(`[Blockchain] broadcastDeposit available: ${broadcastDeposit !== null}`);
         if (broadcastDeposit) {
           await broadcastDeposit({
             walletAddress: from,

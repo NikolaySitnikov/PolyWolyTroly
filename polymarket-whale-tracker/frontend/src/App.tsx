@@ -70,10 +70,18 @@ function parseHash(): ParsedHash {
   return { view: 'dashboard', walletAddress: null };
 }
 
-// WebSocket URL - derived from API URL or defaults to localhost
-const WS_URL = import.meta.env.VITE_API_URL
-  ? import.meta.env.VITE_API_URL.replace('http', 'ws')
-  : 'ws://localhost:3002';
+// WebSocket URL - derived from API URL, or use current host for network access
+function getWebSocketUrl(): string {
+  // If explicit API URL is set, use it
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace('http', 'ws');
+  }
+  // Otherwise, derive from current location (works for localhost AND network IP)
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.hostname;
+  return `${protocol}//${host}:3002`;
+}
+const WS_URL = getWebSocketUrl();
 
 function App() {
   const isMobile = useMobile();
