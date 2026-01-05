@@ -167,6 +167,9 @@ function App() {
   const whalesRef = useRef(whales);
   whalesRef.current = whales;
 
+  // Deduplicate deposit events (React StrictMode causes double WebSocket connections)
+  const processedDepositsRef = useRef<Set<string>>(new Set());
+
   // Unified refetch function - retries all data sources at once
   const refetchAll = useCallback(() => {
     refetch();
@@ -204,6 +207,19 @@ function App() {
   // Stable callback for deposit handling - uses refs to avoid stale closures
   const handleDeposit = useCallback(
     (deposit: DepositEvent) => {
+      // Deduplicate: Skip if we've already processed this deposit
+      // (React StrictMode causes double WebSocket connections in dev)
+      if (processedDepositsRef.current.has(deposit.txHash)) {
+        console.log('[WebSocket] Skipping duplicate deposit:', deposit.txHash);
+        return;
+      }
+      processedDepositsRef.current.add(deposit.txHash);
+
+      // Clean up old entries after 60 seconds to prevent memory leak
+      setTimeout(() => {
+        processedDepositsRef.current.delete(deposit.txHash);
+      }, 60000);
+
       console.log('🔥 New deposit received via WebSocket:', deposit);
 
       // Add to live alert feed instantly
