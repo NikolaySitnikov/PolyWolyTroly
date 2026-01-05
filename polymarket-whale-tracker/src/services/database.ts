@@ -157,10 +157,12 @@ export const db = {
     };
   },
 
-  // Get all wallets with pagination
+  // Get all wallets with pagination and sorting
   async getAllWallets(
     page: number,
-    limit: number
+    limit: number,
+    sortBy: 'total_deposited' | 'deposit_count' | 'first_seen_at' = 'total_deposited',
+    sortDir: 'asc' | 'desc' = 'desc'
   ): Promise<{
     wallets: Wallet[];
     total: number;
@@ -169,8 +171,16 @@ export const db = {
   }> {
     const offset = (page - 1) * limit;
 
+    // Map frontend field names to database column names (they match in this case)
+    const validSortFields = ['total_deposited', 'deposit_count', 'first_seen_at'];
+    const validSortDirs = ['asc', 'desc'];
+
+    // Validate and sanitize sort parameters to prevent SQL injection
+    const safeSortBy = validSortFields.includes(sortBy) ? sortBy : 'total_deposited';
+    const safeSortDir = validSortDirs.includes(sortDir) ? sortDir.toUpperCase() : 'DESC';
+
     const walletsResult = await pool.query(
-      `SELECT * FROM wallets ORDER BY total_deposited DESC LIMIT $1 OFFSET $2`,
+      `SELECT * FROM wallets ORDER BY ${safeSortBy} ${safeSortDir} LIMIT $1 OFFSET $2`,
       [limit, offset]
     );
 

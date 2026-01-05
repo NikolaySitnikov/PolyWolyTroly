@@ -75,14 +75,35 @@ export interface WalletsResponse {
 }
 
 /**
+ * Sort field options for whale API
+ * Maps frontend names to backend column names
+ */
+export type WhaleSortField = 'total_deposited' | 'deposit_count' | 'first_seen_at';
+export type SortDirection = 'asc' | 'desc';
+
+/**
  * Fetches paginated list of tracked whale wallets.
  * @param page - Page number (default 1)
  * @param limit - Items per page (default 20)
+ * @param sortBy - Field to sort by (default 'total_deposited')
+ * @param sortDir - Sort direction (default 'desc')
  * @returns Promise resolving to paginated wallet data
  * @throws Error if the request fails
  */
-export async function fetchWhales(page = 1, limit = 20): Promise<WalletsResponse> {
-  const response = await fetch(`${api.baseUrl}/api/wallets?page=${page}&limit=${limit}`);
+export async function fetchWhales(
+  page = 1,
+  limit = 20,
+  sortBy: WhaleSortField = 'total_deposited',
+  sortDir: SortDirection = 'desc'
+): Promise<WalletsResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    sortBy,
+    sortDir,
+  });
+
+  const response = await fetch(`${api.baseUrl}/api/wallets?${params.toString()}`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch wallets: ${response.status}`);

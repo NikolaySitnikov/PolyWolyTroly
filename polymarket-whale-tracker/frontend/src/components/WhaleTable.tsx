@@ -26,6 +26,12 @@ interface WhaleTableProps {
   totalItems?: number;
   /** Callback when page changes */
   onPageChange?: (page: number) => void;
+  /** Current sort field (server-side sorting) */
+  sortBy?: WhaleSortField;
+  /** Current sort direction (server-side sorting) */
+  sortDir?: SortDirection;
+  /** Callback when sort changes */
+  onSortChange?: (field: WhaleSortField, direction: SortDirection) => void;
 }
 
 /**
@@ -61,41 +67,28 @@ export function WhaleTable({
   itemsPerPage = DEFAULT_ITEMS_PER_PAGE,
   totalItems,
   onPageChange,
+  sortBy = 'totalDeposited',
+  sortDir = 'desc',
+  onSortChange,
 }: WhaleTableProps) {
   const [filter, setFilter] = useState('');
-  const [sortBy, setSortBy] = useState<WhaleSortField>('totalDeposited');
-  const [sortDir, setSortDir] = useState<SortDirection>('desc');
 
-  // Filter and sort whales
-  const sortedWhales = useMemo(() => {
-    return [...whales]
-      .filter((w) => w.address.toLowerCase().includes(filter.toLowerCase()))
-      .sort((a, b) => {
-        const mult = sortDir === 'desc' ? -1 : 1;
-        switch (sortBy) {
-          case 'totalDeposited':
-            return (a.totalDeposited - b.totalDeposited) * mult;
-          case 'depositCount':
-            return (a.depositCount - b.depositCount) * mult;
-          case 'firstSeenAt':
-            return (new Date(a.firstSeenAt).getTime() - new Date(b.firstSeenAt).getTime()) * mult;
-          default:
-            return 0;
-        }
-      });
-  }, [whales, filter, sortBy, sortDir]);
+  // Filter whales (sorting is now done server-side)
+  const filteredWhales = useMemo(() => {
+    return whales.filter((w) => w.address.toLowerCase().includes(filter.toLowerCase()));
+  }, [whales, filter]);
 
   // Calculate pagination
-  const actualTotal = totalItems ?? sortedWhales.length;
+  const actualTotal = totalItems ?? filteredWhales.length;
   const totalPages = Math.ceil(actualTotal / itemsPerPage);
 
-  // Handle column header click for sorting
+  // Handle column header click for sorting (delegates to parent)
   const handleSort = (field: WhaleSortField) => {
+    if (!onSortChange) return;
     if (sortBy === field) {
-      setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'));
+      onSortChange(field, sortDir === 'desc' ? 'asc' : 'desc');
     } else {
-      setSortBy(field);
-      setSortDir('desc');
+      onSortChange(field, 'desc');
     }
   };
 
@@ -153,7 +146,7 @@ export function WhaleTable({
   }
 
   // No search results
-  if (sortedWhales.length === 0 && filter) {
+  if (filteredWhales.length === 0 && filter) {
     return (
       <div
         data-testid="whale-table"
@@ -424,7 +417,7 @@ export function WhaleTable({
 
         {/* ===== WHALE CARDS ===== */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {sortedWhales.length === 0 && filter ? (
+          {filteredWhales.length === 0 && filter ? (
             <div
               style={{
                 padding: '48px 20px',
@@ -440,7 +433,7 @@ export function WhaleTable({
               </div>
             </div>
           ) : (
-            sortedWhales.map((whale, i) => (
+            filteredWhales.map((whale, i) => (
               <div
                 key={whale.address}
                 data-testid={`whale-card-${whale.address}`}
@@ -927,7 +920,7 @@ export function WhaleTable({
             </tr>
           </thead>
           <tbody>
-            {sortedWhales.map((whale, i) => (
+            {filteredWhales.map((whale, i) => (
               <tr
                 key={whale.address}
                 data-testid={`whale-row-${whale.address}`}

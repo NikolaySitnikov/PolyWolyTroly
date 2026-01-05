@@ -145,14 +145,39 @@ describe("API Server", () => {
       vi.mocked(db.getAllWallets).mockResolvedValue({ ...mockWalletsResult, limit: 5 });
       const response = await request(app).get("/api/wallets?limit=5");
       expect(response.body.limit).toBe(5);
-      expect(db.getAllWallets).toHaveBeenCalledWith(1, 5);
+      expect(db.getAllWallets).toHaveBeenCalledWith(1, 5, 'total_deposited', 'desc');
     });
 
     it("should respect page parameter", async () => {
       vi.mocked(db.getAllWallets).mockResolvedValue({ ...mockWalletsResult, page: 2 });
       const response = await request(app).get("/api/wallets?page=2");
       expect(response.body.page).toBe(2);
-      expect(db.getAllWallets).toHaveBeenCalledWith(2, 20);
+      expect(db.getAllWallets).toHaveBeenCalledWith(2, 20, 'total_deposited', 'desc');
+    });
+
+    it("should pass sort parameters to database", async () => {
+      await request(app).get("/api/wallets?sortBy=deposit_count&sortDir=asc");
+      expect(db.getAllWallets).toHaveBeenCalledWith(1, 20, 'deposit_count', 'asc');
+    });
+
+    it("should default to total_deposited desc sorting", async () => {
+      await request(app).get("/api/wallets");
+      expect(db.getAllWallets).toHaveBeenCalledWith(1, 20, 'total_deposited', 'desc');
+    });
+
+    it("should validate sortBy parameter", async () => {
+      await request(app).get("/api/wallets?sortBy=invalid_field");
+      expect(db.getAllWallets).toHaveBeenCalledWith(1, 20, 'total_deposited', 'desc');
+    });
+
+    it("should validate sortDir parameter", async () => {
+      await request(app).get("/api/wallets?sortDir=invalid");
+      expect(db.getAllWallets).toHaveBeenCalledWith(1, 20, 'total_deposited', 'desc');
+    });
+
+    it("should support first_seen_at sorting", async () => {
+      await request(app).get("/api/wallets?sortBy=first_seen_at&sortDir=desc");
+      expect(db.getAllWallets).toHaveBeenCalledWith(1, 20, 'first_seen_at', 'desc');
     });
   });
 
@@ -236,7 +261,8 @@ describe("API Server", () => {
       expect(db.getRecentDeposits).toHaveBeenCalledWith(
         1,
         20,
-        "0x1234567890123456789012345678901234567890"
+        "0x1234567890123456789012345678901234567890",
+        undefined
       );
     });
 

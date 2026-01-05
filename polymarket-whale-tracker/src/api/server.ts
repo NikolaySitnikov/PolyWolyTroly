@@ -54,13 +54,27 @@ export function createApp(): Express {
     }
   });
 
-  // Wallets list endpoint with pagination - connected to database
+  // Wallets list endpoint with pagination and sorting - connected to database
   app.get("/api/wallets", async (req: Request, res: Response) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
 
-      const result = await db.getAllWallets(page, limit);
+      // Validate sort parameters
+      const validSortFields = ['total_deposited', 'deposit_count', 'first_seen_at'];
+      const validSortDirs = ['asc', 'desc'];
+
+      const sortByParam = req.query.sortBy as string;
+      const sortDirParam = req.query.sortDir as string;
+
+      const sortBy = validSortFields.includes(sortByParam)
+        ? sortByParam as 'total_deposited' | 'deposit_count' | 'first_seen_at'
+        : 'total_deposited';
+      const sortDir = validSortDirs.includes(sortDirParam)
+        ? sortDirParam as 'asc' | 'desc'
+        : 'desc';
+
+      const result = await db.getAllWallets(page, limit, sortBy, sortDir);
       res.json(result);
     } catch (error) {
       console.error("Error fetching wallets:", error);

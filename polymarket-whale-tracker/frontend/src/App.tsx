@@ -41,6 +41,8 @@ import { Settings } from './components/Settings';
 import { useSettings } from './contexts/SettingsContext';
 import type { ViewId } from './types/navigation';
 import type { Alert } from './types/alert';
+import type { WhaleSortField, SortDirection } from './types/whale';
+import type { WhaleSortField as ApiSortField } from './services/api';
 
 /**
  * Parse URL hash to determine view and wallet address
@@ -84,6 +86,18 @@ function getWebSocketUrl(): string {
 }
 const WS_URL = getWebSocketUrl();
 
+/**
+ * Map frontend camelCase sort field to backend snake_case
+ */
+function mapSortFieldToApi(field: WhaleSortField): ApiSortField {
+  const mapping: Record<WhaleSortField, ApiSortField> = {
+    totalDeposited: 'total_deposited',
+    depositCount: 'deposit_count',
+    firstSeenAt: 'first_seen_at',
+  };
+  return mapping[field];
+}
+
 function App() {
   const isMobile = useMobile();
   const { settings } = useSettings();
@@ -92,6 +106,10 @@ function App() {
   const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | null>(
     initialHash.walletAddress
   );
+
+  // Whale table sort state (managed here for server-side sorting)
+  const [whaleSortBy, setWhaleSortBy] = useState<WhaleSortField>('totalDeposited');
+  const [whaleSortDir, setWhaleSortDir] = useState<SortDirection>('desc');
 
   const { data: stats, loading, error, refetch, updateStats } = useStats();
   const WHALES_PER_PAGE = 20;
@@ -106,7 +124,7 @@ function App() {
     total: totalWhales,
     page: whalesPage,
     setPage: setWhalesPage,
-  } = useWhales(WHALES_PER_PAGE);
+  } = useWhales(WHALES_PER_PAGE, mapSortFieldToApi(whaleSortBy), whaleSortDir);
 
   const ALERTS_PER_PAGE = 20;
   const {
@@ -250,6 +268,11 @@ function App() {
   const handleBackFromWallet = () => {
     setSelectedWalletAddress(null);
     setCurrentView('whales');
+  };
+
+  const handleWhaleSortChange = (field: WhaleSortField, direction: SortDirection) => {
+    setWhaleSortBy(field);
+    setWhaleSortDir(direction);
   };
 
   const renderAlertsContent = () => {
@@ -468,6 +491,9 @@ function App() {
             itemsPerPage={WHALES_PER_PAGE}
             totalItems={totalWhales}
             onPageChange={setWhalesPage}
+            sortBy={whaleSortBy}
+            sortDir={whaleSortDir}
+            onSortChange={handleWhaleSortChange}
           />
         )}
       </div>

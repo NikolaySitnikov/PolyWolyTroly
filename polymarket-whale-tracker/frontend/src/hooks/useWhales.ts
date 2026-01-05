@@ -2,14 +2,14 @@
  * useWhales Hook
  *
  * React hook for fetching and managing whale wallet data.
- * Handles loading, error, and pagination states.
+ * Handles loading, error, pagination, and sorting states.
  *
  * Supports seamless live updates via updateWhale() - updates existing whale
  * data without triggering loading states or full re-renders.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchWhales, type WalletsResponse } from '../services/api';
+import { fetchWhales, type WalletsResponse, type WhaleSortField, type SortDirection } from '../services/api';
 import type { Whale } from '../types/whale';
 
 interface UseWhalesResult {
@@ -40,7 +40,11 @@ function transformWallet(wallet: WalletsResponse['wallets'][0]): Whale {
   };
 }
 
-export function useWhales(limit = 1000): UseWhalesResult {
+export function useWhales(
+  limit = 1000,
+  sortBy: WhaleSortField = 'total_deposited',
+  sortDir: SortDirection = 'desc'
+): UseWhalesResult {
   const [whales, setWhales] = useState<Whale[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +55,18 @@ export function useWhales(limit = 1000): UseWhalesResult {
   const pageRef = useRef(page);
   pageRef.current = page;
 
+  // Reset to page 1 when sort changes
+  const prevSortBy = useRef(sortBy);
+  const prevSortDir = useRef(sortDir);
+
+  useEffect(() => {
+    if (prevSortBy.current !== sortBy || prevSortDir.current !== sortDir) {
+      setPage(1);
+      prevSortBy.current = sortBy;
+      prevSortDir.current = sortDir;
+    }
+  }, [sortBy, sortDir]);
+
   const fetchData = useCallback(async () => {
     // Only show loading on initial load, not on refetch
     if (isInitialLoad.current) {
@@ -59,7 +75,7 @@ export function useWhales(limit = 1000): UseWhalesResult {
     // Don't clear error until fetch succeeds to prevent flicker on retry
 
     try {
-      const response = await fetchWhales(page, limit);
+      const response = await fetchWhales(page, limit, sortBy, sortDir);
       setWhales(response.wallets.map(transformWallet));
       setTotal(response.total);
       // Clear pending whales when refreshing data
@@ -71,7 +87,7 @@ export function useWhales(limit = 1000): UseWhalesResult {
       setLoading(false);
       isInitialLoad.current = false;
     }
-  }, [page, limit]);
+  }, [page, limit, sortBy, sortDir]);
 
   useEffect(() => {
     fetchData();
