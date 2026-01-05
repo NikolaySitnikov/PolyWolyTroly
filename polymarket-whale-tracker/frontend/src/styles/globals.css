@@ -233,6 +233,99 @@ a {
   }
 }
 
+/**
+ * Whale Mascot Animations
+ * Per BRAND_GUIDELINES_EXTENDED.md: Animation Sequences
+ *
+ * Swimming animation for loading states:
+ * - 3s loop with gentle up/down movement and slight rotation
+ * - Mimics natural swimming motion
+ */
+@keyframes whaleSwim {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-4px) rotate(-1deg);
+  }
+  75% {
+    transform: translateY(4px) rotate(1deg);
+  }
+}
+
+/**
+ * Wave shimmer animation
+ * Subtle opacity pulse for the water waves below the whale
+ */
+@keyframes waveShimmer {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/**
+ * Subtle float animation for empty/waiting states
+ * Slower, more ambient movement
+ */
+@keyframes subtleFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/**
+ * Success animation for whale
+ * Quick emergence effect with slight bounce
+ */
+@keyframes whaleSuccess {
+  0% {
+    transform: translateY(10px);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/**
+ * Cyan glow pulse for loading whale
+ * Pulsing text shadow effect
+ */
+@keyframes cyanPulse {
+  0%, 100% {
+    text-shadow: 0 0 20px rgba(0, 255, 240, 0.2);
+  }
+  50% {
+    text-shadow: 0 0 30px rgba(0, 255, 240, 0.4);
+  }
+}
+
+/**
+ * Whale tail flick animation for logo hover
+ * Per DESIGN_SYSTEM.md: Animated Whale - tail flicks on hover
+ */
+@keyframes whaleTailFlick {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-3deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   *,

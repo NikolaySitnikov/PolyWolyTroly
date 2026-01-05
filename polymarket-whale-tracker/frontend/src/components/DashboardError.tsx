@@ -2,10 +2,13 @@
  * DashboardError Component
  *
  * Error state for the dashboard with retry functionality.
- * Displays a user-friendly error message and retry button.
+ * Displays confused whale mascot with error message and retry button.
+ *
+ * @see ../../../Design docs/BRAND_GUIDELINES_EXTENDED.md - Whale Mascot Specifications
  */
 
 import { tokens } from '../styles/tokens';
+import { WhaleAnimation } from './WhaleAnimation';
 
 interface DashboardErrorProps {
   error: string;
@@ -24,29 +27,12 @@ export function DashboardError({ error, onRetry, isMobile }: DashboardErrorProps
         margin: '0 auto',
       }}
     >
-      {/* Error icon */}
-      <div
-        style={{
-          fontSize: '64px',
-          marginBottom: tokens.spacing[4],
-          filter: 'drop-shadow(0 0 20px rgba(255, 51, 102, 0.5))',
-        }}
-      >
-        ⚠
-      </div>
-
-      {/* Error title */}
-      <h2
-        style={{
-          fontFamily: tokens.fonts.display,
-          fontSize: isMobile ? tokens.fontSizes['xl'] : tokens.fontSizes['2xl'],
-          fontWeight: tokens.fontWeights.bold,
-          color: tokens.colors.textPrimary,
-          marginBottom: tokens.spacing[3],
-        }}
-      >
-        Something went wrong
-      </h2>
+      {/* Confused whale mascot */}
+      <WhaleAnimation
+        state="error"
+        title="Lost signal..."
+        subtitle="Something went wrong while tracking whales"
+      />
 
       {/* Error message */}
       <p

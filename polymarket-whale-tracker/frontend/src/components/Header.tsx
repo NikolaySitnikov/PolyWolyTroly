@@ -6,12 +6,15 @@
  *
  * Features:
  * - Fixed position with blur backdrop
- * - Logo with whale emoji and brand name
+ * - Logo with whale emoji and brand name (tail flick on hover)
  * - Desktop navigation tabs
  * - Live indicator
  * - Connect Telegram button
+ *
+ * @see ../../../Design docs/DESIGN_SYSTEM.md - Whale Mascot section
  */
 
+import { useState } from 'react';
 import { tokens } from '../styles/tokens';
 import { LiveIndicator } from './LiveIndicator';
 import { NAV_ITEMS } from '../types/navigation';
@@ -24,6 +27,8 @@ interface HeaderProps {
 }
 
 export function Header({ currentView, onNavigate, isMobile }: HeaderProps) {
+  const [isLogoHovered, setIsLogoHovered] = useState(false);
+
   return (
     <header
       role="banner"
@@ -46,6 +51,8 @@ export function Header({ currentView, onNavigate, isMobile }: HeaderProps) {
       {/* Logo Section */}
       <button
         onClick={() => onNavigate('dashboard')}
+        onMouseEnter={() => setIsLogoHovered(true)}
+        onMouseLeave={() => setIsLogoHovered(false)}
         aria-label="Go to Dashboard"
         style={{
           display: 'flex',
@@ -68,11 +75,22 @@ export function Header({ currentView, onNavigate, isMobile }: HeaderProps) {
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: isMobile ? '18px' : '22px',
-            boxShadow: `0 0 30px ${tokens.colors.cyanGlow}`,
-            transition: `transform ${tokens.animation.durationFast} ease`,
+            boxShadow: isLogoHovered
+              ? `0 0 40px ${tokens.colors.cyanGlow}`
+              : `0 0 30px ${tokens.colors.cyanGlow}`,
+            transition: `all ${tokens.animation.durationFast} ease`,
+            transform: isLogoHovered ? 'scale(1.05)' : 'scale(1)',
           }}
         >
-          🐋
+          <span
+            data-testid="header-whale-emoji"
+            style={{
+              display: 'inline-block',
+              animation: isLogoHovered ? 'whaleTailFlick 0.5s ease-in-out' : 'none',
+            }}
+          >
+            🐋
+          </span>
         </div>
         {!isMobile && (
           <div style={{ textAlign: 'left' }}>

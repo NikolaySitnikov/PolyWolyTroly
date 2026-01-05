@@ -2,6 +2,7 @@
  * DashboardLoading Component Tests
  *
  * TDD: Tests for the loading skeleton state of the dashboard.
+ * Now includes animated whale mascot.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -15,9 +16,14 @@ describe('DashboardLoading Component', () => {
       expect(screen.getByTestId('dashboard-loading')).toBeInTheDocument();
     });
 
-    it('should display loading message', () => {
+    it('should display animated whale mascot', () => {
       render(<DashboardLoading isMobile={false} />);
-      expect(screen.getByText(/Loading whale data/i)).toBeInTheDocument();
+      expect(screen.getByTestId('whale-animation')).toBeInTheDocument();
+    });
+
+    it('should display playful loading message', () => {
+      render(<DashboardLoading isMobile={false} />);
+      expect(screen.getByText('Scanning the depths...')).toBeInTheDocument();
     });
 
     it('should display 4 skeleton cards', () => {

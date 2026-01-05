@@ -2,9 +2,13 @@
  * WalletProfileLoading Component
  *
  * Loading skeleton for wallet profile view.
+ * Includes animated whale mascot with playful loading copy.
+ *
+ * @see ../../../Design docs/BRAND_GUIDELINES_EXTENDED.md - Whale Animation Sequences
  */
 
 import { tokens } from '../styles/tokens';
+import { WhaleAnimation } from './WhaleAnimation';
 
 interface WalletProfileLoadingProps {
   isMobile: boolean;
@@ -37,8 +41,12 @@ function SkeletonBox({
 export function WalletProfileLoading({ isMobile }: WalletProfileLoadingProps) {
   return (
     <div data-testid="wallet-profile-loading">
-      {/* Back button skeleton */}
-      <SkeletonBox width="140px" height="36px" style={{ marginBottom: '24px' }} />
+      {/* Animated whale mascot */}
+      <WhaleAnimation
+        state="loading"
+        title="Hunting for whales..."
+        subtitle="Tracking this wallet's activity..."
+      />
 
       {/* Header skeleton */}
       <div

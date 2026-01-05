@@ -2,10 +2,13 @@
  * DashboardLoading Component
  *
  * Skeleton loading state for the dashboard.
- * Displays animated placeholder cards while data is being fetched.
+ * Displays animated whale mascot and placeholder cards while data is being fetched.
+ *
+ * @see ../../../Design docs/BRAND_GUIDELINES_EXTENDED.md - Whale Animation Sequences
  */
 
 import { tokens } from '../styles/tokens';
+import { WhaleAnimation } from './WhaleAnimation';
 
 interface DashboardLoadingProps {
   isMobile: boolean;
@@ -14,37 +17,12 @@ interface DashboardLoadingProps {
 export function DashboardLoading({ isMobile }: DashboardLoadingProps) {
   return (
     <div data-testid="dashboard-loading">
-      {/* Hero section skeleton */}
-      <div
-        style={{
-          marginBottom: '32px',
-          textAlign: isMobile ? 'center' : 'left',
-        }}
-      >
-        <div
-          style={{
-            fontFamily: tokens.fonts.display,
-            fontSize: isMobile ? '28px' : '36px',
-            fontWeight: 800,
-            color: tokens.colors.textPrimary,
-            marginBottom: '8px',
-            letterSpacing: '-0.02em',
-          }}
-        >
-          Loading whale data...
-        </div>
-        <div
-          style={{
-            width: isMobile ? '200px' : '280px',
-            height: '18px',
-            background: `linear-gradient(90deg, ${tokens.colors.surface} 0%, ${tokens.colors.border} 50%, ${tokens.colors.surface} 100%)`,
-            backgroundSize: '200% 100%',
-            animation: 'shimmer 1.5s infinite',
-            borderRadius: tokens.radius.sm,
-            margin: isMobile ? '0 auto' : '0',
-          }}
-        />
-      </div>
+      {/* Animated whale mascot */}
+      <WhaleAnimation
+        state="loading"
+        title="Scanning the depths..."
+        subtitle="Looking for whale activity..."
+      />
 
       {/* Skeleton cards grid */}
       <div

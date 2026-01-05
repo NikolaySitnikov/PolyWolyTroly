@@ -2,6 +2,7 @@
  * DashboardError Component Tests
  *
  * TDD: Tests for the error state of the dashboard.
+ * Now includes confused whale mascot.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -23,18 +24,18 @@ describe('DashboardError Component', () => {
       expect(screen.getByTestId('dashboard-error')).toBeInTheDocument();
     });
 
-    it('should display error icon', () => {
+    it('should display confused whale mascot', () => {
       render(
         <DashboardError error="Test error" onRetry={mockOnRetry} isMobile={false} />
       );
-      expect(screen.getByText('⚠')).toBeInTheDocument();
+      expect(screen.getByTestId('whale-animation')).toBeInTheDocument();
     });
 
-    it('should display error title', () => {
+    it('should display playful error title', () => {
       render(
         <DashboardError error="Test error" onRetry={mockOnRetry} isMobile={false} />
       );
-      expect(screen.getByText(/Something went wrong/i)).toBeInTheDocument();
+      expect(screen.getByText('Lost signal...')).toBeInTheDocument();
     });
 
     it('should display the error message', () => {
