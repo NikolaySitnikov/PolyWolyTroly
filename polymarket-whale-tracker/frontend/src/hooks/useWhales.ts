@@ -67,7 +67,17 @@ export function useWhales(
     }
   }, [sortBy, sortDir]);
 
+  // Track abort controller to cancel pending requests on sort/page change
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const fetchData = useCallback(async () => {
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     // Only show loading on initial load, not on refetch
     if (isInitialLoad.current) {
       setLoading(true);
@@ -75,15 +85,22 @@ export function useWhales(
     // Don't clear error until fetch succeeds to prevent flicker on retry
 
     try {
-      const response = await fetchWhales(page, limit, sortBy, sortDir);
-      setWhales(response.wallets.map(transformWallet));
-      setTotal(response.total);
-      // Clear pending whales when refreshing data
-      setPendingNewWhales(0);
-      setError(null); // Clear error only on success
+      const response = await fetchWhales(page, limit, sortBy, sortDir, controller.signal);
+      // Only update if not aborted
+      if (!controller.signal.aborted) {
+        setWhales(response.wallets.map(transformWallet));
+        setTotal(response.total);
+        setPendingNewWhales(0);
+        setError(null);
+        setLoading(false);
+        isInitialLoad.current = false;
+      }
     } catch (err) {
+      // Ignore abort errors
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
       setLoading(false);
       isInitialLoad.current = false;
     }
@@ -91,6 +108,11 @@ export function useWhales(
 
   useEffect(() => {
     fetchData();
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchData]);
 
   /**

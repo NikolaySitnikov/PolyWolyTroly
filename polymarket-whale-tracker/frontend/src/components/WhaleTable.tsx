@@ -8,7 +8,7 @@
  * Design: Based on App.jsx reference and PAGINATION_GUIDELINES.md
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { tokens } from '../styles/tokens';
 import { formatUSD } from '../utils/formatters';
 import { Pagination } from './Pagination';
@@ -72,6 +72,10 @@ export function WhaleTable({
   onSortChange,
 }: WhaleTableProps) {
   const [filter, setFilter] = useState('');
+  const lastPointerSortRef = useRef<{ field: WhaleSortField | null; at: number }>({
+    field: null,
+    at: 0,
+  });
 
   // Filter whales (sorting is now done server-side)
   const filteredWhales = useMemo(() => {
@@ -85,11 +89,20 @@ export function WhaleTable({
   // Handle column header click for sorting (delegates to parent)
   const handleSort = (field: WhaleSortField) => {
     if (!onSortChange) return;
-    if (sortBy === field) {
-      onSortChange(field, sortDir === 'desc' ? 'asc' : 'desc');
+    const nextDir = sortBy === field ? (sortDir === 'desc' ? 'asc' : 'desc') : 'desc';
+    onSortChange(field, nextDir);
+  };
+
+  const handleSortActivate = (field: WhaleSortField, source: 'pointer' | 'click') => {
+    if (source === 'click') {
+      const { field: lastField, at } = lastPointerSortRef.current;
+      if (lastField === field && Date.now() - at < 500) {
+        return;
+      }
     } else {
-      onSortChange(field, 'desc');
+      lastPointerSortRef.current = { field, at: Date.now() };
     }
+    handleSort(field);
   };
 
   // Empty state
@@ -381,7 +394,8 @@ export function WhaleTable({
               return (
                 <button
                   key={option.field}
-                  onClick={() => handleSort(option.field)}
+                  onPointerDown={() => handleSortActivate(option.field, 'pointer')}
+                  onClick={() => handleSortActivate(option.field, 'click')}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -400,6 +414,8 @@ export function WhaleTable({
                     boxShadow: isActive ? `0 0 15px ${tokens.colors.cyanGlow}` : 'none',
                     minHeight: '44px',
                     flexShrink: 0,
+                    touchAction: 'manipulation',
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   <span style={{ fontSize: '14px' }}>{option.icon}</span>
@@ -875,7 +891,8 @@ export function WhaleTable({
                   width: '25%',
                 }}
               >
-                Total Deposited {sortBy === 'totalDeposited' && (sortDir === 'desc' ? '↓' : '↑')}
+                Total Deposited{' '}
+                {sortBy === 'totalDeposited' && (sortDir === 'desc' ? '↓' : '↑')}
               </th>
               <th
                 data-testid="sort-depositCount"
@@ -895,7 +912,8 @@ export function WhaleTable({
                   width: '20%',
                 }}
               >
-                Deposits {sortBy === 'depositCount' && (sortDir === 'desc' ? '↓' : '↑')}
+                Deposits{' '}
+                {sortBy === 'depositCount' && (sortDir === 'desc' ? '↓' : '↑')}
               </th>
               <th
                 data-testid="sort-firstSeenAt"
@@ -915,7 +933,8 @@ export function WhaleTable({
                   width: '20%',
                 }}
               >
-                First Seen {sortBy === 'firstSeenAt' && (sortDir === 'desc' ? '↓' : '↑')}
+                First Seen{' '}
+                {sortBy === 'firstSeenAt' && (sortDir === 'desc' ? '↓' : '↑')}
               </th>
             </tr>
           </thead>
