@@ -143,7 +143,7 @@ export function SwipeableCard({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 24px',
+          padding: '0 20px',
           pointerEvents: 'none',
         }}
       >
@@ -152,33 +152,48 @@ export function SwipeableCard({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '10px',
             opacity: isSwipingRight ? swipeProgress : 0,
-            transform: `translateX(${isSwipingRight ? 0 : -20}px)`,
+            transform: `translateX(${isSwipingRight ? 0 : -20}px) scale(${0.8 + swipeProgress * 0.2})`,
             transition: isSwiping ? 'none' : 'all 0.2s ease',
           }}
         >
+          {/* Icon container with brand-aligned glow */}
           <span
             style={{
-              width: '36px',
-              height: '36px',
+              width: '40px',
+              height: '40px',
               borderRadius: '50%',
-              background: tokens.colors.profit,
+              background: `${tokens.colors.profit}15`,
+              border: `2px solid ${tokens.colors.profit}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '18px',
-              boxShadow: `0 0 20px ${tokens.colors.profit}50`,
+              boxShadow: `0 0 ${12 + swipeProgress * 12}px ${tokens.colors.profitGlow}`,
             }}
           >
-            ⭐
+            {/* Checkmark icon (Phosphor-style) */}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={tokens.colors.profit}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
           </span>
           <span
             style={{
               fontFamily: tokens.fonts.body,
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: 600,
               color: tokens.colors.profit,
+              letterSpacing: '0.02em',
+              textShadow: `0 0 10px ${tokens.colors.profitGlow}`,
             }}
           >
             {rightHint}
@@ -190,36 +205,52 @@ export function SwipeableCard({
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
+            gap: '10px',
             opacity: isSwipingLeft ? swipeProgress : 0,
-            transform: `translateX(${isSwipingLeft ? 0 : 20}px)`,
+            transform: `translateX(${isSwipingLeft ? 0 : 20}px) scale(${0.8 + swipeProgress * 0.2})`,
             transition: isSwiping ? 'none' : 'all 0.2s ease',
           }}
         >
           <span
             style={{
               fontFamily: tokens.fonts.body,
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: 600,
               color: tokens.colors.loss,
+              letterSpacing: '0.02em',
+              textShadow: `0 0 10px ${tokens.colors.lossGlow}`,
             }}
           >
             {leftHint}
           </span>
+          {/* Icon container with brand-aligned glow */}
           <span
             style={{
-              width: '36px',
-              height: '36px',
+              width: '40px',
+              height: '40px',
               borderRadius: '50%',
-              background: tokens.colors.loss,
+              background: `${tokens.colors.loss}15`,
+              border: `2px solid ${tokens.colors.loss}`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '18px',
-              boxShadow: `0 0 20px ${tokens.colors.loss}50`,
+              boxShadow: `0 0 ${12 + swipeProgress * 12}px ${tokens.colors.lossGlow}`,
             }}
           >
-            🙈
+            {/* X icon (Phosphor-style) */}
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={tokens.colors.loss}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </span>
         </div>
       </div>
