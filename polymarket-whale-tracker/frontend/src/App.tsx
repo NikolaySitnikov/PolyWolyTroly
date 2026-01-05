@@ -40,6 +40,7 @@ import { InlineLoading } from './components/InlineLoading';
 import { GlowText } from './components/GlowText';
 import { Settings } from './components/Settings';
 import { ToastContainer } from './components/ToastContainer';
+import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { useSettings } from './contexts/SettingsContext';
 import { useToast } from './contexts/ToastContext';
 import type { ViewId } from './types/navigation';
@@ -110,6 +111,7 @@ function App() {
   const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | null>(
     initialHash.walletAddress
   );
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
 
   // Track unread alert count for navigation badges
   // Uses hook that prevents incrementing when already on alerts tab
@@ -212,6 +214,30 @@ function App() {
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Global keyboard shortcut: "?" opens keyboard shortcuts modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input, textarea, or contenteditable
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      // "?" key (Shift + /)
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        e.preventDefault();
+        setShowKeyboardShortcuts(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Stable callback for deposit handling - uses refs to avoid stale closures
@@ -671,6 +697,12 @@ function App() {
 
       {/* Toast Notifications */}
       <ToastContainer isMobile={isMobile} />
+
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcutsModal
+        isOpen={showKeyboardShortcuts}
+        onClose={() => setShowKeyboardShortcuts(false)}
+      />
     </div>
   );
 }
