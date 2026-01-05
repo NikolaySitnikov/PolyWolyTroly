@@ -374,7 +374,8 @@ export function AlertFeed({
   // Calculate pagination values for mobile
   const startItem = totalItems === 0 ? 0 : ((currentPage ?? 1) - 1) * itemsPerPage + 1;
   const endItem = Math.min((currentPage ?? 1) * itemsPerPage, totalItems ?? 0);
-  const hasPagination = onPageChange && (totalPages ?? 0) > 1;
+  const hasMultiplePages = (totalPages ?? 0) > 1;
+  const showPaginationRibbon = onPageChange && (totalItems ?? 0) > 0;
 
   // =====================
   // MOBILE VIEW
@@ -387,8 +388,8 @@ export function AlertFeed({
           display: 'flex',
           flexDirection: 'column',
           minHeight: '100%',
-          // Padding for sticky pagination
-          paddingBottom: hasPagination ? '140px' : '0',
+          // Padding for sticky pagination ribbon
+          paddingBottom: showPaginationRibbon ? (hasMultiplePages ? '140px' : '80px') : '0',
         }}
       >
         {/* ===== STICKY HEADER ===== */}
@@ -569,7 +570,7 @@ export function AlertFeed({
         </div>
 
         {/* ===== STICKY GLASS PAGINATION ===== */}
-        {hasPagination && (
+        {showPaginationRibbon && (
           <div
             style={{
               position: 'fixed',
@@ -581,8 +582,8 @@ export function AlertFeed({
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '6px',
-              padding: '14px 20px',
+              gap: hasMultiplePages ? '6px' : '0',
+              padding: hasMultiplePages ? '14px 20px' : '12px 20px',
 
               // Glass morphism
               background: `${tokens.colors.surface}e8`,
@@ -598,90 +599,113 @@ export function AlertFeed({
               `,
             }}
           >
-            {/* Navigation Row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-              {/* Previous Button */}
-              <button
-                onClick={() => onPageChange!((currentPage ?? 1) - 1)}
-                disabled={(currentPage ?? 1) === 1}
-                aria-label="Previous page"
-                style={{
-                  width: '48px',
-                  height: '48px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: tokens.colors.surface,
-                  border: `1px solid ${tokens.colors.border}`,
-                  borderRadius: '14px',
-                  fontSize: '20px',
-                  color: (currentPage ?? 1) === 1 ? tokens.colors.muted : tokens.colors.textSecondary,
-                  cursor: (currentPage ?? 1) === 1 ? 'not-allowed' : 'pointer',
-                  opacity: (currentPage ?? 1) === 1 ? 0.4 : 1,
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                ‹
-              </button>
-
-              {/* Page Info */}
-              <div style={{ textAlign: 'center' }}>
-                <div
+            {/* Navigation Row - only show when multiple pages */}
+            {hasMultiplePages && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                {/* Previous Button */}
+                <button
+                  onClick={() => onPageChange!((currentPage ?? 1) - 1)}
+                  disabled={(currentPage ?? 1) === 1}
+                  aria-label="Previous page"
                   style={{
-                    fontFamily: tokens.fonts.mono,
-                    fontSize: '15px',
-                    fontWeight: 600,
-                    color: tokens.colors.textPrimary,
+                    width: '48px',
+                    height: '48px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: tokens.colors.surface,
+                    border: `1px solid ${tokens.colors.border}`,
+                    borderRadius: '14px',
+                    fontSize: '20px',
+                    color: (currentPage ?? 1) === 1 ? tokens.colors.muted : tokens.colors.textSecondary,
+                    cursor: (currentPage ?? 1) === 1 ? 'not-allowed' : 'pointer',
+                    opacity: (currentPage ?? 1) === 1 ? 0.4 : 1,
+                    transition: 'all 0.15s ease',
                   }}
                 >
-                  Page{' '}
-                  <span
+                  ‹
+                </button>
+
+                {/* Page Info */}
+                <div style={{ textAlign: 'center' }}>
+                  <div
                     style={{
-                      color: tokens.colors.cyan,
-                      textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
+                      fontFamily: tokens.fonts.mono,
+                      fontSize: '15px',
+                      fontWeight: 600,
+                      color: tokens.colors.textPrimary,
                     }}
                   >
-                    {currentPage ?? 1}
-                  </span>
-                  {' '}of {totalPages ?? 1}
+                    Page{' '}
+                    <span
+                      style={{
+                        color: tokens.colors.cyan,
+                        textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
+                      }}
+                    >
+                      {currentPage ?? 1}
+                    </span>
+                    {' '}of {totalPages ?? 1}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: tokens.fonts.mono,
+                      fontSize: '11px',
+                      color: tokens.colors.textMuted,
+                      marginTop: '2px',
+                    }}
+                  >
+                    Showing {startItem}-{endItem} of {(totalItems ?? 0).toLocaleString()} alerts
+                  </div>
                 </div>
-                <div
+
+                {/* Next Button */}
+                <button
+                  onClick={() => onPageChange!((currentPage ?? 1) + 1)}
+                  disabled={(currentPage ?? 1) === (totalPages ?? 1)}
+                  aria-label="Next page"
                   style={{
-                    fontFamily: tokens.fonts.mono,
-                    fontSize: '11px',
-                    color: tokens.colors.textMuted,
-                    marginTop: '2px',
+                    width: '48px',
+                    height: '48px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: (currentPage ?? 1) === (totalPages ?? 1) ? tokens.colors.surface : tokens.colors.cyan,
+                    border: `1px solid ${(currentPage ?? 1) === (totalPages ?? 1) ? tokens.colors.border : tokens.colors.cyan}`,
+                    borderRadius: '14px',
+                    fontSize: '20px',
+                    color: (currentPage ?? 1) === (totalPages ?? 1) ? tokens.colors.muted : tokens.colors.void,
+                    cursor: (currentPage ?? 1) === (totalPages ?? 1) ? 'not-allowed' : 'pointer',
+                    opacity: (currentPage ?? 1) === (totalPages ?? 1) ? 0.4 : 1,
+                    transition: 'all 0.15s ease',
+                    boxShadow: (currentPage ?? 1) !== (totalPages ?? 1) ? `0 0 25px ${tokens.colors.cyanGlow}` : 'none',
                   }}
                 >
-                  Showing {startItem}-{endItem} of {(totalItems ?? 0).toLocaleString()}
-                </div>
+                  ›
+                </button>
               </div>
+            )}
 
-              {/* Next Button */}
-              <button
-                onClick={() => onPageChange!((currentPage ?? 1) + 1)}
-                disabled={(currentPage ?? 1) === (totalPages ?? 1)}
-                aria-label="Next page"
+            {/* Summary ribbon - only show standalone when single page */}
+            {!hasMultiplePages && (
+              <div
                 style={{
-                  width: '48px',
-                  height: '48px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: (currentPage ?? 1) === (totalPages ?? 1) ? tokens.colors.surface : tokens.colors.cyan,
-                  border: `1px solid ${(currentPage ?? 1) === (totalPages ?? 1) ? tokens.colors.border : tokens.colors.cyan}`,
-                  borderRadius: '14px',
-                  fontSize: '20px',
-                  color: (currentPage ?? 1) === (totalPages ?? 1) ? tokens.colors.muted : tokens.colors.void,
-                  cursor: (currentPage ?? 1) === (totalPages ?? 1) ? 'not-allowed' : 'pointer',
-                  opacity: (currentPage ?? 1) === (totalPages ?? 1) ? 0.4 : 1,
-                  transition: 'all 0.15s ease',
-                  boxShadow: (currentPage ?? 1) !== (totalPages ?? 1) ? `0 0 25px ${tokens.colors.cyanGlow}` : 'none',
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: '12px',
+                  color: tokens.colors.textMuted,
                 }}
               >
-                ›
-              </button>
-            </div>
+                Showing{' '}
+                <span style={{ color: tokens.colors.textSecondary, fontWeight: 500 }}>
+                  {startItem}-{endItem}
+                </span>{' '}
+                of{' '}
+                <span style={{ color: tokens.colors.textSecondary, fontWeight: 500 }}>
+                  {(totalItems ?? 0).toLocaleString()}
+                </span>{' '}
+                alerts
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -950,8 +974,8 @@ export function AlertFeed({
         )}
       </div>
 
-      {/* Pagination - only show when pagination props are provided */}
-      {onPageChange && totalPages !== undefined && currentPage !== undefined && totalPages > 1 && (
+      {/* Pagination - always show when pagination props are provided (ribbon shows even for single page) */}
+      {onPageChange && totalPages !== undefined && currentPage !== undefined && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}

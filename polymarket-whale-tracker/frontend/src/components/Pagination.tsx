@@ -212,13 +212,14 @@ export function Pagination({
   // Track if keyboard navigation triggered the page change
   const keyboardNavigatedRef = useRef(false);
 
-  // Don't render if only one page or no pages
-  if (totalPages <= 1) {
+  // Don't render if no items at all
+  if (totalItems === 0) {
     return null;
   }
 
-  const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+  const showPageControls = totalPages > 1;
 
   const pageNumbers = useMemo(() => getPageNumbers(currentPage, totalPages), [currentPage, totalPages]);
 
@@ -255,41 +256,43 @@ export function Pagination({
       <div
         ref={containerRef}
         data-testid="pagination"
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
+        tabIndex={showPageControls ? 0 : undefined}
+        onKeyDown={showPageControls ? handleKeyDown : undefined}
         style={{
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '12px',
+          gap: showPageControls ? '12px' : '0',
           padding: '16px 20px',
           background: tokens.colors.surface,
           borderTop: `1px solid ${tokens.colors.border}`,
           outline: 'none',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <NavButton
-            direction="prev"
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          />
-          <span
-            style={{
-              fontFamily: tokens.fonts.mono,
-              fontSize: '13px',
-              color: tokens.colors.textPrimary,
-            }}
-          >
-            Page <span style={{ color: tokens.colors.cyan, fontWeight: 600 }}>{currentPage}</span>{' '}
-            of {totalPages}
-          </span>
-          <NavButton
-            direction="next"
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          />
-        </div>
+        {showPageControls && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <NavButton
+              direction="prev"
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            />
+            <span
+              style={{
+                fontFamily: tokens.fonts.mono,
+                fontSize: '13px',
+                color: tokens.colors.textPrimary,
+              }}
+            >
+              Page <span style={{ color: tokens.colors.cyan, fontWeight: 600 }}>{currentPage}</span>{' '}
+              of {totalPages}
+            </span>
+            <NavButton
+              direction="next"
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            />
+          </div>
+        )}
         <span
           style={{
             fontFamily: tokens.fonts.mono,
@@ -297,7 +300,7 @@ export function Pagination({
             color: tokens.colors.textMuted,
           }}
         >
-          Showing {startItem}-{endItem} of {totalItems}
+          Showing {startItem}-{endItem} of {totalItems.toLocaleString()} {entityName}
         </span>
       </div>
     );
@@ -308,12 +311,12 @@ export function Pagination({
     <div
       ref={containerRef}
       data-testid="pagination"
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
+      tabIndex={showPageControls ? 0 : undefined}
+      onKeyDown={showPageControls ? handleKeyDown : undefined}
       style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: showPageControls ? 'space-between' : 'center',
         padding: '16px 20px',
         background: tokens.colors.surface,
         borderTop: `1px solid ${tokens.colors.border}`,
@@ -340,33 +343,35 @@ export function Pagination({
         {entityName}
       </span>
 
-      {/* Right: Page controls */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-        <NavButton
-          direction="prev"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-        />
+      {/* Right: Page controls - only show when multiple pages */}
+      {showPageControls && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <NavButton
+            direction="prev"
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          />
 
-        {pageNumbers.map((page) =>
-          typeof page === 'string' ? (
-            <Ellipsis key={page} />
-          ) : (
-            <PageButton
-              key={page}
-              page={page}
-              isActive={currentPage === page}
-              onClick={() => onPageChange(page)}
-            />
-          )
-        )}
+          {pageNumbers.map((page) =>
+            typeof page === 'string' ? (
+              <Ellipsis key={page} />
+            ) : (
+              <PageButton
+                key={page}
+                page={page}
+                isActive={currentPage === page}
+                onClick={() => onPageChange(page)}
+              />
+            )
+          )}
 
-        <NavButton
-          direction="next"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-        />
-      </div>
+          <NavButton
+            direction="next"
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          />
+        </div>
+      )}
     </div>
   );
 }
