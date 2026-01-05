@@ -313,16 +313,53 @@ a {
 /**
  * Whale tail flick animation for logo hover
  * Per DESIGN_SYSTEM.md: Animated Whale - tail flicks on hover
+ *
+ * Dramatic 3-wiggle sequence with scale bounce:
+ * - Quick excited wiggle-wiggle-wiggle
+ * - Scale bounce for playful energy
+ * - Ends with a happy little flourish
  */
 @keyframes whaleTailFlick {
-  0%, 100% {
-    transform: rotate(0deg);
+  0% {
+    transform: rotate(0deg) scale(1);
   }
-  25% {
-    transform: rotate(-3deg);
+  /* First wiggle - quick and excited */
+  8% {
+    transform: rotate(-15deg) scale(1.05);
   }
+  16% {
+    transform: rotate(12deg) scale(1.08);
+  }
+  /* Second wiggle - building momentum */
+  24% {
+    transform: rotate(-18deg) scale(1.1);
+  }
+  32% {
+    transform: rotate(15deg) scale(1.12);
+  }
+  /* Third wiggle - peak excitement */
+  40% {
+    transform: rotate(-20deg) scale(1.15);
+  }
+  48% {
+    transform: rotate(18deg) scale(1.12);
+  }
+  /* Happy little bounce */
+  56% {
+    transform: rotate(-8deg) scale(1.08) translateY(-2px);
+  }
+  64% {
+    transform: rotate(6deg) scale(1.05) translateY(0);
+  }
+  /* Settling down with a flourish */
   75% {
-    transform: rotate(3deg);
+    transform: rotate(-3deg) scale(1.02);
+  }
+  85% {
+    transform: rotate(2deg) scale(1.01);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
   }
 }
 

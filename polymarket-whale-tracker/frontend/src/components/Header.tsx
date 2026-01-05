@@ -86,7 +86,9 @@ export function Header({ currentView, onNavigate, isMobile }: HeaderProps) {
             data-testid="header-whale-emoji"
             style={{
               display: 'inline-block',
-              animation: isLogoHovered ? 'whaleTailFlick 0.5s ease-in-out' : 'none',
+              animation: isLogoHovered ? 'whaleTailFlick 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'none',
+              filter: isLogoHovered ? 'drop-shadow(0 0 8px rgba(0, 255, 240, 0.8))' : 'none',
+              transition: 'filter 0.15s ease',
             }}
           >
             🐋
