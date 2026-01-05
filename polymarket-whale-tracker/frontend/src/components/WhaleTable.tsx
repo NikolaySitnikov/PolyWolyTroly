@@ -19,6 +19,7 @@ import { tokens } from '../styles/tokens';
 import { formatCardTime } from '../styles/cardStyles';
 import { formatUSD } from '../utils/formatters';
 import { Pagination } from './Pagination';
+import { SwipeableCard } from './SwipeableCard';
 import { useNewItemAnimation } from '../hooks/useNewItemAnimation';
 import type { Whale, WhaleSortField, SortDirection } from '../types/whale';
 
@@ -40,6 +41,10 @@ interface WhaleTableProps {
   sortDir?: SortDirection;
   /** Callback when sort changes */
   onSortChange?: (field: WhaleSortField, direction: SortDirection) => void;
+  /** Callback when user swipes right to follow a whale (mobile only) */
+  onFollowWhale?: (address: string) => void;
+  /** Callback when user swipes left to hide a whale (mobile only) */
+  onHideWhale?: (address: string) => void;
 }
 
 /**
@@ -66,6 +71,8 @@ export function WhaleTable({
   sortBy = 'totalDeposited',
   sortDir = 'desc',
   onSortChange,
+  onFollowWhale,
+  onHideWhale,
 }: WhaleTableProps) {
   const [filter, setFilter] = useState('');
   const lastPointerSortRef = useRef<{ field: WhaleSortField | null; at: number }>({
@@ -451,47 +458,49 @@ export function WhaleTable({
           ) : (
             filteredWhales.map((whale) => {
               const isNew = shouldAnimateWhale(whale);
-              return (
-              <div
-                key={whale.address}
-                data-testid={`whale-card-${whale.address}`}
-                onClick={() => onWhaleClick(whale.address)}
-                style={{
-                  background: tokens.colors.surface,
-                  border: `1px solid ${tokens.colors.border}`,
-                  borderRadius: '14px',
-                  padding: '16px',
-                  cursor: 'pointer',
-                  transition: `all ${tokens.animation.durationFast} ${tokens.animation.easeOutExpo}`,
-                  // Only animate new items
-                  animation: isNew ? 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
-                  WebkitTapHighlightColor: 'transparent',
-                }}
-                onTouchStart={(e) => {
-                  e.currentTarget.style.transform = 'scale(0.98)';
-                  e.currentTarget.style.background = tokens.colors.surfaceHover;
-                }}
-                onTouchEnd={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.background = tokens.colors.surface;
-                }}
-                onAnimationEnd={(e) => {
-                  e.currentTarget.style.animation = 'none';
-                }}
-                onMouseEnter={(e) => {
-                  if (window.matchMedia('(hover: hover)').matches) {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.borderColor = tokens.colors.cyan;
-                    e.currentTarget.style.boxShadow = `0 0 30px ${tokens.colors.cyanGlow}, inset 0 1px 0 ${tokens.colors.cyan}`;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                  e.currentTarget.style.borderColor = tokens.colors.border;
-                  e.currentTarget.style.boxShadow = 'none';
-                  e.currentTarget.style.background = tokens.colors.surface;
-                }}
-              >
+              const hasSwipe = onFollowWhale && onHideWhale;
+
+              // Card content (extracted for reuse with/without swipe wrapper)
+              const cardContent = (
+                <div
+                  data-testid={`whale-card-${whale.address}`}
+                  onClick={hasSwipe ? undefined : () => onWhaleClick(whale.address)}
+                  style={{
+                    background: tokens.colors.surface,
+                    border: `1px solid ${tokens.colors.border}`,
+                    borderRadius: '14px',
+                    padding: '16px',
+                    cursor: 'pointer',
+                    transition: `all ${tokens.animation.durationFast} ${tokens.animation.easeOutExpo}`,
+                    // Only animate new items
+                    animation: isNew ? 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                  onTouchStart={hasSwipe ? undefined : (e) => {
+                    e.currentTarget.style.transform = 'scale(0.98)';
+                    e.currentTarget.style.background = tokens.colors.surfaceHover;
+                  }}
+                  onTouchEnd={hasSwipe ? undefined : (e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.background = tokens.colors.surface;
+                  }}
+                  onAnimationEnd={(e) => {
+                    e.currentTarget.style.animation = 'none';
+                  }}
+                  onMouseEnter={(e) => {
+                    if (window.matchMedia('(hover: hover)').matches) {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.borderColor = tokens.colors.cyan;
+                      e.currentTarget.style.boxShadow = `0 0 30px ${tokens.colors.cyanGlow}, inset 0 1px 0 ${tokens.colors.cyan}`;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.borderColor = tokens.colors.border;
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.background = tokens.colors.surface;
+                  }}
+                >
                 {/* Card Header */}
                 <div
                   style={{
@@ -603,6 +612,25 @@ export function WhaleTable({
                 </div>
               </div>
               );
+
+              // Wrap with SwipeableCard if swipe handlers are provided
+              if (hasSwipe) {
+                return (
+                  <SwipeableCard
+                    key={whale.address}
+                    onSwipeRight={() => onFollowWhale(whale.address)}
+                    onSwipeLeft={() => onHideWhale(whale.address)}
+                    onClick={() => onWhaleClick(whale.address)}
+                    rightHint="Follow"
+                    leftHint="Hide"
+                  >
+                    {cardContent}
+                  </SwipeableCard>
+                );
+              }
+
+              // Return card without swipe wrapper
+              return <div key={whale.address}>{cardContent}</div>;
             })
           )}
         </div>

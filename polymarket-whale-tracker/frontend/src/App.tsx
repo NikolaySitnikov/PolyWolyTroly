@@ -353,6 +353,27 @@ function App() {
     setWhaleSortDir(direction);
   };
 
+  // Swipe handlers for mobile whale cards (feature placeholder - shows toast feedback)
+  const handleFollowWhale = (address: string) => {
+    const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
+    addToast({
+      variant: 'success',
+      title: 'Following Whale',
+      message: `You are now following ${shortAddress}`,
+    });
+    // TODO: Implement actual follow logic with state persistence
+  };
+
+  const handleHideWhale = (address: string) => {
+    const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
+    addToast({
+      variant: 'info',
+      title: 'Whale Hidden',
+      message: `${shortAddress} hidden from your feed`,
+    });
+    // TODO: Implement actual hide logic with state persistence
+  };
+
   const renderAlertsContent = () => {
     return (
       <div>
@@ -573,6 +594,8 @@ function App() {
             sortBy={whaleSortBy}
             sortDir={whaleSortDir}
             onSortChange={handleWhaleSortChange}
+            onFollowWhale={isMobile ? handleFollowWhale : undefined}
+            onHideWhale={isMobile ? handleHideWhale : undefined}
           />
         )}
       </div>
