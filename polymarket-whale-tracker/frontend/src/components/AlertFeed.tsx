@@ -527,16 +527,30 @@ export function AlertFeed({
                 border: `1px solid ${tokens.colors.border}`,
               }}
             >
-              <div
-                style={{
-                  fontSize: '40px',
-                  marginBottom: '16px',
-                  opacity: 0.5,
-                  animation: filter ? 'none' : 'pulse 2s infinite',
-                }}
-              >
-                {filter ? '🔍' : '🐋'}
-              </div>
+              {filter ? (
+                <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.5 }}>🔍</div>
+              ) : (
+                /* ASCII whale art - per BRAND_GUIDELINES_EXTENDED.md */
+                <pre
+                  style={{
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '10px',
+                    lineHeight: 1.2,
+                    color: tokens.colors.cyan,
+                    textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
+                    margin: '0 0 16px 0',
+                    opacity: 0.7,
+                    animation: 'subtleFloat 4s ease-in-out infinite',
+                  }}
+                >
+{`        .
+       ":"
+     ___:____     |"\\/"|
+   ,'        \`.    \\  /
+   |  -        \\___/  |
+ ~^~^~^~^~^~^~^~^~^~^~^~^~`}
+                </pre>
+              )}
               <div
                 style={{
                   fontFamily: tokens.fonts.body,
@@ -849,15 +863,67 @@ export function AlertFeed({
         }}
       >
         {filteredAlerts.length === 0 ? (
-          <EmptyState
-            icon="🐋"
-            message={
-              filter
-                ? `No alerts found matching "${filter}"`
-                : 'No alerts yet - waiting for whale activity...'
-            }
-            variant={filter ? 'search' : 'waiting'}
-          />
+          filter ? (
+            <EmptyState
+              icon="🔍"
+              message={`No alerts found matching "${filter}"`}
+              variant="search"
+            />
+          ) : (
+            /* ASCII whale empty state - per BRAND_GUIDELINES_EXTENDED.md */
+            <div
+              style={{
+                padding: '48px 24px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <pre
+                style={{
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: '12px',
+                  lineHeight: 1.3,
+                  color: tokens.colors.cyan,
+                  textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
+                  margin: '0 0 24px 0',
+                  opacity: 0.5,
+                  animation: 'subtleFloat 4s ease-in-out infinite',
+                }}
+              >
+{`       .  °  .
+      ":"
+    ___:____     |"\\/"|
+  ,'        \`.    \\  /
+  |  -        \\___/  |
+~^~^~^~^~^~^~^~^~^~^~^~^~`}
+              </pre>
+              <div
+                style={{
+                  fontFamily: tokens.fonts.display,
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  color: tokens.colors.textPrimary,
+                  marginBottom: '8px',
+                }}
+              >
+                No alerts yet
+              </div>
+              <p
+                style={{
+                  fontFamily: tokens.fonts.body,
+                  fontSize: '14px',
+                  color: tokens.colors.textMuted,
+                  margin: 0,
+                  maxWidth: '300px',
+                }}
+              >
+                Waiting for whale activity...
+              </p>
+            </div>
+          )
         ) : (
           filteredAlerts.map((alert) => {
             const isNew = shouldAnimateAlert(alert);

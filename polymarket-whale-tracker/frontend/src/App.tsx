@@ -36,12 +36,12 @@ import { TrendingMarkets } from './components/TrendingMarkets';
 import { WalletProfile } from './components/WalletProfile';
 import { WalletProfileLoading } from './components/WalletProfileLoading';
 import { WalletProfileError } from './components/WalletProfileError';
-import { InlineLoading } from './components/InlineLoading';
 import { GlowText } from './components/GlowText';
 import { Settings } from './components/Settings';
 import { ToastContainer } from './components/ToastContainer';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { PullToRefresh } from './components/PullToRefresh';
+import { WhaleAnimation } from './components/WhaleAnimation';
 import { useSettings } from './contexts/SettingsContext';
 import { useToast } from './contexts/ToastContext';
 import type { ViewId } from './types/navigation';
@@ -410,9 +410,13 @@ function App() {
           </p>
         </div>
 
-        {/* Loading state */}
+        {/* Loading state - uses ASCII whale animation per brand guidelines */}
         {alertsLoading && (
-          <InlineLoading icon="⚡" message="Loading alerts..." />
+          <WhaleAnimation
+            state="loading"
+            title="Hunting for alerts..."
+            subtitle="Scanning for whale activity..."
+          />
         )}
 
         {/* Error state */}
@@ -538,9 +542,13 @@ function App() {
           </p>
         </div>
 
-        {/* Loading state */}
+        {/* Loading state - uses ASCII whale animation per brand guidelines */}
         {whalesLoading && (
-          <InlineLoading icon="🐋" message="Loading whales..." />
+          <WhaleAnimation
+            state="loading"
+            title="Scanning the depths..."
+            subtitle="Looking for whale activity..."
+          />
         )}
 
         {/* Error state */}
