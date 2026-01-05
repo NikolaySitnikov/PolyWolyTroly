@@ -277,7 +277,7 @@ describe('PullToRefresh', () => {
     expect(onRefresh).not.toHaveBeenCalled();
   });
 
-  it('shows whale emoji in indicator', () => {
+  it('shows ASCII whale in indicator', () => {
     render(
       <PullToRefresh onRefresh={async () => {}}>
         <div>Content</div>
@@ -294,8 +294,8 @@ describe('PullToRefresh', () => {
       touches: [{ clientX: 100, clientY: 110 }],
     });
 
-    // Whale should be visible
-    expect(screen.getByText('🐋')).toBeInTheDocument();
+    // ASCII whale should be visible (check for waves pattern)
+    expect(screen.getByText('~^~^~^~^~^~^~^~')).toBeInTheDocument();
   });
 
   it('applies resistance to pull distance', () => {

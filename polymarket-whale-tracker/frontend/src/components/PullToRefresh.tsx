@@ -2,7 +2,7 @@
  * PullToRefresh Component
  *
  * A wrapper component that adds pull-to-refresh gesture support.
- * Used for mobile to refresh data with a whale-themed animation.
+ * Used for mobile to refresh data with a whale-themed ASCII animation.
  *
  * Per BRAND_GUIDELINES_EXTENDED.md:
  * - Threshold: 80px
@@ -12,15 +12,28 @@
  *
  * Features:
  * - Touch gesture detection with resistance
- * - Whale emoji indicator with animations
+ * - ASCII whale indicator matching WhaleAnimation component style
  * - Only activates when scrolled to top
  * - Prevents multiple concurrent refreshes
  *
+ * @see ./WhaleAnimation.tsx - ASCII whale mascot component
  * @see ../styles/tokens.ts - Design tokens
  */
 
 import { useState, useRef, useCallback, type ReactNode, type CSSProperties } from 'react';
 import { tokens } from '../styles/tokens';
+
+/**
+ * Compact ASCII whale for pull-to-refresh indicator
+ * Simplified version of the WhaleAnimation whale art
+ */
+const COMPACT_WHALE = `   .
+  ":"
+___:____ |"\\/"|
+,'    \\. \\ /
+| °    \\___/|`;
+
+const COMPACT_WAVES = '~^~^~^~^~^~^~^~';
 
 interface PullToRefreshProps {
   children: ReactNode;
@@ -149,25 +162,43 @@ export function PullToRefresh({
   }, [disabled, state, pullDistance, threshold, onRefresh]);
 
   // Calculate indicator styles based on state
-  const indicatorHeight = state === 'loading' ? 60 : pullDistance;
+  // Increase height for ASCII whale (needs more space than emoji)
+  const indicatorHeight = state === 'loading' ? 100 : Math.max(pullDistance, 0);
   const showIndicator = pullDistance > 10 || state === 'loading' || state === 'complete';
 
-  // Whale animation based on state
-  const getWhaleAnimation = (): CSSProperties => {
+  // Whale animation based on state - matches WhaleAnimation component animations
+  const getWhaleAnimation = (): string => {
     switch (state) {
       case 'loading':
-        return {
-          animation: 'whaleSwim 1s ease-in-out infinite',
-        };
+        return 'whaleSwim 3s ease-in-out infinite'; // Match WhaleAnimation loading
       case 'complete':
-        return {
-          animation: 'whaleDive 0.3s ease-in forwards',
-        };
+        return 'whaleDive 0.3s ease-in forwards';
       default:
-        return {
-          transform: `translateY(${Math.min(pullDistance / 2, 20)}px) rotate(${pullDistance > threshold * 0.4 ? 0 : -30}deg)`,
-          transition: state === 'idle' ? 'all 0.3s ease' : 'none',
-        };
+        return 'none';
+    }
+  };
+
+  // Whale color based on state - matches WhaleAnimation styles
+  const getWhaleColor = (): string => {
+    switch (state) {
+      case 'loading':
+        return tokens.colors.cyan;
+      case 'complete':
+        return tokens.colors.profit;
+      default:
+        return tokens.colors.cyan;
+    }
+  };
+
+  // Whale glow based on state
+  const getWhaleGlow = (): string => {
+    switch (state) {
+      case 'loading':
+        return `0 0 20px ${tokens.colors.cyanGlow}`;
+      case 'complete':
+        return `0 0 20px ${tokens.colors.profitGlow}`;
+      default:
+        return `0 0 10px ${tokens.colors.cyanGlow}`;
     }
   };
 
@@ -239,18 +270,50 @@ export function PullToRefresh({
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '4px',
+                animation: getWhaleAnimation(),
+                transform: state === 'pulling'
+                  ? `translateY(${Math.min(pullDistance / 3, 15)}px)`
+                  : 'none',
+                transition: state === 'idle' ? 'transform 0.3s ease' : 'none',
               }}
             >
-              {/* Whale emoji with animation */}
-              <span
+              {/* ASCII Whale - matches WhaleAnimation component style */}
+              <pre
                 style={{
-                  fontSize: '32px',
-                  ...getWhaleAnimation(),
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: '8px',
+                  lineHeight: 1.2,
+                  margin: 0,
+                  whiteSpace: 'pre',
+                  color: getWhaleColor(),
+                  textShadow: getWhaleGlow(),
+                  opacity: state === 'pulling'
+                    ? Math.min(pullDistance / (threshold * 0.4), 1)
+                    : 1,
+                  transition: 'opacity 0.2s ease',
                 }}
               >
-                🐋
-              </span>
+                {COMPACT_WHALE}
+              </pre>
+
+              {/* Waves with shimmer */}
+              <pre
+                style={{
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: '8px',
+                  lineHeight: 1.2,
+                  margin: 0,
+                  whiteSpace: 'pre',
+                  color: getWhaleColor(),
+                  textShadow: getWhaleGlow(),
+                  animation: state === 'loading' ? 'waveShimmer 2s ease-in-out infinite' : 'none',
+                  opacity: state === 'pulling'
+                    ? Math.min(pullDistance / (threshold * 0.4), 1)
+                    : 1,
+                }}
+              >
+                {COMPACT_WAVES}
+              </pre>
 
               {/* Status text */}
               <span
@@ -258,6 +321,7 @@ export function PullToRefresh({
                   fontFamily: tokens.fonts.body,
                   fontSize: tokens.fontSizes.xs,
                   color: tokens.colors.textSecondary,
+                  marginTop: '4px',
                   opacity: pullDistance > 20 || state === 'loading' ? 1 : 0,
                   transition: 'opacity 0.2s ease',
                 }}
