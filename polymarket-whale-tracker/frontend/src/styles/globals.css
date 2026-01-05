@@ -124,6 +124,12 @@ a {
   50% { opacity: 0.5; }
 }
 
+/* Simple fade in for modals/overlays */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* Entrance animation for cards and list items */
 @keyframes fadeInUp {
   from {
