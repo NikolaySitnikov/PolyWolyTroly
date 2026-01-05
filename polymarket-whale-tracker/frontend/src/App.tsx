@@ -40,6 +40,7 @@ import { GlowText } from './components/GlowText';
 import { Settings } from './components/Settings';
 import { ToastContainer } from './components/ToastContainer';
 import { useSettings } from './contexts/SettingsContext';
+import { useToast } from './contexts/ToastContext';
 import type { ViewId } from './types/navigation';
 import type { Alert } from './types/alert';
 import type { WhaleSortField, SortDirection } from './types/whale';
@@ -102,6 +103,7 @@ function mapSortFieldToApi(field: WhaleSortField): ApiSortField {
 function App() {
   const isMobile = useMobile();
   const { settings } = useSettings();
+  const { addToast } = useToast();
   const initialHash = parseHash();
   const [currentView, setCurrentView] = useState<ViewId>(initialHash.view);
   const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | null>(
@@ -215,6 +217,21 @@ function App() {
       };
       addAlert(newAlert);
 
+      // Show toast notification for whale deposit
+      const formattedAmount = deposit.amount >= 1000000
+        ? `$${(deposit.amount / 1000000).toFixed(1)}M`
+        : deposit.amount >= 1000
+        ? `$${(deposit.amount / 1000).toFixed(0)}K`
+        : `$${deposit.amount.toLocaleString()}`;
+      const shortAddress = `${deposit.walletAddress.slice(0, 6)}...${deposit.walletAddress.slice(-4)}`;
+      const isNew = deposit.isNewWallet;
+
+      addToast({
+        variant: isNew ? 'success' : 'info',
+        title: isNew ? 'New Whale Spotted!' : 'Whale Activity',
+        message: `${formattedAmount} deposit from ${shortAddress}`,
+      });
+
       // Seamlessly update or add whale data without triggering loading state
       if (deposit.isNewWallet) {
         // New whale - add to list
@@ -238,7 +255,7 @@ function App() {
         }
       }
     },
-    [addAlert, addWhale, updateWhale]
+    [addAlert, addWhale, updateWhale, addToast]
   );
 
   // Connect to WebSocket for instant live updates
