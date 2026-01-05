@@ -55,18 +55,18 @@ describe('MobileNav Component', () => {
       expect(defaultProps.onNavigate).toHaveBeenCalledWith('whales');
     });
 
-    it('should highlight the active navigation item with cyan color', () => {
+    it('should set aria-current page for active navigation item', () => {
       render(<MobileNav {...defaultProps} currentView="whales" />);
 
       const whalesButton = screen.getByRole('button', { name: /Whales/ });
-      expect(whalesButton).toHaveStyle({ color: '#00fff0' });
+      expect(whalesButton).toHaveAttribute('aria-current', 'page');
     });
 
-    it('should use muted color for inactive items', () => {
+    it('should not set aria-current for inactive items', () => {
       render(<MobileNav {...defaultProps} currentView="dashboard" />);
 
       const whalesButton = screen.getByRole('button', { name: /Whales/ });
-      expect(whalesButton).toHaveStyle({ color: '#555566' });
+      expect(whalesButton).not.toHaveAttribute('aria-current');
     });
   });
 
@@ -90,16 +90,16 @@ describe('MobileNav Component', () => {
       expect(nav).toHaveStyle({ zIndex: '1000' });
     });
 
-    it('should have 70px height', () => {
+    it('should have safe area padding for notched devices', () => {
       render(<MobileNav {...defaultProps} />);
       const nav = screen.getByRole('navigation');
-      expect(nav).toHaveStyle({ height: '70px' });
+      expect(nav).toHaveStyle({ paddingBottom: 'env(safe-area-inset-bottom, 0px)' });
     });
 
-    it('should distribute items evenly with space-around', () => {
+    it('should have a border top', () => {
       render(<MobileNav {...defaultProps} />);
       const nav = screen.getByRole('navigation');
-      expect(nav).toHaveStyle({ justifyContent: 'space-around' });
+      expect(nav.style.borderTop).toContain('solid');
     });
   });
 

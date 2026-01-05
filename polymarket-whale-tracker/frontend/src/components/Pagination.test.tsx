@@ -112,9 +112,13 @@ describe('Pagination', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('should not render if totalPages is 1', () => {
-    const { container } = render(<Pagination {...defaultProps} totalPages={1} totalItems={15} />);
-    expect(container.firstChild).toBeNull();
+  it('should render summary ribbon even when totalPages is 1', () => {
+    render(<Pagination {...defaultProps} totalPages={1} totalItems={15} />);
+    // Shows summary ribbon but hides page controls
+    expect(screen.getByText(/Showing/)).toBeInTheDocument();
+    expect(screen.getByText('1-15')).toBeInTheDocument();
+    // Should not show page number buttons (only summary)
+    expect(screen.queryByRole('button', { name: /page 1/i })).not.toBeInTheDocument();
   });
 
   describe('Active Page Pulse Animation', () => {

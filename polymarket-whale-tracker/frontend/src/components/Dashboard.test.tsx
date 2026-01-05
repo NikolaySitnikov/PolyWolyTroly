@@ -65,7 +65,7 @@ describe('Dashboard Component', () => {
 
     it('should display new whales stat', () => {
       render(<Dashboard stats={mockStats} isMobile={false} />);
-      expect(screen.getByText('New This Week')).toBeInTheDocument();
+      expect(screen.getByText('Whales Today')).toBeInTheDocument();
       expect(screen.getByText('5')).toBeInTheDocument();
     });
   });

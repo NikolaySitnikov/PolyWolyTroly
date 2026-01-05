@@ -57,9 +57,10 @@ describe('AlertFeed', () => {
     expect(screen.getByText('Live Feed')).toBeInTheDocument();
   });
 
-  it('should show LIVE indicator', () => {
+  it('should show alert count badge', () => {
     render(<AlertFeed alerts={mockAlerts} isMobile={false} />);
-    expect(screen.getByText('LIVE')).toBeInTheDocument();
+    // Shows count badge instead of LIVE indicator (redundant with page-level indicator)
+    expect(screen.getByText('3 alerts')).toBeInTheDocument();
   });
 
   it('should display all alerts', () => {
@@ -89,9 +90,9 @@ describe('AlertFeed', () => {
 
   it('should display relative time for timestamps', () => {
     render(<AlertFeed alerts={mockAlerts} isMobile={false} />);
-    // Should show relative time like "just now", "5 min ago", "1 hour ago"
-    expect(screen.getByText(/just now|seconds? ago/i)).toBeInTheDocument();
-    expect(screen.getByText(/5 min(utes)? ago/i)).toBeInTheDocument();
+    // Uses formatCardTime: "Just now", "5m ago", "1h ago"
+    expect(screen.getByText('Just now')).toBeInTheDocument();
+    expect(screen.getByText('5m ago')).toBeInTheDocument();
   });
 
   it('should show deposit icon', () => {

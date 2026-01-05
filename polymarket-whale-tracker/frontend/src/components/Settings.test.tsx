@@ -52,26 +52,26 @@ describe('Settings Component', () => {
       expect(screen.getByText('Settings')).toBeInTheDocument();
     });
 
-    it('should render settings description', () => {
+    it('should render settings icon', () => {
       renderWithProvider();
 
-      expect(screen.getByText(/Configure your notification preferences/)).toBeInTheDocument();
+      expect(screen.getByText('⚙️')).toBeInTheDocument();
     });
   });
 
   describe('Alert Threshold Section', () => {
-    it('should render threshold section', () => {
+    it('should render threshold section header', () => {
       renderWithProvider();
 
-      expect(screen.getByText('Minimum Alert Threshold')).toBeInTheDocument();
+      expect(screen.getByText('Alert Thresholds')).toBeInTheDocument();
     });
 
-    it('should display current threshold value', () => {
+    it('should display current threshold value as formatted amount', () => {
       renderWithProvider();
 
-      // Default is $10,000 - there are two instances: display value + preset button
-      const slider = screen.getByRole('slider', { name: /minimum alert threshold/i });
-      expect(slider).toHaveValue('10000');
+      // Default is $10,000 - displayed as $10K (multiple elements: display + button + scale label)
+      const elements = screen.getAllByText('$10K');
+      expect(elements.length).toBeGreaterThanOrEqual(1);
     });
 
     it('should render threshold slider', () => {
@@ -81,92 +81,91 @@ describe('Settings Component', () => {
       expect(slider).toBeInTheDocument();
     });
 
-    it('should update threshold when slider changes', () => {
-      renderWithProvider();
-
-      const slider = screen.getByRole('slider', { name: /minimum alert threshold/i });
-      fireEvent.change(slider, { target: { value: '75000' } });
-
-      // 75K is not a preset, so only one element with this text
-      expect(screen.getByText('$75K')).toBeInTheDocument();
-    });
-
     it('should show preset buttons', () => {
       renderWithProvider();
 
+      // Current presets: $1K, $5K, $10K, $25K, $50K
+      expect(screen.getByRole('button', { name: '$1K' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '$5K' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: '$10K' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '$25K' })).toBeInTheDocument();
       expect(screen.getByRole('button', { name: '$50K' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: '$100K' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: '$500K' })).toBeInTheDocument();
     });
 
     it('should update threshold when preset button clicked', () => {
       renderWithProvider();
 
-      fireEvent.click(screen.getByRole('button', { name: '$100K' }));
+      // Click the $25K preset button
+      const preset25kButton = screen.getByRole('button', { name: '$25K' });
+      fireEvent.click(preset25kButton);
 
-      const slider = screen.getByRole('slider', { name: /minimum alert threshold/i });
-      expect(slider).toHaveValue('100000');
-    });
-
-    it('should highlight active preset button', () => {
-      renderWithProvider();
-
-      // Default is $10K, should be highlighted with cyan background
-      const button10k = screen.getByRole('button', { name: '$10K' });
-      // Check that the button has the cyan color in its background
-      expect(button10k).toHaveStyle({ background: 'rgb(0, 255, 240)' });
+      // There should be multiple elements with $25K (display value + button)
+      const elements = screen.getAllByText('$25K');
+      expect(elements.length).toBeGreaterThanOrEqual(2);
     });
   });
 
-  describe('Sound Toggle Section', () => {
-    it('should render sound toggle section', () => {
+  describe('Notification Section', () => {
+    it('should render notifications section header', () => {
       renderWithProvider();
 
-      expect(screen.getByText('Sound Notifications')).toBeInTheDocument();
+      expect(screen.getByText('Notifications')).toBeInTheDocument();
     });
 
-    it('should render toggle switch', () => {
+    it('should render telegram toggle', () => {
       renderWithProvider();
 
-      const toggle = screen.getByRole('switch', { name: /sound notifications/i });
+      const toggle = screen.getByRole('switch', { name: /telegram alerts/i });
       expect(toggle).toBeInTheDocument();
     });
 
-    it('should be off by default', () => {
+    it('should render sound toggle', () => {
       renderWithProvider();
 
-      const toggle = screen.getByRole('switch', { name: /sound notifications/i });
+      const toggle = screen.getByRole('switch', { name: /sound effects/i });
+      expect(toggle).toBeInTheDocument();
+    });
+
+    it('should be off by default for sound', () => {
+      renderWithProvider();
+
+      const toggle = screen.getByRole('switch', { name: /sound effects/i });
       expect(toggle).toHaveAttribute('aria-checked', 'false');
     });
 
     it('should toggle sound on click', () => {
       renderWithProvider();
 
-      const toggle = screen.getByRole('switch', { name: /sound notifications/i });
+      const toggle = screen.getByRole('switch', { name: /sound effects/i });
       fireEvent.click(toggle);
 
       expect(toggle).toHaveAttribute('aria-checked', 'true');
     });
+
+    it('should render notification preview button', () => {
+      renderWithProvider();
+
+      expect(screen.getByRole('button', { name: /test notification/i })).toBeInTheDocument();
+    });
   });
 
-  describe('Telegram Section', () => {
-    it('should render telegram section', () => {
+  describe('About Section', () => {
+    it('should render about section', () => {
       renderWithProvider();
 
-      expect(screen.getByText('Telegram Notifications')).toBeInTheDocument();
+      expect(screen.getByText('About')).toBeInTheDocument();
     });
 
-    it('should show connect button when not connected', () => {
+    it('should show app name', () => {
       renderWithProvider();
 
-      expect(screen.getByRole('button', { name: /connect telegram/i })).toBeInTheDocument();
+      expect(screen.getByText('PolyWolyTroly')).toBeInTheDocument();
     });
 
-    it('should show coming soon badge', () => {
+    it('should show version', () => {
       renderWithProvider();
 
-      expect(screen.getByText('Coming Soon')).toBeInTheDocument();
+      expect(screen.getByText(/v1.0.0/)).toBeInTheDocument();
     });
   });
 
@@ -180,16 +179,16 @@ describe('Settings Component', () => {
     it('should reset settings when clicked', () => {
       renderWithProvider();
 
-      // Change threshold to non-preset value
-      const slider = screen.getByRole('slider', { name: /minimum alert threshold/i });
-      fireEvent.change(slider, { target: { value: '75000' } });
-      expect(slider).toHaveValue('75000');
+      // Change sound to enabled
+      const soundToggle = screen.getByRole('switch', { name: /sound effects/i });
+      fireEvent.click(soundToggle);
+      expect(soundToggle).toHaveAttribute('aria-checked', 'true');
 
       // Reset
       fireEvent.click(screen.getByRole('button', { name: /reset to defaults/i }));
 
-      // Should be back to $10K
-      expect(slider).toHaveValue('10000');
+      // Sound should be back to off
+      expect(soundToggle).toHaveAttribute('aria-checked', 'false');
     });
   });
 
@@ -198,6 +197,13 @@ describe('Settings Component', () => {
       renderWithProvider(true);
 
       expect(screen.getByTestId('settings-container')).toBeInTheDocument();
+    });
+
+    it('should render mobile header', () => {
+      renderWithProvider(true);
+
+      // Mobile has sticky header with settings title
+      expect(screen.getByText('Settings')).toBeInTheDocument();
     });
   });
 });

@@ -12,6 +12,7 @@ import * as api from '../services/api';
 // Mock the API module
 vi.mock('../services/api', () => ({
   fetchTrendingMarkets: vi.fn(),
+  fetchPriceHistory: vi.fn().mockResolvedValue([]),
 }));
 
 describe('useTrendingMarkets Hook', () => {
