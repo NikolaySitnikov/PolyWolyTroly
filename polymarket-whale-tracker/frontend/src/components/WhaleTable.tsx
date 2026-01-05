@@ -434,6 +434,19 @@ export function WhaleTable({
             </div>
           </div>
         ))}
+
+        {/* Pagination for mobile */}
+        {onPageChange && totalPages > 1 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={actualTotal}
+            itemsPerPage={itemsPerPage}
+            onPageChange={onPageChange}
+            entityName="whales"
+            isMobile={isMobile}
+          />
+        )}
       </div>
     );
   }
