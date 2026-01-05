@@ -102,7 +102,7 @@ describe('useWebSocket Hook', () => {
       act(() => {
         MockWebSocket.instances[0].simulateMessage({
           type: 'stats_update',
-          data: { whaleCount: 50, totalVolume: 2000000, alertsToday: 15, newWhalesThisWeek: 8 }
+          data: { whaleCount: 50, totalVolume: 2000000, alertsToday: 15, newWhalesToday: 8 }
         });
       });
 
@@ -110,7 +110,7 @@ describe('useWebSocket Hook', () => {
         whaleCount: 50,
         totalVolume: 2000000,
         alertsToday: 15,
-        newWhalesThisWeek: 8
+        newWhalesToday: 8
       });
     });
 

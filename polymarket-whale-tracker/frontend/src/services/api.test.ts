@@ -12,7 +12,7 @@ describe('API Service', () => {
     whaleCount: 42,
     totalVolume: 15750000,
     alertsToday: 12,
-    newWhalesThisWeek: 5,
+    newWhalesToday: 5,
   };
 
   beforeEach(() => {

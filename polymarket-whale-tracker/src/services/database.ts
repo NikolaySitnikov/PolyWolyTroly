@@ -103,36 +103,36 @@ export const db = {
     totalVolume: number;
     totalVolumeTrend: number;
     alertsToday: number;
-    newWhalesThisWeek: number;
+    newWhalesToday: number;
   }> {
     // Get current whale count
     const whaleCountResult = await pool.query("SELECT COUNT(*) as count FROM wallets");
     const whaleCount = parseInt(whaleCountResult.rows[0]?.count || "0", 10);
 
-    // Get whale count from 7 days ago (for trend)
-    const whaleCountLastWeekResult = await pool.query(
-      "SELECT COUNT(*) as count FROM wallets WHERE created_at < NOW() - INTERVAL '7 days'"
+    // Get whale count from 24 hours ago (for trend)
+    const whaleCount24hAgoResult = await pool.query(
+      "SELECT COUNT(*) as count FROM wallets WHERE created_at < NOW() - INTERVAL '24 hours'"
     );
-    const whaleCountLastWeek = parseInt(whaleCountLastWeekResult.rows[0]?.count || "0", 10);
+    const whaleCount24hAgo = parseInt(whaleCount24hAgoResult.rows[0]?.count || "0", 10);
 
-    // Calculate whale trend: % change week over week
-    const whaleCountTrend = whaleCountLastWeek > 0
-      ? Math.round(((whaleCount - whaleCountLastWeek) / whaleCountLastWeek) * 100 * 100) / 100
+    // Calculate whale trend: % change over last 24 hours
+    const whaleCountTrend = whaleCount24hAgo > 0
+      ? Math.round(((whaleCount - whaleCount24hAgo) / whaleCount24hAgo) * 100 * 100) / 100
       : 0;
 
     // Get total volume (all time)
     const totalVolumeResult = await pool.query("SELECT SUM(amount) as sum FROM deposits");
     const totalVolume = parseInt(totalVolumeResult.rows[0]?.sum || "0", 10);
 
-    // Get volume from before last 7 days (for trend)
-    const volumeLastWeekResult = await pool.query(
-      "SELECT SUM(amount) as sum FROM deposits WHERE created_at < NOW() - INTERVAL '7 days'"
+    // Get volume from 24 hours ago (for trend)
+    const volume24hAgoResult = await pool.query(
+      "SELECT SUM(amount) as sum FROM deposits WHERE created_at < NOW() - INTERVAL '24 hours'"
     );
-    const volumeLastWeek = parseInt(volumeLastWeekResult.rows[0]?.sum || "0", 10);
+    const volume24hAgo = parseInt(volume24hAgoResult.rows[0]?.sum || "0", 10);
 
-    // Calculate volume trend: % change week over week
-    const totalVolumeTrend = volumeLastWeek > 0
-      ? Math.round(((totalVolume - volumeLastWeek) / volumeLastWeek) * 100 * 100) / 100
+    // Calculate volume trend: % change over last 24 hours
+    const totalVolumeTrend = volume24hAgo > 0
+      ? Math.round(((totalVolume - volume24hAgo) / volume24hAgo) * 100 * 100) / 100
       : 0;
 
     // Get alerts today (deposits in last 24 hours)
@@ -141,11 +141,11 @@ export const db = {
     );
     const alertsToday = parseInt(alertsTodayResult.rows[0]?.count || "0", 10);
 
-    // Get new whales this week
+    // Get new whales today (last 24 hours)
     const newWhalesResult = await pool.query(
-      "SELECT COUNT(*) as count FROM wallets WHERE created_at >= NOW() - INTERVAL '7 days'"
+      "SELECT COUNT(*) as count FROM wallets WHERE created_at >= NOW() - INTERVAL '24 hours'"
     );
-    const newWhalesThisWeek = parseInt(newWhalesResult.rows[0]?.count || "0", 10);
+    const newWhalesToday = parseInt(newWhalesResult.rows[0]?.count || "0", 10);
 
     return {
       whaleCount,
@@ -153,7 +153,7 @@ export const db = {
       totalVolume,
       totalVolumeTrend,
       alertsToday,
-      newWhalesThisWeek,
+      newWhalesToday,
     };
   },
 

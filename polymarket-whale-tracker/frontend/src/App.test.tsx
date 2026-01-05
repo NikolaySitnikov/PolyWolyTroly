@@ -30,7 +30,7 @@ const mockStats: api.StatsResponse = {
   whaleCount: 42,
   totalVolume: 15750000,
   alertsToday: 12,
-  newWhalesThisWeek: 5,
+  newWhalesToday: 5,
 };
 
 describe('App Component', () => {

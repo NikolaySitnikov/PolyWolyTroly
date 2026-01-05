@@ -14,6 +14,12 @@ const clients = new Set<WebSocket>();
 // WebSocket server instance
 let wss: WebSocketServer | null = null;
 
+// Periodic stats broadcast interval (for time-based rolling 24h updates)
+let statsInterval: ReturnType<typeof setInterval> | null = null;
+
+// Stats broadcast interval in ms (60 seconds - balances freshness vs DB load)
+const STATS_BROADCAST_INTERVAL = 60_000;
+
 export interface DepositEvent {
   walletAddress: string;
   amount: number;
@@ -47,7 +53,40 @@ export function initWebSocket(server: Server): WebSocketServer {
     });
   });
 
+  // Start periodic stats broadcast for time-based rolling 24h metric updates
+  // This ensures "Alerts Today" and "New Today" decrease as items fall out of the 24h window
+  startPeriodicStatsBroadcast();
+
   return wss;
+}
+
+/**
+ * Start periodic stats broadcast to all clients.
+ * This handles time-based updates for rolling 24h metrics (Alerts Today, New Today)
+ * that can decrease even without new deposits.
+ */
+function startPeriodicStatsBroadcast(): void {
+  // Clear any existing interval
+  if (statsInterval) {
+    clearInterval(statsInterval);
+  }
+
+  statsInterval = setInterval(async () => {
+    // Only broadcast if there are connected clients
+    if (clients.size === 0) return;
+
+    try {
+      const stats = await db.getStats();
+      broadcast({
+        type: 'stats_update',
+        data: stats
+      });
+    } catch (error) {
+      console.error('[WebSocket] Error in periodic stats broadcast:', error);
+    }
+  }, STATS_BROADCAST_INTERVAL);
+
+  console.log(`[WebSocket] Periodic stats broadcast started (every ${STATS_BROADCAST_INTERVAL / 1000}s)`);
 }
 
 /**
@@ -117,9 +156,15 @@ export function getClientCount(): number {
 }
 
 /**
- * Close WebSocket server
+ * Close WebSocket server and cleanup resources
  */
 export function closeWebSocket(): void {
+  // Stop periodic stats broadcast
+  if (statsInterval) {
+    clearInterval(statsInterval);
+    statsInterval = null;
+  }
+
   if (wss) {
     wss.close();
     wss = null;

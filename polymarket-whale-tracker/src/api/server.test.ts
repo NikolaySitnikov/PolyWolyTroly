@@ -67,7 +67,7 @@ describe("API Server", () => {
       whaleCount: 42,
       totalVolume: 15750000,
       alertsToday: 12,
-      newWhalesThisWeek: 5,
+      newWhalesToday: 5,
     };
 
     beforeEach(() => {
@@ -99,8 +99,8 @@ describe("API Server", () => {
 
     it("should return new whales this week count", async () => {
       const response = await request(app).get("/api/stats");
-      expect(response.body).toHaveProperty("newWhalesThisWeek");
-      expect(typeof response.body.newWhalesThisWeek).toBe("number");
+      expect(response.body).toHaveProperty("newWhalesToday");
+      expect(typeof response.body.newWhalesToday).toBe("number");
     });
 
     it("should call db.getStats", async () => {

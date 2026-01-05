@@ -11,7 +11,7 @@ export interface StatsResponse {
   totalVolume: number;
   totalVolumeTrend: number;
   alertsToday: number;
-  newWhalesThisWeek: number;
+  newWhalesToday: number;
 }
 
 /**

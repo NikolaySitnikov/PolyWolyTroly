@@ -16,7 +16,7 @@ describe('Dashboard Component', () => {
     totalVolume: 15750000,
     totalVolumeTrend: 8.62,
     alertsToday: 12,
-    newWhalesThisWeek: 5,
+    newWhalesToday: 5,
   };
 
   describe('Rendering', () => {

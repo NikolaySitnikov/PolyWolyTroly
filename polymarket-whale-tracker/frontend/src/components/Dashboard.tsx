@@ -21,7 +21,7 @@ interface DashboardStats {
   totalVolume: number;
   totalVolumeTrend: number;
   alertsToday: number;
-  newWhalesThisWeek: number;
+  newWhalesToday: number;
 }
 
 interface DashboardProps {
@@ -79,6 +79,7 @@ export function Dashboard({ stats, isMobile }: DashboardProps) {
           value={stats.whaleCount.toString()}
           numericValue={stats.whaleCount}
           trend={stats.whaleCountTrend}
+          subValue="24h"
           icon="🐋"
           delay={0}
         />
@@ -87,6 +88,7 @@ export function Dashboard({ stats, isMobile }: DashboardProps) {
           value={formatUSD(stats.totalVolume)}
           numericValue={stats.totalVolume}
           trend={stats.totalVolumeTrend}
+          subValue="24h"
           icon="📊"
           accentColor="magenta"
           delay={50}
@@ -101,9 +103,10 @@ export function Dashboard({ stats, isMobile }: DashboardProps) {
           delay={100}
         />
         <StatCard
-          label="New This Week"
-          value={stats.newWhalesThisWeek.toString()}
-          numericValue={stats.newWhalesThisWeek}
+          label="Whales Today"
+          value={stats.newWhalesToday.toString()}
+          numericValue={stats.newWhalesToday}
+          subValue="wallets"
           icon="🆕"
           accentColor="profit"
           delay={150}

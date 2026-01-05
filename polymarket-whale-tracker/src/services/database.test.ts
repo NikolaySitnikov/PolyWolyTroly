@@ -314,7 +314,7 @@ describe("getStats", () => {
       .mockResolvedValueOnce({ rows: [{ sum: "15750000" }] }) // totalVolume
       .mockResolvedValueOnce({ rows: [{ sum: "14500000" }] }) // volumeLastWeek
       .mockResolvedValueOnce({ rows: [{ count: "12" }] }) // alertsToday
-      .mockResolvedValueOnce({ rows: [{ count: "5" }] }); // newWhalesThisWeek
+      .mockResolvedValueOnce({ rows: [{ count: "5" }] }); // newWhalesToday
 
     const { db } = await import("./database.js");
     const result = await db.getStats();
@@ -325,7 +325,7 @@ describe("getStats", () => {
       totalVolume: 15750000,
       totalVolumeTrend: 8.62, // (15750000-14500000)/14500000 * 100 = 8.62%
       alertsToday: 12,
-      newWhalesThisWeek: 5,
+      newWhalesToday: 5,
     });
   });
 
@@ -336,7 +336,7 @@ describe("getStats", () => {
       .mockResolvedValueOnce({ rows: [{ sum: "5000000" }] }) // totalVolume
       .mockResolvedValueOnce({ rows: [{ sum: "0" }] }) // volumeLastWeek (0)
       .mockResolvedValueOnce({ rows: [{ count: "5" }] }) // alertsToday
-      .mockResolvedValueOnce({ rows: [{ count: "10" }] }); // newWhalesThisWeek
+      .mockResolvedValueOnce({ rows: [{ count: "10" }] }); // newWhalesToday
 
     const { db } = await import("./database.js");
     const result = await db.getStats();
@@ -363,7 +363,7 @@ describe("getStats", () => {
       totalVolume: 0,
       totalVolumeTrend: 0,
       alertsToday: 0,
-      newWhalesThisWeek: 0,
+      newWhalesToday: 0,
     });
   });
 });
