@@ -217,7 +217,7 @@ export function Tooltip({
               position: 'fixed',
               top: position?.top ?? 0,
               left: position?.left ?? 0,
-              zIndex: tokens.zIndex.tooltip,
+              zIndex: 9999, // Must be above everything including fixed headers
               maxWidth: '280px',
               padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
               background: tokens.colors.surface,
