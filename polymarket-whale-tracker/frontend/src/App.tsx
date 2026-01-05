@@ -41,6 +41,7 @@ import { GlowText } from './components/GlowText';
 import { Settings } from './components/Settings';
 import { ToastContainer } from './components/ToastContainer';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { PullToRefresh } from './components/PullToRefresh';
 import { useSettings } from './contexts/SettingsContext';
 import { useToast } from './contexts/ToastContext';
 import type { ViewId } from './types/navigation';
@@ -189,6 +190,13 @@ function App() {
     refetchAlerts();
     refetchTrending();
   }, [refetch, refetchWhales, refetchAlerts, refetchTrending]);
+
+  // Pull-to-refresh handler for mobile - wraps refetchAll with async/delay
+  const handlePullToRefresh = useCallback(async () => {
+    refetchAll();
+    // Small delay to show the loading animation
+    await new Promise((resolve) => setTimeout(resolve, 800));
+  }, [refetchAll]);
 
   // Auto-refetch when API recovers from disconnection
   const { onReconnect } = useApiConnectivity();
@@ -688,26 +696,54 @@ function App() {
       />
 
       {/* Main content area */}
-      <main
-        style={{
-          position: 'relative',
-          zIndex: 2,
-          padding: isMobile ? tokens.spacing[4] : tokens.spacing[8],
-          paddingTop: isMobile ? LAYOUT.content.paddingTop.mobile : LAYOUT.content.paddingTop.desktop,
-          paddingBottom: isMobile ? LAYOUT.content.paddingBottom.mobile : LAYOUT.content.paddingBottom.desktop,
-          maxWidth: '1400px',
-          margin: '0 auto',
-        }}
-      >
-        {/* View content */}
-        {currentView === 'dashboard' && renderDashboardContent()}
-        {currentView === 'whales' && renderWhalesContent()}
-        {currentView === 'alerts' && renderAlertsContent()}
-        {currentView === 'wallet' && renderWalletContent()}
+      {isMobile ? (
+        <PullToRefresh
+          onRefresh={handlePullToRefresh}
+          disabled={currentView === 'settings'} // Disable on settings page
+        >
+          <main
+            style={{
+              position: 'relative',
+              zIndex: 2,
+              padding: tokens.spacing[4],
+              paddingTop: LAYOUT.content.paddingTop.mobile,
+              paddingBottom: LAYOUT.content.paddingBottom.mobile,
+              maxWidth: '1400px',
+              margin: '0 auto',
+            }}
+          >
+            {/* View content */}
+            {currentView === 'dashboard' && renderDashboardContent()}
+            {currentView === 'whales' && renderWhalesContent()}
+            {currentView === 'alerts' && renderAlertsContent()}
+            {currentView === 'wallet' && renderWalletContent()}
 
-        {/* Settings page */}
-        {currentView === 'settings' && <Settings isMobile={isMobile} />}
-      </main>
+            {/* Settings page */}
+            {currentView === 'settings' && <Settings isMobile={isMobile} />}
+          </main>
+        </PullToRefresh>
+      ) : (
+        <main
+          style={{
+            position: 'relative',
+            zIndex: 2,
+            padding: tokens.spacing[8],
+            paddingTop: LAYOUT.content.paddingTop.desktop,
+            paddingBottom: LAYOUT.content.paddingBottom.desktop,
+            maxWidth: '1400px',
+            margin: '0 auto',
+          }}
+        >
+          {/* View content */}
+          {currentView === 'dashboard' && renderDashboardContent()}
+          {currentView === 'whales' && renderWhalesContent()}
+          {currentView === 'alerts' && renderAlertsContent()}
+          {currentView === 'wallet' && renderWalletContent()}
+
+          {/* Settings page */}
+          {currentView === 'settings' && <Settings isMobile={isMobile} />}
+        </main>
+      )}
 
       {/* Mobile Bottom Navigation */}
       {isMobile && (
