@@ -9,9 +9,16 @@
  * - Sparklines show 1-week price history for each market
  * - Color indicates trend direction (cyan=up, red=down)
  *
+ * Enhanced mobile view with:
+ * - Horizontal scrolling cards
+ * - Larger touch targets
+ * - Scroll position indicators
+ * - Category tags
+ *
  * @see ../Design docs/DESIGN_SYSTEM.md - Chart specifications
  */
 
+import { useRef, useState, useEffect } from 'react';
 import { tokens } from '../styles/tokens';
 import { EmptyState } from './EmptyState';
 import { Sparkline } from './Sparkline';
@@ -283,9 +290,401 @@ function MarketCard({
 }
 
 /**
+ * Mobile market card component with enhanced touch feedback
+ */
+function MobileMarketCard({
+  market,
+  index,
+}: {
+  market: TrendingMarketResponse;
+  index: number;
+}) {
+  const yesPercent = Math.round(market.yesPrice * 100);
+  const priceChange = calculatePriceChange(market.priceHistory);
+  const changeDisplay = priceChange !== null ? formatPriceChange(priceChange) : null;
+
+  // Determine category
+  const isSportsMarket = !!market.sportsMarketType;
+  const category = isSportsMarket
+    ? 'sports'
+    : (mapApiCategory(market.category) || inferCategory(market.question));
+  const sportEmoji = isSportsMarket ? getSportEmoji(market.seriesSlug) : undefined;
+
+  return (
+    <a
+      href={getMarketUrl(market.eventSlug)}
+      target="_blank"
+      rel="noopener noreferrer"
+      data-testid="market-card"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        flexShrink: 0,
+        width: '280px',
+        background: tokens.colors.surface,
+        border: `1px solid ${tokens.colors.border}`,
+        borderRadius: '16px',
+        padding: '16px',
+        textDecoration: 'none',
+        transition: 'all 0.2s ease',
+        animation: `fadeInUp 0.4s ${index * 0.1}s both cubic-bezier(0.16, 1, 0.3, 1)`,
+        WebkitTapHighlightColor: 'transparent',
+      }}
+      onAnimationEnd={(e) => {
+        e.currentTarget.style.animation = 'none';
+      }}
+      onTouchStart={(e) => {
+        e.currentTarget.style.transform = 'scale(0.98)';
+        e.currentTarget.style.background = tokens.colors.surfaceHover;
+      }}
+      onTouchEnd={(e) => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.background = tokens.colors.surface;
+      }}
+      onTouchCancel={(e) => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.background = tokens.colors.surface;
+      }}
+    >
+      {/* Category Tag */}
+      <div style={{ marginBottom: '12px' }}>
+        <CategoryTag category={category} size="default" iconOverride={sportEmoji} />
+      </div>
+
+      {/* Market Question */}
+      <div
+        style={{
+          fontFamily: tokens.fonts.body,
+          fontSize: '15px',
+          fontWeight: 600,
+          color: tokens.colors.textPrimary,
+          marginBottom: '16px',
+          lineHeight: 1.4,
+          display: '-webkit-box',
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          minHeight: '63px', // 3 lines
+        }}
+      >
+        {market.question}
+      </div>
+
+      {/* Probability Bar */}
+      <div style={{ marginBottom: '14px' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginBottom: '6px',
+          }}
+        >
+          <span
+            style={{
+              fontFamily: tokens.fonts.mono,
+              fontSize: '11px',
+              color: tokens.colors.textMuted,
+              textTransform: 'uppercase',
+            }}
+          >
+            Yes
+          </span>
+          <span
+            style={{
+              fontFamily: tokens.fonts.mono,
+              fontSize: '11px',
+              color: tokens.colors.textMuted,
+              textTransform: 'uppercase',
+            }}
+          >
+            No
+          </span>
+        </div>
+        <div
+          style={{
+            position: 'relative',
+            height: '10px',
+            background: `${tokens.colors.loss}30`,
+            borderRadius: '5px',
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              height: '100%',
+              width: `${yesPercent}%`,
+              background: `linear-gradient(90deg, ${tokens.colors.profit}, ${tokens.colors.cyan})`,
+              borderRadius: '5px',
+              transition: 'width 0.3s ease',
+              boxShadow: `0 0 10px ${tokens.colors.profitGlow}`,
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Stats Row - 3 column layout: % YES | Sparkline | Volume */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingTop: '12px',
+          borderTop: `1px solid ${tokens.colors.border}`,
+        }}
+      >
+        {/* Left: Yes Probability */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+          <span
+            style={{
+              fontFamily: tokens.fonts.mono,
+              fontSize: '24px',
+              fontWeight: 700,
+              color: tokens.colors.profit,
+              textShadow: `0 0 15px ${tokens.colors.profitGlow}`,
+            }}
+          >
+            {yesPercent}%
+          </span>
+          <span
+            style={{
+              fontFamily: tokens.fonts.mono,
+              fontSize: '11px',
+              color: tokens.colors.textMuted,
+            }}
+          >
+            Yes
+          </span>
+        </div>
+
+        {/* Center: Sparkline + Price Change */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '2px',
+          }}
+        >
+          <Sparkline
+            data={market.priceHistory || []}
+            loading={market.priceHistoryLoading}
+            width={60}
+            height={22}
+          />
+          {changeDisplay && (
+            <span
+              data-testid="price-change"
+              style={{
+                fontFamily: tokens.fonts.mono,
+                fontSize: '10px',
+                fontWeight: 500,
+                color: changeDisplay.isNeutral
+                  ? tokens.colors.purple
+                  : changeDisplay.isPositive
+                    ? tokens.colors.profit
+                    : tokens.colors.loss,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {changeDisplay.text}
+            </span>
+          )}
+        </div>
+
+        {/* Right: 24h Volume */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+          }}
+        >
+          <span
+            style={{
+              fontFamily: tokens.fonts.mono,
+              fontSize: '14px',
+              fontWeight: 600,
+              color: tokens.colors.textPrimary,
+            }}
+          >
+            {formatVolume(market.volume24hr)}
+          </span>
+          <span
+            style={{
+              fontFamily: tokens.fonts.mono,
+              fontSize: '10px',
+              color: tokens.colors.textMuted,
+            }}
+          >
+            24h volume
+          </span>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+/**
+ * Scroll indicator dots for horizontal scroll
+ * Uses a sliding window approach - active dot is always visible in center area,
+ * with "+N" counters on left/right showing hidden items
+ */
+function ScrollIndicator({
+  total,
+  current,
+}: {
+  total: number;
+  current: number;
+}) {
+  const maxDots = 5;
+
+  // If total items fit within maxDots, just show all dots
+  if (total <= maxDots) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '6px',
+          marginTop: '12px',
+        }}
+      >
+        {Array.from({ length: total }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              width: current === i ? '16px' : '6px',
+              height: '6px',
+              borderRadius: '3px',
+              background: current === i ? tokens.colors.cyan : tokens.colors.border,
+              transition: 'all 0.2s ease',
+              boxShadow: current === i ? `0 0 10px ${tokens.colors.cyanGlow}` : 'none',
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  // Sliding window: calculate which dots to show
+  // Keep current in center-ish position (index 2 of 5 dots = middle)
+  const centerPosition = 2;
+
+  // Calculate window start
+  let windowStart = current - centerPosition;
+
+  // Clamp windowStart so window doesn't go past boundaries
+  if (windowStart < 0) windowStart = 0;
+  if (windowStart > total - maxDots) windowStart = total - maxDots;
+
+  const windowEnd = windowStart + maxDots;
+
+  // Calculate how many items are hidden on each side
+  const hiddenLeft = windowStart;
+  const hiddenRight = total - windowEnd;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: '6px',
+        marginTop: '12px',
+      }}
+    >
+      {/* Left counter */}
+      {hiddenLeft > 0 && (
+        <span
+          style={{
+            fontFamily: tokens.fonts.mono,
+            fontSize: '10px',
+            color: tokens.colors.textMuted,
+            marginRight: '4px',
+            minWidth: '20px',
+            textAlign: 'right',
+          }}
+        >
+          +{hiddenLeft}
+        </span>
+      )}
+
+      {/* Visible dots */}
+      {Array.from({ length: maxDots }).map((_, i) => {
+        const actualIndex = windowStart + i;
+        const isActive = actualIndex === current;
+        return (
+          <div
+            key={actualIndex}
+            style={{
+              width: isActive ? '16px' : '6px',
+              height: '6px',
+              borderRadius: '3px',
+              background: isActive ? tokens.colors.cyan : tokens.colors.border,
+              transition: 'all 0.2s ease',
+              boxShadow: isActive ? `0 0 10px ${tokens.colors.cyanGlow}` : 'none',
+            }}
+          />
+        );
+      })}
+
+      {/* Right counter */}
+      {hiddenRight > 0 && (
+        <span
+          style={{
+            fontFamily: tokens.fonts.mono,
+            fontSize: '10px',
+            color: tokens.colors.textMuted,
+            marginLeft: '4px',
+            minWidth: '20px',
+            textAlign: 'left',
+          }}
+        >
+          +{hiddenRight}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
  * Loading skeleton for market cards
  */
-function LoadingSkeleton({ count = 4 }: { count?: number }) {
+function LoadingSkeleton({ count = 4, isMobile = false }: { count?: number; isMobile?: boolean }) {
+  if (isMobile) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          gap: '12px',
+          overflowX: 'auto',
+          paddingBottom: '8px',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}
+      >
+        {Array.from({ length: count }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              flexShrink: 0,
+              width: '280px',
+              height: '220px',
+              background: tokens.colors.surface,
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: '16px',
+              animation: 'pulse 2s infinite',
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <>
       {Array.from({ length: count }).map((_, i) => (
@@ -440,6 +839,183 @@ export function TrendingMarkets({
   isMobile,
   onRetry,
 }: TrendingMarketsProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrollIndex, setScrollIndex] = useState(0);
+
+  // Track scroll position for indicator on mobile
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollRef.current) {
+        const scrollLeft = scrollRef.current.scrollLeft;
+        const cardWidth = 292; // 280px card + 12px gap
+        const index = Math.round(scrollLeft / cardWidth);
+        setScrollIndex(index);
+      }
+    };
+
+    const el = scrollRef.current;
+    if (el && isMobile) {
+      el.addEventListener('scroll', handleScroll, { passive: true });
+      return () => el.removeEventListener('scroll', handleScroll);
+    }
+  }, [isMobile]);
+
+  // =====================
+  // MOBILE VIEW
+  // =====================
+  if (isMobile) {
+    return (
+      <div data-testid="trending-markets">
+        {/* Section Header - Mobile */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '14px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '18px' }}>🔥</span>
+            <span
+              style={{
+                fontFamily: tokens.fonts.display,
+                fontWeight: 700,
+                fontSize: '18px',
+                color: tokens.colors.textPrimary,
+              }}
+            >
+              Trending Markets
+            </span>
+          </div>
+          <a
+            href="https://polymarket.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              fontFamily: tokens.fonts.mono,
+              fontSize: '12px',
+              color: tokens.colors.cyan,
+              textDecoration: 'none',
+              padding: '6px 10px',
+              background: `${tokens.colors.cyan}10`,
+              borderRadius: '8px',
+            }}
+          >
+            View all →
+          </a>
+        </div>
+
+        {/* Loading State - Mobile */}
+        {loading && <LoadingSkeleton count={3} isMobile />}
+
+        {/* Error State - Mobile */}
+        {error && (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '40px 20px',
+              background: tokens.colors.surface,
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: '16px',
+            }}
+          >
+            <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.5 }}>📊</div>
+            <div
+              style={{
+                fontFamily: tokens.fonts.body,
+                fontSize: '14px',
+                color: tokens.colors.textMuted,
+                marginBottom: '16px',
+              }}
+            >
+              Failed to load markets
+            </div>
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                style={{
+                  padding: '10px 20px',
+                  background: tokens.colors.cyan,
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontFamily: tokens.fonts.body,
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: tokens.colors.void,
+                  cursor: 'pointer',
+                }}
+              >
+                Retry
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Empty State - Mobile */}
+        {!loading && !error && markets.length === 0 && (
+          <div
+            style={{
+              padding: '40px 20px',
+              textAlign: 'center',
+              background: tokens.colors.surface,
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: '16px',
+            }}
+          >
+            <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.5 }}>📈</div>
+            <div style={{ color: tokens.colors.textMuted }}>
+              No trending markets available
+            </div>
+          </div>
+        )}
+
+        {/* Horizontal Scroll Cards - Mobile */}
+        {!loading && !error && markets.length > 0 && (
+          <>
+            <div
+              ref={scrollRef}
+              style={{
+                display: 'flex',
+                gap: '12px',
+                overflowX: 'auto',
+                paddingBottom: '8px',
+                scrollSnapType: 'x mandatory',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                // Extend to edges for full-bleed scroll
+                marginLeft: '-16px',
+                marginRight: '-16px',
+                paddingLeft: '16px',
+                paddingRight: '16px',
+              }}
+            >
+              {markets.map((market, index) => (
+                <div
+                  key={market.id}
+                  style={{ scrollSnapAlign: 'start' }}
+                >
+                  <MobileMarketCard market={market} index={index} />
+                </div>
+              ))}
+            </div>
+
+            {/* Scroll Indicators */}
+            {markets.length > 1 && (
+              <ScrollIndicator total={markets.length} current={scrollIndex} />
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // =====================
+  // DESKTOP VIEW
+  // =====================
   return (
     <div data-testid="trending-markets">
       {/* Section header */}
@@ -490,12 +1066,12 @@ export function TrendingMarkets({
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: isMobile ? '1fr' : 'repeat(4, 1fr)',
+          gridTemplateColumns: 'repeat(4, 1fr)',
           gap: '16px',
         }}
       >
         {loading ? (
-          <LoadingSkeleton count={isMobile ? 2 : 4} />
+          <LoadingSkeleton count={4} />
         ) : error ? (
           <ErrorState error={error} onRetry={onRetry} />
         ) : markets.length === 0 ? (
