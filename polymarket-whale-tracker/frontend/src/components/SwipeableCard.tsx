@@ -83,13 +83,14 @@ export function SwipeableCard({
       // Need at least 10px movement to determine direction
       if (absX > 10 || absY > 10) {
         isHorizontalSwipeRef.current = absX > absY;
+        // Mark as moved for ANY significant movement (prevents click on scroll)
+        hasMoved.current = true;
       }
     }
 
-    // Only handle horizontal swipes
+    // Only handle horizontal swipes (update visual position)
     if (isHorizontalSwipeRef.current === true) {
       currentXRef.current = touch.clientX;
-      hasMoved.current = true;
       setOffsetX(deltaX);
     }
   };

@@ -64,13 +64,11 @@ function connect(url: string) {
     return; // Connection in progress
   }
 
-  console.log('[WebSocket] Connecting to:', url);
   globalUrl = url;
   const ws = new WebSocket(url);
   globalWs = ws;
 
   ws.onopen = () => {
-    console.log('[WebSocket] Connected!');
     reconnectAttempt = 0;
     notifyConnection(true);
   };
@@ -78,14 +76,12 @@ function connect(url: string) {
   ws.onmessage = (event) => {
     try {
       const message: WebSocketMessage = JSON.parse(event.data);
-      console.log('[WebSocket] Received:', message.type);
 
       switch (message.type) {
         case 'stats_update':
           statsCallbacks.forEach((cb) => cb(message.data as StatsResponse));
           break;
         case 'new_deposit':
-          console.log('[WebSocket] depositCallbacks.size =', depositCallbacks.size);
           depositCallbacks.forEach((cb) => cb(message.data as DepositEvent));
           break;
       }
@@ -95,14 +91,12 @@ function connect(url: string) {
   };
 
   ws.onclose = () => {
-    console.log('[WebSocket] Disconnected');
     notifyConnection(false);
     globalWs = null;
 
     // Auto-reconnect if there are still subscribers
     if (subscriberCount > 0 && globalUrl) {
       const delay = RECONNECT_DELAYS[Math.min(reconnectAttempt, RECONNECT_DELAYS.length - 1)];
-      console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttempt + 1})`);
       reconnectAttempt++;
       reconnectTimeout = setTimeout(() => connect(globalUrl!), delay);
     }
@@ -120,7 +114,6 @@ function disconnect() {
     reconnectTimeout = null;
   }
   if (globalWs) {
-    console.log('[WebSocket] Closing connection');
     globalWs.close();
     globalWs = null;
   }
@@ -158,21 +151,17 @@ export function useWebSocket(
     connectionCallbacks.add(callbacksRef.current.onConnection);
 
     subscriberCount++;
-    console.log('[WebSocket] Mount: subscriberCount =', subscriberCount, 'depositCallbacks.size =', depositCallbacks.size);
 
     // Connect if not already connected
     connect(url);
 
     return () => {
       subscriberCount--;
-      console.log('[WebSocket] Unmount: subscriberCount =', subscriberCount);
 
       // Remove callbacks from sets
       statsCallbacks.delete(callbacksRef.current.onStats!);
       depositCallbacks.delete(callbacksRef.current.onDeposit!);
       connectionCallbacks.delete(callbacksRef.current.onConnection!);
-
-      console.log('[WebSocket] After cleanup: depositCallbacks.size =', depositCallbacks.size);
 
       // Disconnect and reset ref only when truly unmounted
       if (subscriberCount === 0) {

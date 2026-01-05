@@ -20,6 +20,8 @@ import { formatCardTime } from '../styles/cardStyles';
 import { formatUSD } from '../utils/formatters';
 import { Pagination } from './Pagination';
 import { SwipeableCard } from './SwipeableCard';
+import { CopyableAddress } from './CopyableAddress';
+import { AchievementBadges, getWhaleAchievements } from './AchievementBadge';
 import { useNewItemAnimation } from '../hooks/useNewItemAnimation';
 import type { Whale, WhaleSortField, SortDirection } from '../types/whale';
 
@@ -47,15 +49,8 @@ interface WhaleTableProps {
   onHideWhale?: (address: string) => void;
 }
 
-/**
- * Shorten an Ethereum address for display
- * Format: 0x1234...5678
- */
-function shortenAddress(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
-
 // Note: Using formatCardTime from cardStyles.ts for unified time formatting
+// Note: Using CopyableAddress component for address display with long-press to copy
 // This ensures consistency with AlertFeed and other card-based components
 
 const DEFAULT_ITEMS_PER_PAGE = 20;
@@ -526,16 +521,18 @@ export function WhaleTable({
                     >
                       🐋
                     </div>
-                    <div
-                      style={{
-                        fontFamily: tokens.fonts.mono,
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        color: tokens.colors.cyan,
-                        textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
-                      }}
-                    >
-                      {shortenAddress(whale.address)}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {/* Copyable wallet address - long press to copy */}
+                      <CopyableAddress
+                        address={whale.address}
+                        fontSize="13px"
+                      />
+                      {/* Achievement badges */}
+                      <AchievementBadges
+                        achievements={getWhaleAchievements(whale, whales)}
+                        size="sm"
+                        maxVisible={3}
+                      />
                     </div>
                   </div>
                   <span
@@ -1008,14 +1005,17 @@ export function WhaleTable({
                     >
                       🐋
                     </div>
-                    <div
-                      style={{
-                        fontFamily: tokens.fonts.mono,
-                        fontSize: '11px',
-                        color: tokens.colors.cyan,
-                      }}
-                    >
-                      {shortenAddress(whale.address)}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {/* Copyable wallet address */}
+                      <CopyableAddress
+                        address={whale.address}
+                        fontSize="11px"
+                      />
+                      {/* Achievement badges - show all on desktop */}
+                      <AchievementBadges
+                        achievements={getWhaleAchievements(whale, whales)}
+                        size="sm"
+                      />
                     </div>
                   </div>
                 </td>

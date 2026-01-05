@@ -254,4 +254,29 @@ describe('SwipeableCard', () => {
     expect(onClick).not.toHaveBeenCalled();
     expect(onSwipeRight).toHaveBeenCalled();
   });
+
+  it('does not call onClick when scrolling vertically (prevents accidental card entry during scroll)', () => {
+    const onClick = vi.fn();
+    render(
+      <SwipeableCard onSwipeLeft={() => {}} onSwipeRight={() => {}} onClick={onClick}>
+        <div>Card content</div>
+      </SwipeableCard>
+    );
+
+    const card = screen.getByTestId('swipeable-card');
+
+    // Simulate vertical scroll gesture
+    fireEvent.touchStart(card, {
+      touches: [{ clientX: 100, clientY: 100 }],
+    });
+
+    fireEvent.touchMove(card, {
+      touches: [{ clientX: 100, clientY: 200 }], // 100px vertical movement
+    });
+
+    fireEvent.touchEnd(card);
+
+    // onClick should NOT be called because user was scrolling
+    expect(onClick).not.toHaveBeenCalled();
+  });
 });
