@@ -980,28 +980,28 @@ export function TrendingMarkets({
               ref={scrollRef}
               style={{
                 display: 'flex',
-                gap: '12px',
                 overflowX: 'auto',
                 paddingBottom: '8px',
                 scrollSnapType: 'x mandatory',
                 scrollbarWidth: 'none',
                 msOverflowStyle: 'none',
-                // Extend to edges for full-bleed scroll
-                marginLeft: '-16px',
-                marginRight: '-16px',
-                paddingLeft: '16px',
               }}
             >
+              {/* Left spacer */}
+              <div style={{ flexShrink: 0, width: '16px' }} aria-hidden="true" />
               {markets.map((market, index) => (
                 <div
                   key={market.id}
-                  style={{ scrollSnapAlign: 'start' }}
+                  style={{
+                    scrollSnapAlign: 'start',
+                    marginRight: index < markets.length - 1 ? '12px' : '0',
+                  }}
                 >
                   <MobileMarketCard market={market} index={index} />
                 </div>
               ))}
-              {/* Spacer for right padding */}
-              <div style={{ flexShrink: 0, width: '4px' }} />
+              {/* Right spacer */}
+              <div style={{ flexShrink: 0, width: '16px' }} aria-hidden="true" />
             </div>
 
             {/* Scroll Indicators */}
