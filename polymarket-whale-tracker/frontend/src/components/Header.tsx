@@ -24,9 +24,19 @@ interface HeaderProps {
   currentView: ViewId;
   onNavigate: (view: ViewId) => void;
   isMobile: boolean;
+  /** Number of unread alerts (shown on alerts tab) */
+  alertCount?: number;
 }
 
-export function Header({ currentView, onNavigate, isMobile }: HeaderProps) {
+/**
+ * Format badge count (99+ for large numbers)
+ */
+function formatBadgeCount(count: number): string {
+  if (count > 99) return '99+';
+  return count.toString();
+}
+
+export function Header({ currentView, onNavigate, isMobile, alertCount }: HeaderProps) {
   const [isLogoHovered, setIsLogoHovered] = useState(false);
 
   return (
@@ -127,6 +137,7 @@ export function Header({ currentView, onNavigate, isMobile }: HeaderProps) {
         <nav style={{ display: 'flex', gap: '8px' }}>
           {NAV_ITEMS.map((item) => {
             const isActive = currentView === item.id;
+            const showBadge = item.id === 'alerts' && alertCount !== undefined && alertCount > 0;
             return (
               <button
                 key={item.id}
@@ -134,6 +145,7 @@ export function Header({ currentView, onNavigate, isMobile }: HeaderProps) {
                 aria-label={item.label}
                 aria-current={isActive ? 'page' : undefined}
                 style={{
+                  position: 'relative',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
@@ -165,6 +177,32 @@ export function Header({ currentView, onNavigate, isMobile }: HeaderProps) {
               >
                 <span>{item.icon}</span>
                 {item.label}
+                {/* Alert Badge */}
+                {showBadge && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '4px',
+                      right: '4px',
+                      minWidth: '18px',
+                      height: '18px',
+                      padding: '0 5px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: tokens.colors.magenta,
+                      borderRadius: '9px',
+                      fontFamily: tokens.fonts.mono,
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      color: tokens.colors.textPrimary,
+                      boxShadow: `0 0 10px ${tokens.colors.magentaGlow}`,
+                      animation: 'pulse 2s infinite',
+                    }}
+                  >
+                    {formatBadgeCount(alertCount)}
+                  </span>
+                )}
               </button>
             );
           })}

@@ -110,6 +110,9 @@ function App() {
     initialHash.walletAddress
   );
 
+  // Track unread alert count for navigation badges
+  const [unreadAlertCount, setUnreadAlertCount] = useState(0);
+
   // Whale table sort state (managed here for server-side sorting)
   const [whaleSortBy, setWhaleSortBy] = useState<WhaleSortField>('totalDeposited');
   const [whaleSortDir, setWhaleSortDir] = useState<SortDirection>('desc');
@@ -248,6 +251,9 @@ function App() {
         message: `${formattedAmount} deposit from ${shortAddress}`,
       });
 
+      // Increment unread alert count (for navigation badges)
+      setUnreadAlertCount((prev) => prev + 1);
+
       // Seamlessly update or add whale data without triggering loading state
       if (deposit.isNewWallet) {
         // New whale - add to list
@@ -285,6 +291,10 @@ function App() {
     setCurrentView(view);
     if (view !== 'wallet') {
       setSelectedWalletAddress(null);
+    }
+    // Clear unread count when visiting alerts page
+    if (view === 'alerts') {
+      setUnreadAlertCount(0);
     }
   };
 
@@ -617,6 +627,7 @@ function App() {
         currentView={currentView}
         onNavigate={handleNavigate}
         isMobile={isMobile}
+        alertCount={unreadAlertCount}
       />
 
       {/* Main content area */}
@@ -643,7 +654,11 @@ function App() {
 
       {/* Mobile Bottom Navigation */}
       {isMobile && (
-        <MobileNav currentView={currentView} onNavigate={handleNavigate} />
+        <MobileNav
+          currentView={currentView}
+          onNavigate={handleNavigate}
+          alertCount={unreadAlertCount}
+        />
       )}
 
       {/* Toast Notifications */}
