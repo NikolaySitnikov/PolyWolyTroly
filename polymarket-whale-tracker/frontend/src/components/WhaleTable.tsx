@@ -251,201 +251,465 @@ export function WhaleTable({
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px',
-          backgroundColor: tokens.colors.surface,
+          minHeight: '100%',
+          // Add padding at bottom for sticky pagination
+          paddingBottom: onPageChange && totalPages > 1 ? '140px' : '0',
         }}
       >
-        {/* Search */}
+        {/* ===== STICKY HEADER ===== */}
         <div
           style={{
-            background: tokens.colors.surface,
-            border: `1px solid ${tokens.colors.border}`,
-            borderRadius: '12px',
-            padding: '12px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
+            background: `linear-gradient(180deg, ${tokens.colors.void} 0%, ${tokens.colors.void}f0 85%, transparent 100%)`,
+            paddingTop: '4px',
+            paddingBottom: '16px',
+            marginLeft: '-16px',
+            marginRight: '-16px',
+            paddingLeft: '16px',
+            paddingRight: '16px',
           }}
         >
-          <span style={{ color: tokens.colors.textMuted }}>🔍</span>
-          <input
-            type="text"
-            placeholder="Search whales..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+          {/* Title Row */}
+          <div
             style={{
-              flex: 1,
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              fontFamily: tokens.fonts.body,
-              fontSize: '14px',
-              color: tokens.colors.textPrimary,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '14px',
             }}
-          />
-          {filter && (
-            <button
-              onClick={() => setFilter('')}
-              aria-label="Clear search"
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '20px' }}>🐋</span>
+              <span
+                style={{
+                  fontFamily: tokens.fonts.display,
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  color: tokens.colors.textPrimary,
+                }}
+              >
+                Whales
+              </span>
+            </div>
+
+            {/* Whale count badge */}
+            <span
               style={{
-                background: 'transparent',
-                border: 'none',
-                padding: '4px 8px',
-                cursor: 'pointer',
-                color: tokens.colors.textMuted,
-                fontSize: '18px',
-                lineHeight: 1,
-                borderRadius: '4px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '5px 12px',
+                background: `${tokens.colors.cyan}15`,
+                border: `1px solid ${tokens.colors.cyan}50`,
+                borderRadius: '999px',
+                fontFamily: tokens.fonts.mono,
+                fontSize: '13px',
+                fontWeight: 600,
+                color: tokens.colors.cyan,
+                boxShadow: `0 0 15px ${tokens.colors.cyanGlow}`,
               }}
             >
-              ×
-            </button>
-          )}
-        </div>
+              {actualTotal.toLocaleString()}
+            </span>
+          </div>
 
-        {/* Cards */}
-        {sortedWhales.map((whale, i) => (
+          {/* Search Bar */}
           <div
-            key={whale.address}
-            data-testid={`whale-card-${whale.address}`}
-            onClick={() => onWhaleClick(whale.address)}
             style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px 14px',
               background: tokens.colors.surface,
               border: `1px solid ${tokens.colors.border}`,
               borderRadius: '12px',
-              padding: '16px',
-              cursor: 'pointer',
-              transition: `all ${tokens.animation.durationFast} ${tokens.animation.easeOutExpo}`,
-              animation: `fadeInUp 0.4s ${i * 0.05}s both cubic-bezier(0.16, 1, 0.3, 1)`,
-            }}
-            onAnimationEnd={(e) => {
-              // Clear animation so hover transform can work
-              e.currentTarget.style.animation = 'none';
-            }}
-            onMouseEnter={(e) => {
-              if (window.matchMedia('(hover: hover)').matches) {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.borderColor = tokens.colors.cyan;
-                e.currentTarget.style.boxShadow = `0 0 30px ${tokens.colors.cyanGlow}, inset 0 1px 0 ${tokens.colors.cyan}`;
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.borderColor = tokens.colors.border;
-              e.currentTarget.style.boxShadow = 'none';
+              marginBottom: '12px',
+              transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
             }}
           >
-            <div
+            <span style={{ color: tokens.colors.textMuted, fontSize: '16px' }}>🔍</span>
+            <input
+              type="text"
+              placeholder="Search by address..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '12px',
+                flex: 1,
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                fontFamily: tokens.fonts.body,
+                fontSize: '15px',
+                color: tokens.colors.textPrimary,
               }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div
+            />
+            {filter && (
+              <button
+                onClick={() => setFilter('')}
+                aria-label="Clear search"
+                style={{
+                  width: '28px',
+                  height: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: tokens.colors.surfaceHover,
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: tokens.colors.textMuted,
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* Sort Pills */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '8px',
+              overflowX: 'auto',
+              paddingBottom: '4px',
+              marginBottom: '-4px',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+          >
+            {[
+              { field: 'totalDeposited' as WhaleSortField, label: 'Volume', icon: '💰' },
+              { field: 'depositCount' as WhaleSortField, label: 'Count', icon: '📊' },
+              { field: 'firstSeenAt' as WhaleSortField, label: 'Date', icon: '📅' },
+            ].map((option) => {
+              const isActive = sortBy === option.field;
+              return (
+                <button
+                  key={option.field}
+                  onClick={() => handleSort(option.field)}
                   style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: `linear-gradient(135deg, ${tokens.colors.cyan}30, ${tokens.colors.magenta}30)`,
-                    display: 'flex',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '18px',
+                    gap: '6px',
+                    padding: '10px 16px',
+                    background: isActive ? `${tokens.colors.cyan}20` : tokens.colors.surface,
+                    border: `1px solid ${isActive ? tokens.colors.cyan : tokens.colors.border}`,
+                    borderRadius: '20px',
+                    fontFamily: tokens.fonts.body,
+                    fontSize: '13px',
+                    fontWeight: isActive ? 600 : 500,
+                    color: isActive ? tokens.colors.cyan : tokens.colors.textSecondary,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                    boxShadow: isActive ? `0 0 15px ${tokens.colors.cyanGlow}` : 'none',
+                    minHeight: '44px',
+                    flexShrink: 0,
                   }}
                 >
-                  🐋
+                  <span style={{ fontSize: '14px' }}>{option.icon}</span>
+                  <span>{option.label}</span>
+                  {isActive && (
+                    <span style={{ fontSize: '12px', opacity: 0.8 }}>
+                      {sortDir === 'desc' ? '↓' : '↑'}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ===== WHALE CARDS ===== */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {sortedWhales.length === 0 && filter ? (
+            <div
+              style={{
+                padding: '48px 20px',
+                textAlign: 'center',
+                background: tokens.colors.surface,
+                borderRadius: '12px',
+                border: `1px solid ${tokens.colors.border}`,
+              }}
+            >
+              <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.5 }}>🔍</div>
+              <div style={{ color: tokens.colors.textSecondary }}>
+                No whales found matching "{filter}"
+              </div>
+            </div>
+          ) : (
+            sortedWhales.map((whale, i) => (
+              <div
+                key={whale.address}
+                data-testid={`whale-card-${whale.address}`}
+                onClick={() => onWhaleClick(whale.address)}
+                style={{
+                  background: tokens.colors.surface,
+                  border: `1px solid ${tokens.colors.border}`,
+                  borderRadius: '14px',
+                  padding: '16px',
+                  cursor: 'pointer',
+                  transition: `all ${tokens.animation.durationFast} ${tokens.animation.easeOutExpo}`,
+                  animation: `fadeInUp 0.4s ${i * 0.04}s both cubic-bezier(0.16, 1, 0.3, 1)`,
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+                onTouchStart={(e) => {
+                  e.currentTarget.style.transform = 'scale(0.98)';
+                  e.currentTarget.style.background = tokens.colors.surfaceHover;
+                }}
+                onTouchEnd={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.background = tokens.colors.surface;
+                }}
+                onAnimationEnd={(e) => {
+                  e.currentTarget.style.animation = 'none';
+                }}
+                onMouseEnter={(e) => {
+                  if (window.matchMedia('(hover: hover)').matches) {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.borderColor = tokens.colors.cyan;
+                    e.currentTarget.style.boxShadow = `0 0 30px ${tokens.colors.cyanGlow}, inset 0 1px 0 ${tokens.colors.cyan}`;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.borderColor = tokens.colors.border;
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.background = tokens.colors.surface;
+                }}
+              >
+                {/* Card Header */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '14px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div
+                      style={{
+                        width: '42px',
+                        height: '42px',
+                        borderRadius: '12px',
+                        background: `linear-gradient(135deg, ${tokens.colors.cyan}30, ${tokens.colors.magenta}30)`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px',
+                        boxShadow: `0 0 20px ${tokens.colors.cyanGlow}`,
+                      }}
+                    >
+                      🐋
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: tokens.fonts.mono,
+                        fontSize: '13px',
+                        fontWeight: 500,
+                        color: tokens.colors.cyan,
+                        textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
+                      }}
+                    >
+                      {shortenAddress(whale.address)}
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      fontFamily: tokens.fonts.mono,
+                      fontSize: '11px',
+                      color: tokens.colors.textMuted,
+                      padding: '4px 8px',
+                      background: `${tokens.colors.void}80`,
+                      borderRadius: '6px',
+                    }}
+                  >
+                    {formatDate(whale.firstSeenAt)}
+                  </span>
+                </div>
+
+                {/* Stats Grid */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '16px',
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: tokens.fonts.mono,
+                        fontSize: '10px',
+                        color: tokens.colors.textMuted,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      Total Deposited
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: tokens.fonts.mono,
+                        fontSize: '17px',
+                        fontWeight: 600,
+                        color: tokens.colors.profit,
+                        textShadow: `0 0 15px ${tokens.colors.profitGlow}`,
+                      }}
+                    >
+                      {formatUSD(whale.totalDeposited)}
+                    </div>
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: tokens.fonts.mono,
+                        fontSize: '10px',
+                        color: tokens.colors.textMuted,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      Deposits
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: tokens.fonts.mono,
+                        fontSize: '17px',
+                        fontWeight: 600,
+                        color: tokens.colors.textPrimary,
+                      }}
+                    >
+                      {whale.depositCount}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* ===== STICKY PAGINATION ===== */}
+        {onPageChange && totalPages > 1 && (
+          <div
+            style={{
+              position: 'fixed',
+              bottom: '78px', // Above mobile nav (60px) + spacing
+              left: '16px',
+              right: '16px',
+              zIndex: 100,
+
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '14px 20px',
+
+              // Glass morphism
+              background: `${tokens.colors.surface}e8`,
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: '16px',
+
+              boxShadow: `
+                0 -10px 40px ${tokens.colors.void}80,
+                0 0 30px ${tokens.colors.cyanGlow}
+              `,
+            }}
+          >
+            {/* Navigation Row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+              {/* Previous Button */}
+              <button
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                aria-label="Previous page"
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: tokens.colors.surface,
+                  border: `1px solid ${tokens.colors.border}`,
+                  borderRadius: '14px',
+                  fontSize: '20px',
+                  color: currentPage === 1 ? tokens.colors.muted : tokens.colors.textSecondary,
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === 1 ? 0.4 : 1,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                ‹
+              </button>
+
+              {/* Page Info */}
+              <div style={{ textAlign: 'center' }}>
+                <div
+                  style={{
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    color: tokens.colors.textPrimary,
+                  }}
+                >
+                  Page{' '}
+                  <span
+                    style={{
+                      color: tokens.colors.cyan,
+                      textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
+                    }}
+                  >
+                    {currentPage}
+                  </span>
+                  {' '}of {totalPages}
                 </div>
                 <div
                   style={{
                     fontFamily: tokens.fonts.mono,
                     fontSize: '11px',
-                    color: tokens.colors.cyan,
+                    color: tokens.colors.textMuted,
+                    marginTop: '2px',
                   }}
                 >
-                  {shortenAddress(whale.address)}
+                  Showing {((currentPage - 1) * itemsPerPage) + 1}-
+                  {Math.min(currentPage * itemsPerPage, actualTotal)} of {actualTotal.toLocaleString()}
                 </div>
               </div>
-              <span
+
+              {/* Next Button */}
+              <button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                aria-label="Next page"
                 style={{
-                  fontFamily: tokens.fonts.mono,
-                  fontSize: '11px',
-                  color: tokens.colors.textMuted,
+                  width: '48px',
+                  height: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: currentPage === totalPages ? tokens.colors.surface : tokens.colors.cyan,
+                  border: `1px solid ${currentPage === totalPages ? tokens.colors.border : tokens.colors.cyan}`,
+                  borderRadius: '14px',
+                  fontSize: '20px',
+                  color: currentPage === totalPages ? tokens.colors.muted : tokens.colors.void,
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === totalPages ? 0.4 : 1,
+                  transition: 'all 0.15s ease',
+                  boxShadow: currentPage !== totalPages ? `0 0 25px ${tokens.colors.cyanGlow}` : 'none',
                 }}
               >
-                {formatDate(whale.firstSeenAt)}
-              </span>
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '12px',
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: '10px',
-                    color: tokens.colors.textMuted,
-                    marginBottom: '2px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                  }}
-                >
-                  Total Deposited
-                </div>
-                <div
-                  style={{
-                    fontFamily: tokens.fonts.mono,
-                    fontSize: '14px',
-                    color: tokens.colors.profit,
-                    fontWeight: 500,
-                  }}
-                >
-                  {formatUSD(whale.totalDeposited)}
-                </div>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: '10px',
-                    color: tokens.colors.textMuted,
-                    marginBottom: '2px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                  }}
-                >
-                  Deposits
-                </div>
-                <div
-                  style={{
-                    fontFamily: tokens.fonts.mono,
-                    fontSize: '14px',
-                    color: tokens.colors.textPrimary,
-                  }}
-                >
-                  {whale.depositCount}
-                </div>
-              </div>
+                ›
+              </button>
             </div>
           </div>
-        ))}
-
-        {/* Pagination for mobile */}
-        {onPageChange && totalPages > 1 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={actualTotal}
-            itemsPerPage={itemsPerPage}
-            onPageChange={onPageChange}
-            entityName="whales"
-            isMobile={isMobile}
-          />
         )}
       </div>
     );
