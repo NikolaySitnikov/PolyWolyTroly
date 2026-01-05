@@ -11,7 +11,8 @@
  * - telegramUsername: Connected Telegram username (default: null)
  */
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import type { ReactNode } from 'react';
 
 const STORAGE_KEY = 'polywoly-settings';
 

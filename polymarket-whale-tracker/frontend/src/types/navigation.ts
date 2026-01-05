@@ -33,8 +33,8 @@ export const NAV_ITEMS: NavItem[] = [
  * Mobile-specific navigation items (may have different labels)
  */
 export const MOBILE_NAV_ITEMS: NavItem[] = [
-  { id: 'dashboard', label: 'Home', icon: '◉' },
+  { id: 'dashboard', label: 'Home', icon: '🏠' },
   { id: 'whales', label: 'Whales', icon: '🐋' },
   { id: 'alerts', label: 'Alerts', icon: '⚡' },
-  { id: 'settings', label: 'More', icon: '⋯' },
+  { id: 'settings', label: 'Settings', icon: '⚙️' },
 ];
