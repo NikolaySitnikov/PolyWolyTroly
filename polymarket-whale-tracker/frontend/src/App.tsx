@@ -24,6 +24,7 @@ import { useWallet } from './hooks/useWallet';
 import { useTrendingMarkets } from './hooks/useTrendingMarkets';
 import { useWebSocket, type DepositEvent } from './hooks/useWebSocket';
 import { useApiConnectivity } from './hooks/useApiConnectivity';
+import { useUnreadAlertCount } from './hooks/useUnreadAlertCount';
 import { Header } from './components/Header';
 import { MobileNav } from './components/MobileNav';
 import { Dashboard } from './components/Dashboard';
@@ -111,7 +112,13 @@ function App() {
   );
 
   // Track unread alert count for navigation badges
-  const [unreadAlertCount, setUnreadAlertCount] = useState(0);
+  // Uses hook that prevents incrementing when already on alerts tab
+  // or when deposit amount is below user's configured threshold
+  const {
+    count: unreadAlertCount,
+    increment: incrementUnreadAlerts,
+    clear: clearUnreadAlerts,
+  } = useUnreadAlertCount(currentView, settings.minAlertThreshold);
 
   // Whale table sort state (managed here for server-side sorting)
   const [whaleSortBy, setWhaleSortBy] = useState<WhaleSortField>('totalDeposited');
@@ -170,6 +177,9 @@ function App() {
   const whalesRef = useRef(whales);
   whalesRef.current = whales;
 
+  // Deduplicate deposits by txHash (backend may send duplicates due to RPC polling)
+  const processedTxHashesRef = useRef(new Set<string>());
+
   // Unified refetch function - retries all data sources at once
   const refetchAll = useCallback(() => {
     refetch();
@@ -207,6 +217,18 @@ function App() {
   // Stable callback for deposit handling - uses refs to avoid stale closures
   const handleDeposit = useCallback(
     (deposit: DepositEvent) => {
+      // Deduplicate: skip if we've already processed this transaction
+      if (processedTxHashesRef.current.has(deposit.txHash)) {
+        return;
+      }
+      processedTxHashesRef.current.add(deposit.txHash);
+
+      // Limit Set size to prevent memory leak (keep last 100 txHashes)
+      if (processedTxHashesRef.current.size > 100) {
+        const firstKey = processedTxHashesRef.current.values().next().value;
+        if (firstKey) processedTxHashesRef.current.delete(firstKey);
+      }
+
       console.log('🔥 New deposit received via WebSocket:', deposit);
 
       // Add to live alert feed instantly
@@ -236,7 +258,9 @@ function App() {
       });
 
       // Increment unread alert count (for navigation badges)
-      setUnreadAlertCount((prev) => prev + 1);
+      // Hook checks: current view (won't increment on alerts tab)
+      // and amount threshold (won't increment if below user's setting)
+      incrementUnreadAlerts(deposit.amount);
 
       // Seamlessly update or add whale data without triggering loading state
       if (deposit.isNewWallet) {
@@ -261,7 +285,7 @@ function App() {
         }
       }
     },
-    [addAlert, addWhale, updateWhale, addToast]
+    [addAlert, addWhale, updateWhale, addToast, incrementUnreadAlerts]
   );
 
   // Connect to WebSocket for instant live updates
@@ -278,7 +302,7 @@ function App() {
     }
     // Clear unread count when visiting alerts page
     if (view === 'alerts') {
-      setUnreadAlertCount(0);
+      clearUnreadAlerts();
     }
   };
 
