@@ -44,7 +44,19 @@ export function Header({ currentView, onNavigate, isMobile }: HeaderProps) {
       }}
     >
       {/* Logo Section */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <button
+        onClick={() => onNavigate('dashboard')}
+        aria-label="Go to Dashboard"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          padding: 0,
+        }}
+      >
         <div
           data-testid="header-logo"
           style={{
@@ -57,12 +69,13 @@ export function Header({ currentView, onNavigate, isMobile }: HeaderProps) {
             justifyContent: 'center',
             fontSize: isMobile ? '18px' : '22px',
             boxShadow: `0 0 30px ${tokens.colors.cyanGlow}`,
+            transition: `transform ${tokens.animation.durationFast} ease`,
           }}
         >
           🐋
         </div>
         {!isMobile && (
-          <div>
+          <div style={{ textAlign: 'left' }}>
             <div
               style={{
                 fontFamily: tokens.fonts.display,
@@ -87,7 +100,7 @@ export function Header({ currentView, onNavigate, isMobile }: HeaderProps) {
             </div>
           </div>
         )}
-      </div>
+      </button>
 
       {/* Desktop Navigation */}
       {!isMobile && (

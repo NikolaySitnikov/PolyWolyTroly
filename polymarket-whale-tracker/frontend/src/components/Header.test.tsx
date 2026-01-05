@@ -59,15 +59,24 @@ describe('Header Component', () => {
       render(<Header {...defaultProps} />);
 
       NAV_ITEMS.forEach((item) => {
-        expect(screen.getByRole('button', { name: new RegExp(item.label) })).toBeInTheDocument();
+        // Use getAllByRole since Dashboard appears in both logo button and nav button
+        const buttons = screen.getAllByRole('button', { name: new RegExp(item.label) });
+        expect(buttons.length).toBeGreaterThanOrEqual(1);
       });
     });
 
     it('should hide navigation items on mobile', () => {
       render(<Header {...defaultProps} isMobile={true} />);
 
+      // Navigation buttons should not be present (the logo button is still present but that's for navigation)
+      // Check specifically for the nav bar buttons (not the logo button)
       NAV_ITEMS.forEach((item) => {
-        expect(screen.queryByRole('button', { name: new RegExp(item.label) })).not.toBeInTheDocument();
+        // On mobile, nav items are hidden - but the logo button "Go to Dashboard" exists
+        // So we specifically look for buttons that match exact label text (not aria-label)
+        const navButtons = screen.queryAllByRole('button', { name: new RegExp(`^${item.label}$`) });
+        // Filter out the logo button which has "Go to Dashboard" aria-label
+        const actualNavButtons = navButtons.filter(btn => btn.getAttribute('aria-label') !== 'Go to Dashboard');
+        expect(actualNavButtons).toHaveLength(0);
       });
     });
 
