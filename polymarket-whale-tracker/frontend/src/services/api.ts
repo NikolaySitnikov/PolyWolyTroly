@@ -94,7 +94,8 @@ export async function fetchWhales(
   page = 1,
   limit = 20,
   sortBy: WhaleSortField = 'total_deposited',
-  sortDir: SortDirection = 'desc'
+  sortDir: SortDirection = 'desc',
+  signal?: AbortSignal
 ): Promise<WalletsResponse> {
   const params = new URLSearchParams({
     page: String(page),
@@ -103,7 +104,7 @@ export async function fetchWhales(
     sortDir,
   });
 
-  const response = await fetch(`${api.baseUrl}/api/wallets?${params.toString()}`);
+  const response = await fetch(`${api.baseUrl}/api/wallets?${params.toString()}`, { signal });
 
   if (!response.ok) {
     throw new Error(`Failed to fetch wallets: ${response.status}`);
@@ -199,6 +200,8 @@ export interface TrendingMarketResponse {
   category: string;
   active: boolean;
   clobTokenId: string; // CLOB token ID for price history lookups
+  sportsMarketType: string | null; // Sports market type (e.g., "moneyline", "spread") - if present, market is sports
+  seriesSlug: string | null; // Series/league slug (e.g., "nba-2026", "premier-league-2025") for sport type detection
   // Optional fields for enhanced display (populated by frontend)
   priceHistory?: PriceHistoryPoint[];
   priceHistoryLoading?: boolean;

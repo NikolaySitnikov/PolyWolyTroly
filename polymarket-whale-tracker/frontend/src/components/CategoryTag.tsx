@@ -133,6 +133,8 @@ interface CategoryTagProps {
   onClick?: () => void;
   /** Hide the icon, show only text */
   hideIcon?: boolean;
+  /** Override the default icon (e.g., for sport-specific emojis) */
+  iconOverride?: string;
 }
 
 /** Category configuration with icon, label, and color */
@@ -147,6 +149,75 @@ const CATEGORY_CONFIG: Record<MarketCategory, { icon: string; label: string; col
   world: { icon: '🌍', label: 'World', color: '#64748b' },
   other: { icon: '📌', label: 'Other', color: '#6b7280' },
 };
+
+/**
+ * Get sport-specific emoji based on series slug from Polymarket API.
+ * Maps league/series prefixes to appropriate sport emojis.
+ * Returns default sports emoji (⚽) if no match found.
+ *
+ * @param seriesSlug - Series slug from Polymarket (e.g., "nba-2026", "premier-league-2025")
+ * @returns Sport-specific emoji
+ */
+export function getSportEmoji(seriesSlug: string | null | undefined): string {
+  if (!seriesSlug) return '⚽'; // Default sports emoji
+
+  const slug = seriesSlug.toLowerCase();
+
+  // Basketball
+  if (slug.startsWith('nba') || slug.includes('basketball') || slug.includes('ncaa-basketball') || slug.includes('wnba')) {
+    return '🏀';
+  }
+  // American Football
+  if (slug.startsWith('nfl') || slug.includes('ncaa-football') || slug.includes('college-football') || slug.includes('super-bowl')) {
+    return '🏈';
+  }
+  // Soccer/Football
+  if (slug.includes('premier-league') || slug.includes('la-liga') || slug.includes('bundesliga') ||
+      slug.includes('serie-a') || slug.includes('ligue-1') || slug.includes('mls') ||
+      slug.includes('champions-league') || slug.includes('world-cup') || slug.includes('euro-') ||
+      slug.includes('soccer') || slug.includes('epl')) {
+    return '⚽';
+  }
+  // Baseball
+  if (slug.startsWith('mlb') || slug.includes('baseball') || slug.includes('world-series')) {
+    return '⚾';
+  }
+  // Hockey
+  if (slug.startsWith('nhl') || slug.includes('hockey') || slug.includes('stanley-cup')) {
+    return '🏒';
+  }
+  // Tennis
+  if (slug.includes('tennis') || slug.includes('wimbledon') || slug.includes('us-open') ||
+      slug.includes('french-open') || slug.includes('australian-open') || slug.includes('atp') || slug.includes('wta')) {
+    return '🎾';
+  }
+  // Golf
+  if (slug.includes('golf') || slug.includes('pga') || slug.includes('masters') || slug.includes('ryder-cup')) {
+    return '⛳';
+  }
+  // Boxing/MMA
+  if (slug.includes('ufc') || slug.includes('boxing') || slug.includes('mma') || slug.includes('fight')) {
+    return '🥊';
+  }
+  // Racing
+  if (slug.includes('f1') || slug.includes('formula') || slug.includes('nascar') || slug.includes('racing')) {
+    return '🏎️';
+  }
+  // Cricket
+  if (slug.includes('cricket') || slug.includes('ipl') || slug.includes('t20')) {
+    return '🏏';
+  }
+  // Rugby
+  if (slug.includes('rugby')) {
+    return '🏉';
+  }
+  // Esports
+  if (slug.includes('esports') || slug.includes('league-of-legends') || slug.includes('dota') || slug.includes('csgo')) {
+    return '🎮';
+  }
+
+  return '⚽'; // Default to soccer ball for unknown sports
+}
 
 /** Size configuration for different tag variants */
 const SIZE_CONFIG: Record<TagSize, {
@@ -170,10 +241,12 @@ export function CategoryTag({
   active = false,
   onClick,
   hideIcon = false,
+  iconOverride,
 }: CategoryTagProps) {
   const config = CATEGORY_CONFIG[category];
   const sizeConfig = SIZE_CONFIG[size];
   const isClickable = !!onClick;
+  const displayIcon = iconOverride || config.icon;
 
   return (
     <span
@@ -230,7 +303,7 @@ export function CategoryTag({
     >
       {!hideIcon && (
         <span style={{ fontSize: sizeConfig.iconSize, lineHeight: 1 }}>
-          {config.icon}
+          {displayIcon}
         </span>
       )}
       <span>{config.label}</span>

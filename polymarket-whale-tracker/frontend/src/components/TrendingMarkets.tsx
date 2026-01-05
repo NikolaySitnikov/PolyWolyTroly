@@ -15,7 +15,7 @@
 import { tokens } from '../styles/tokens';
 import { EmptyState } from './EmptyState';
 import { Sparkline } from './Sparkline';
-import { CategoryTag, inferCategory, mapApiCategory } from './CategoryTag';
+import { CategoryTag, inferCategory, mapApiCategory, getSportEmoji } from './CategoryTag';
 import type { TrendingMarketResponse } from '../services/api';
 
 interface TrendingMarketsProps {
@@ -111,8 +111,16 @@ function MarketCard({
   const yesPercent = Math.round(market.yesPrice * 100);
   const priceChange = calculatePriceChange(market.priceHistory);
   const changeDisplay = priceChange !== null ? formatPriceChange(priceChange) : null;
-  // Map API category to our category system, or infer from question
-  const category = mapApiCategory(market.category) || inferCategory(market.question);
+
+  // Determine category: if sportsMarketType is present, it's a sports market
+  // Otherwise, try to map from API category or infer from question
+  const isSportsMarket = !!market.sportsMarketType;
+  const category = isSportsMarket
+    ? 'sports'
+    : (mapApiCategory(market.category) || inferCategory(market.question));
+
+  // Get sport-specific emoji if it's a sports market
+  const sportEmoji = isSportsMarket ? getSportEmoji(market.seriesSlug) : undefined;
 
   return (
     <a
@@ -150,7 +158,7 @@ function MarketCard({
     >
       {/* Category tag - positioned in top-left corner */}
       <div style={{ marginTop: '-12px', marginLeft: '-12px', marginBottom: '12px' }}>
-        <CategoryTag category={category} size="small" />
+        <CategoryTag category={category} size="small" iconOverride={sportEmoji} />
       </div>
 
       {/* Market question */}

@@ -25,6 +25,17 @@ export interface TrendingMarket {
   category: string;
   active: boolean;
   clobTokenId: string; // CLOB token ID for Yes outcome (used for price history)
+  sportsMarketType: string | null; // Sports market type (e.g., "moneyline", "spread") - if present, market is sports
+  seriesSlug: string | null; // Series/league slug (e.g., "nba-2026", "premier-league-2025") for sport type detection
+}
+
+/**
+ * Series data from Gamma API (nested in event response)
+ */
+interface GammaSeries {
+  id: string;
+  title: string;
+  slug: string;
 }
 
 /**
@@ -34,6 +45,7 @@ interface GammaEvent {
   id: string;
   slug: string;
   title: string;
+  series?: GammaSeries[];
 }
 
 /**
@@ -67,6 +79,7 @@ interface GammaMarket {
   active: boolean;
   closed: boolean;
   events: GammaEvent[]; // Parent events for this market
+  sportsMarketType?: string | null; // Sports market type (e.g., "moneyline", "spread") - presence indicates sports market
 }
 
 /**
@@ -123,6 +136,8 @@ function transformMarket(market: GammaMarket): TrendingMarket {
   const clobTokenId = parseClobTokenId(market.clobTokenIds);
   // Extract category from tags array
   const category = extractCategory(market.tags);
+  // Extract series slug for sport type detection (e.g., "nba-2026", "premier-league-2025")
+  const seriesSlug = market.events?.[0]?.series?.[0]?.slug || null;
 
   return {
     id: market.id,
@@ -137,6 +152,8 @@ function transformMarket(market: GammaMarket): TrendingMarket {
     category,
     active: market.active,
     clobTokenId,
+    sportsMarketType: market.sportsMarketType || null,
+    seriesSlug,
   };
 }
 

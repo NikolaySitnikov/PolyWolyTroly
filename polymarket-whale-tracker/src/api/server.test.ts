@@ -293,6 +293,7 @@ describe("API Server", () => {
         id: "market-1",
         question: "Will BTC reach $100k?",
         slug: "btc-100k",
+        eventSlug: "btc-100k-event",
         yesPrice: 0.65,
         noPrice: 0.35,
         volume24hr: 500000,
@@ -300,11 +301,15 @@ describe("API Server", () => {
         endDate: "2025-12-31T00:00:00Z",
         category: "Crypto",
         active: true,
+        clobTokenId: "123456",
+        sportsMarketType: null,
+        seriesSlug: null,
       },
       {
         id: "market-2",
         question: "Will ETH flip BTC?",
         slug: "eth-flip-btc",
+        eventSlug: "eth-flip-btc-event",
         yesPrice: 0.25,
         noPrice: 0.75,
         volume24hr: 300000,
@@ -312,6 +317,9 @@ describe("API Server", () => {
         endDate: "2025-06-30T00:00:00Z",
         category: "Crypto",
         active: true,
+        clobTokenId: "789012",
+        sportsMarketType: null,
+        seriesSlug: null,
       },
     ];
 

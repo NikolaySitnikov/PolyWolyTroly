@@ -23,6 +23,8 @@ const mockMarkets: TrendingMarketResponse[] = [
     category: 'Crypto',
     active: true,
     clobTokenId: '123456789',
+    sportsMarketType: null,
+    seriesSlug: null,
   },
   {
     id: 'market-2',
@@ -37,6 +39,8 @@ const mockMarkets: TrendingMarketResponse[] = [
     category: 'Crypto',
     active: true,
     clobTokenId: '987654321',
+    sportsMarketType: null,
+    seriesSlug: null,
   },
 ];
 
@@ -463,9 +467,9 @@ describe('TrendingMarkets Component', () => {
     });
 
     it('should infer category from question when not provided by API', () => {
-      const marketsWithoutCategory = [{
+      const marketsWithoutCategory: TrendingMarketResponse[] = [{
         ...mockMarkets[0],
-        category: undefined,
+        category: '',
         question: 'Will Trump win the election?', // Should infer 'politics'
       }];
 
