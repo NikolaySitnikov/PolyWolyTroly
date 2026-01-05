@@ -5,11 +5,18 @@
  * Desktop: Table view with sortable columns in contained scrollable area
  * Mobile: Card stack view with pagination
  *
+ * Features unified card styling with AlertFeed:
+ * - Same time formatting (formatCardTime)
+ * - Same hover/touch interactions
+ * - Same card structure and dimensions
+ *
  * Design: Based on App.jsx reference and PAGINATION_GUIDELINES.md
+ * @see ../styles/cardStyles.ts - Unified card patterns
  */
 
 import { useState, useMemo, useRef, useCallback } from 'react';
 import { tokens } from '../styles/tokens';
+import { formatCardTime } from '../styles/cardStyles';
 import { formatUSD } from '../utils/formatters';
 import { Pagination } from './Pagination';
 import { useNewItemAnimation } from '../hooks/useNewItemAnimation';
@@ -43,20 +50,8 @@ function shortenAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-/**
- * Format a date as relative time or date string
- */
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
+// Note: Using formatCardTime from cardStyles.ts for unified time formatting
+// This ensures consistency with AlertFeed and other card-based components
 
 const DEFAULT_ITEMS_PER_PAGE = 20;
 
@@ -544,7 +539,7 @@ export function WhaleTable({
                       borderRadius: '6px',
                     }}
                   >
-                    {formatDate(whale.firstSeenAt)}
+                    {formatCardTime(whale.firstSeenAt)}
                   </span>
                 </div>
 
@@ -1025,7 +1020,7 @@ export function WhaleTable({
                     color: tokens.colors.textMuted,
                   }}
                 >
-                  {formatDate(whale.firstSeenAt)}
+                  {formatCardTime(whale.firstSeenAt)}
                 </td>
               </tr>
               );

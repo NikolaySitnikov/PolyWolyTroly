@@ -5,17 +5,21 @@
  * Follows the design system from DESIGN_SYSTEM.md
  *
  * Enhanced mobile view with:
- * - Sticky header with live indicator
- * - Touch-optimized alert cards
+ * - Sticky header with live indicator and count badge
+ * - Touch-optimized alert cards matching WhaleTable pattern
+ * - Unified time formatting (formatCardTime)
+ * - Consistent hover/touch interactions
  * - Glass morphism sticky pagination
  * - Active filter display
  *
  * @see ../Design docs/DESIGN_SYSTEM.md - AlertFeed section
+ * @see ../styles/cardStyles.ts - Unified card patterns
  */
 
 import { useState, useMemo, useCallback } from 'react';
 import { tokens } from '../styles/tokens';
-import { LiveIndicator } from './LiveIndicator';
+import { formatCardTime } from '../styles/cardStyles';
+// LiveIndicator removed - redundant with page-level indicator in header
 import { EmptyState } from './EmptyState';
 import { Pagination } from './Pagination';
 import { useNewItemAnimation } from '../hooks/useNewItemAnimation';
@@ -55,83 +59,29 @@ function formatAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-/**
- * Format timestamp as relative time (e.g., "5 min ago")
- * Mobile uses shorter format for compact display
- */
-function formatRelativeTime(timestamp: string, short = false): string {
-  const now = new Date();
-  const then = new Date(timestamp);
-  const diffMs = now.getTime() - then.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
+// Note: Using formatCardTime from cardStyles.ts for unified time formatting
 
-  if (diffSec < 60) {
-    if (short) {
-      return diffSec <= 1 ? 'just now' : `${diffSec}s ago`;
-    }
-    return diffSec <= 1 ? 'just now' : `${diffSec} seconds ago`;
-  }
-  if (diffMin < 60) {
-    return short ? `${diffMin}m ago` : `${diffMin} min ago`;
-  }
-  if (diffHour < 24) {
-    return short ? `${diffHour}h ago` : `${diffHour} hour${diffHour > 1 ? 's' : ''} ago`;
-  }
-  return short ? `${diffDay}d ago` : `${diffDay} day${diffDay > 1 ? 's' : ''} ago`;
-}
-
-/**
- * Pill badge component for alert type
- */
-function AlertTypeBadge({ type, isMobile }: { type: Alert['type']; isMobile?: boolean }) {
-  // Using profit green for deposits as per design
-  const styles = {
-    deposit: {
-      bg: `${tokens.colors.profit}15`,
-      border: tokens.colors.profit,
-      color: tokens.colors.profit,
-    },
-  };
-
-  const style = styles[type];
-
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        padding: isMobile ? '3px 8px' : '4px 10px',
-        background: style.bg,
-        border: `1px solid ${style.border}`,
-        borderRadius: '999px',
-        fontSize: isMobile ? '10px' : '12px',
-        fontFamily: tokens.fonts.mono,
-        fontWeight: 500,
-        color: style.color,
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-      }}
-    >
-      {type}
-    </span>
-  );
-}
+// Note: AlertTypeBadge removed - redundant since all alerts are deposits
+// The card design now uses a 2-column stats grid matching WhaleTable pattern
 
 /**
  * Mobile Alert Card Component
- * Touch-optimized with visual feedback
+ * UNIFIED with WhaleTable card pattern
+ *
+ * Features:
+ * - Same card structure as WhaleTable
+ * - Hover glow effect (cyan border + translateY + boxShadow)
+ * - Touch scale feedback
+ * - 2-column stats grid
+ * - Unified time format (formatCardTime)
+ * - No arrow indicator (clickable is implied)
  */
 function MobileAlertCard({
   alert,
-  index,
   onClick,
   isNew,
 }: {
   alert: Alert;
-  index: number;
   onClick?: () => void;
   isNew: boolean;
 }) {
@@ -143,10 +93,12 @@ function MobileAlertCard({
         background: tokens.colors.surface,
         border: `1px solid ${tokens.colors.border}`,
         borderRadius: '14px',
-        padding: '14px 16px',
+        padding: '16px',
         cursor: onClick ? 'pointer' : 'default',
         transition: `all ${tokens.animation.durationFast} ${tokens.animation.easeOutExpo}`,
-        animation: isNew ? 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)' : `fadeInUp 0.4s ${index * 0.05}s both cubic-bezier(0.16, 1, 0.3, 1)`,
+        animation: isNew
+          ? 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+          : 'none',
         WebkitTapHighlightColor: 'transparent',
       }}
       onTouchStart={(e) => {
@@ -159,53 +111,68 @@ function MobileAlertCard({
         e.currentTarget.style.transform = 'scale(1)';
         e.currentTarget.style.background = tokens.colors.surface;
       }}
+      onAnimationEnd={(e) => {
+        e.currentTarget.style.animation = 'none';
+      }}
+      // Hover glow effect (matches WhaleTable)
+      onMouseEnter={(e) => {
+        if (window.matchMedia('(hover: hover)').matches && onClick) {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.borderColor = tokens.colors.cyan;
+          e.currentTarget.style.boxShadow = `0 0 30px ${tokens.colors.cyanGlow}, inset 0 1px 0 ${tokens.colors.cyan}`;
+        }
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'scale(1)';
+        e.currentTarget.style.borderColor = tokens.colors.border;
+        e.currentTarget.style.boxShadow = 'none';
+        e.currentTarget.style.background = tokens.colors.surface;
+      }}
     >
-      {/* Top Row: Icon + Address + Time */}
+      {/* Card Header - matches WhaleTable structure */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '12px',
-          marginBottom: '12px',
+          justifyContent: 'space-between',
+          marginBottom: '14px',
         }}
       >
-        {/* Icon with glow */}
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '12px',
-            background: `linear-gradient(135deg, ${tokens.colors.profit}25, ${tokens.colors.cyan}15)`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '18px',
-            boxShadow: `0 0 20px ${tokens.colors.profitGlow}`,
-            flexShrink: 0,
-          }}
-        >
-          💰
-        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Icon - contextual (💰 for deposits) */}
+          <div
+            style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: `linear-gradient(135deg, ${tokens.colors.profit}25, ${tokens.colors.cyan}15)`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '20px',
+              boxShadow: `0 0 20px ${tokens.colors.profitGlow}`,
+              flexShrink: 0,
+            }}
+          >
+            💰
+          </div>
 
-        {/* Address + Badge */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Address - same style as WhaleTable */}
           <div
             style={{
               fontFamily: tokens.fonts.mono,
-              fontSize: '14px',
+              fontSize: '13px',
               fontWeight: 500,
               color: tokens.colors.cyan,
               textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
-              marginBottom: '4px',
             }}
           >
             {formatAddress(alert.walletAddress)}
           </div>
-          <AlertTypeBadge type={alert.type} isMobile />
         </div>
 
-        {/* Timestamp */}
-        <div
+        {/* Time pill - unified format (matches WhaleTable) */}
+        <span
           style={{
             fontFamily: tokens.fonts.mono,
             fontSize: '11px',
@@ -213,46 +180,73 @@ function MobileAlertCard({
             padding: '4px 8px',
             background: `${tokens.colors.void}80`,
             borderRadius: '6px',
-            whiteSpace: 'nowrap',
           }}
         >
-          {formatRelativeTime(alert.timestamp, true)}
-        </div>
+          {formatCardTime(alert.timestamp)}
+        </span>
       </div>
 
-      {/* Bottom Row: Amount */}
+      {/* Stats Grid - matches WhaleTable 2-column layout */}
       <div
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '16px',
         }}
       >
-        <div
-          style={{
-            fontFamily: tokens.fonts.mono,
-            fontSize: '20px',
-            fontWeight: 700,
-            color: tokens.colors.profit,
-            textShadow: `0 0 20px ${tokens.colors.profitGlow}`,
-          }}
-        >
-          +{formatUSD(alert.amount)}
-        </div>
-
-        {/* Arrow indicator for clickable */}
-        {onClick && (
+        <div>
           <div
             style={{
+              fontFamily: tokens.fonts.mono,
+              fontSize: '10px',
               color: tokens.colors.textMuted,
-              fontSize: '16px',
-              opacity: 0.5,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              marginBottom: '4px',
             }}
           >
-            →
+            Amount
           </div>
-        )}
+          <div
+            style={{
+              fontFamily: tokens.fonts.mono,
+              fontSize: '17px',
+              fontWeight: 600,
+              color: tokens.colors.profit,
+              textShadow: `0 0 15px ${tokens.colors.profitGlow}`,
+            }}
+          >
+            +{formatUSD(alert.amount)}
+          </div>
+        </div>
+        <div>
+          <div
+            style={{
+              fontFamily: tokens.fonts.mono,
+              fontSize: '10px',
+              color: tokens.colors.textMuted,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              marginBottom: '4px',
+            }}
+          >
+            Type
+          </div>
+          <div
+            style={{
+              fontFamily: tokens.fonts.mono,
+              fontSize: '17px',
+              fontWeight: 600,
+              color: tokens.colors.textPrimary,
+              textTransform: 'capitalize',
+            }}
+          >
+            {alert.type}
+          </div>
+        </div>
       </div>
+
+      {/* Arrow indicator removed - card is clickable, no redundant affordance */}
     </div>
   );
 }
@@ -320,7 +314,7 @@ export function AlertFeed({
             paddingRight: '16px',
           }}
         >
-          {/* Title Row */}
+          {/* Title Row - matches WhaleTable header */}
           <div
             style={{
               display: 'flex',
@@ -339,12 +333,28 @@ export function AlertFeed({
                   color: tokens.colors.textPrimary,
                 }}
               >
-                Live Alerts
+                Alerts
               </span>
             </div>
 
-            {/* Live Indicator */}
-            <LiveIndicator />
+            {/* Count badge only - no Live Indicator (redundant with page-level indicator) */}
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '5px 12px',
+                background: `${tokens.colors.cyan}15`,
+                border: `1px solid ${tokens.colors.cyan}50`,
+                borderRadius: '999px',
+                fontFamily: tokens.fonts.mono,
+                fontSize: '13px',
+                fontWeight: 600,
+                color: tokens.colors.cyan,
+                boxShadow: `0 0 15px ${tokens.colors.cyanGlow}`,
+              }}
+            >
+              {(totalItems ?? alerts.length).toLocaleString()}
+            </span>
           </div>
 
           {/* Search Bar with focus glow */}
@@ -487,11 +497,10 @@ export function AlertFeed({
               </div>
             </div>
           ) : (
-            filteredAlerts.map((alert, index) => (
+            filteredAlerts.map((alert) => (
               <MobileAlertCard
                 key={alert.id}
                 alert={alert}
-                index={index}
                 onClick={onAlertClick ? () => onAlertClick(alert) : undefined}
                 isNew={shouldAnimateAlert(alert)}
               />
@@ -739,7 +748,25 @@ export function AlertFeed({
             </button>
           )}
         </div>
-        <LiveIndicator />
+        {/* Count badge - matches WhaleTable desktop header */}
+        {/* No LiveIndicator here - redundant with page-level indicator */}
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '4px 10px',
+            background: `${tokens.colors.cyan}15`,
+            border: `1px solid ${tokens.colors.cyan}`,
+            borderRadius: '999px',
+            fontSize: '12px',
+            fontFamily: tokens.fonts.mono,
+            fontWeight: 500,
+            color: tokens.colors.cyan,
+          }}
+        >
+          {(totalItems ?? alerts.length).toLocaleString()} alerts
+        </span>
       </div>
 
       {/* Alert List */}
@@ -824,7 +851,25 @@ export function AlertFeed({
                     >
                       {formatAddress(alert.walletAddress)}
                     </span>
-                    <AlertTypeBadge type={alert.type} />
+                    {/* Deposit badge - simplified from AlertTypeBadge */}
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '4px 10px',
+                        background: `${tokens.colors.profit}15`,
+                        border: `1px solid ${tokens.colors.profit}`,
+                        borderRadius: '999px',
+                        fontSize: '12px',
+                        fontFamily: tokens.fonts.mono,
+                        fontWeight: 500,
+                        color: tokens.colors.profit,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                      }}
+                    >
+                      {alert.type}
+                    </span>
                   </div>
                   <div
                     style={{
@@ -839,7 +884,7 @@ export function AlertFeed({
                   </div>
                 </div>
 
-                {/* Time */}
+                {/* Time - unified format */}
                 <span
                   style={{
                     fontSize: '11px',
@@ -849,7 +894,7 @@ export function AlertFeed({
                     flexShrink: 0,
                   }}
                 >
-                  {formatRelativeTime(alert.timestamp)}
+                  {formatCardTime(alert.timestamp)}
                 </span>
               </div>
             );
