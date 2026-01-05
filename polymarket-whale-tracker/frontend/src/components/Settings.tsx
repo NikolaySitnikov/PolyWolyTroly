@@ -14,6 +14,7 @@
 
 import { tokens } from '../styles/tokens';
 import { useSettings } from '../contexts/SettingsContext';
+import { useToast } from '../contexts/ToastContext';
 
 interface SettingsProps {
   isMobile: boolean;
@@ -384,8 +385,67 @@ function DepositSlider({
   );
 }
 
+/**
+ * Notification Preview Button
+ */
+function NotificationPreviewButton({
+  isMobile,
+  onPreview,
+}: {
+  isMobile: boolean;
+  onPreview: () => void;
+}) {
+  return (
+    <button
+      onClick={onPreview}
+      style={{
+        width: isMobile ? '100%' : 'auto',
+        padding: isMobile ? '14px 20px' : '12px 18px',
+        background: `linear-gradient(135deg, ${tokens.colors.cyan}15, ${tokens.colors.magenta}10)`,
+        border: `1px solid ${tokens.colors.cyan}40`,
+        borderRadius: isMobile ? '12px' : '10px',
+        fontFamily: tokens.fonts.body,
+        fontSize: isMobile ? '14px' : '13px',
+        fontWeight: 500,
+        color: tokens.colors.cyan,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = `linear-gradient(135deg, ${tokens.colors.cyan}25, ${tokens.colors.magenta}15)`;
+        e.currentTarget.style.boxShadow = `0 0 20px ${tokens.colors.cyanGlow}`;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = `linear-gradient(135deg, ${tokens.colors.cyan}15, ${tokens.colors.magenta}10)`;
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+    >
+      <span>🔔</span>
+      <span>Test Notification</span>
+    </button>
+  );
+}
+
 export function Settings({ isMobile }: SettingsProps) {
   const { settings, updateSettings, resetSettings } = useSettings();
+  const { addToast } = useToast();
+
+  const handlePreviewNotification = () => {
+    // Generate random whale data for preview
+    const amounts = ['$50K', '$125K', '$250K', '$500K', '$1.2M'];
+    const amount = amounts[Math.floor(Math.random() * amounts.length)];
+    const isNewWhale = Math.random() > 0.5;
+
+    addToast({
+      variant: isNewWhale ? 'success' : 'info',
+      title: isNewWhale ? 'New Whale Spotted!' : 'Whale Activity',
+      message: `${amount} deposit from 0x7a3d...9f2e`,
+    });
+  };
 
   // =====================
   // MOBILE VIEW
@@ -495,6 +555,28 @@ export function Settings({ isMobile }: SettingsProps) {
               ariaLabel="Sound effects"
             />
           </SettingRow>
+
+          {/* Notification Preview */}
+          <div
+            style={{
+              background: tokens.colors.surface,
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: '12px',
+              padding: '16px',
+            }}
+          >
+            <div
+              style={{
+                fontFamily: tokens.fonts.body,
+                fontSize: '13px',
+                color: tokens.colors.textMuted,
+                marginBottom: '12px',
+              }}
+            >
+              Preview what whale alerts look like
+            </div>
+            <NotificationPreviewButton isMobile onPreview={handlePreviewNotification} />
+          </div>
         </div>
 
         {/* ===== ABOUT ===== */}
@@ -668,6 +750,44 @@ export function Settings({ isMobile }: SettingsProps) {
               ariaLabel="Sound effects"
             />
           </SettingRow>
+
+          {/* Notification Preview */}
+          <div
+            style={{
+              background: tokens.colors.surface,
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: '12px',
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px',
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontFamily: tokens.fonts.body,
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: tokens.colors.textPrimary,
+                  marginBottom: '4px',
+                }}
+              >
+                🔔 Preview Notification
+              </div>
+              <div
+                style={{
+                  fontFamily: tokens.fonts.body,
+                  fontSize: '12px',
+                  color: tokens.colors.textMuted,
+                }}
+              >
+                See what whale alerts look like
+              </div>
+            </div>
+            <NotificationPreviewButton isMobile={false} onPreview={handlePreviewNotification} />
+          </div>
         </div>
       </div>
 

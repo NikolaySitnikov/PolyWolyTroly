@@ -100,6 +100,22 @@ function mapSortFieldToApi(field: WhaleSortField): ApiSortField {
   return mapping[field];
 }
 
+/**
+ * Module-level Set to deduplicate deposit events.
+ * Must be outside component to survive React StrictMode remounts.
+ */
+const processedDeposits = new Set<string>();
+
+function hasProcessedDeposit(txHash: string): boolean {
+  if (processedDeposits.has(txHash)) {
+    return true;
+  }
+  processedDeposits.add(txHash);
+  // Clean up after 60 seconds to prevent memory leak
+  setTimeout(() => processedDeposits.delete(txHash), 60000);
+  return false;
+}
+
 function App() {
   const isMobile = useMobile();
   const { settings } = useSettings();
@@ -170,9 +186,6 @@ function App() {
   const whalesRef = useRef(whales);
   whalesRef.current = whales;
 
-  // Deduplicate deposit events (React StrictMode causes double WebSocket connections)
-  const processedDepositsRef = useRef<Set<string>>(new Set());
-
   // Unified refetch function - retries all data sources at once
   const refetchAll = useCallback(() => {
     refetch();
@@ -212,16 +225,10 @@ function App() {
     (deposit: DepositEvent) => {
       // Deduplicate: Skip if we've already processed this deposit
       // (React StrictMode causes double WebSocket connections in dev)
-      if (processedDepositsRef.current.has(deposit.txHash)) {
+      if (hasProcessedDeposit(deposit.txHash)) {
         console.log('[WebSocket] Skipping duplicate deposit:', deposit.txHash);
         return;
       }
-      processedDepositsRef.current.add(deposit.txHash);
-
-      // Clean up old entries after 60 seconds to prevent memory leak
-      setTimeout(() => {
-        processedDepositsRef.current.delete(deposit.txHash);
-      }, 60000);
 
       console.log('🔥 New deposit received via WebSocket:', deposit);
 

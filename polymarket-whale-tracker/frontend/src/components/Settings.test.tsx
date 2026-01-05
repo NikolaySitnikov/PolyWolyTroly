@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Settings } from './Settings';
 import { SettingsProvider } from '../contexts/SettingsContext';
+import { ToastProvider } from '../contexts/ToastContext';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -31,7 +32,9 @@ Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 function renderWithProvider(isMobile = false) {
   return render(
     <SettingsProvider>
-      <Settings isMobile={isMobile} />
+      <ToastProvider>
+        <Settings isMobile={isMobile} />
+      </ToastProvider>
     </SettingsProvider>
   );
 }
