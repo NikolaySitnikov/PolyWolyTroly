@@ -135,17 +135,31 @@ export function useWebSocket(
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
+  // Use refs for callbacks so they have stable identity across StrictMode remounts
+  const callbacksRef = useRef<{
+    onStats: ((stats: StatsResponse) => void) | null;
+    onDeposit: ((deposit: DepositEvent) => void) | null;
+    onConnection: ((connected: boolean) => void) | null;
+  }>({ onStats: null, onDeposit: null, onConnection: null });
+
   useEffect(() => {
+    // Only register if not already registered (handles StrictMode double-mount)
+    if (callbacksRef.current.onStats) {
+      // Already registered, just ensure connection
+      connect(url);
+      return;
+    }
+
     subscriberCount++;
 
-    // Register callbacks
-    const onStats = (stats: StatsResponse) => optionsRef.current.onStats?.(stats);
-    const onDeposit = (deposit: DepositEvent) => optionsRef.current.onDeposit?.(deposit);
-    const onConnection = (isConnected: boolean) => setConnected(isConnected);
+    // Create callbacks with stable references stored in ref
+    callbacksRef.current.onStats = (stats: StatsResponse) => optionsRef.current.onStats?.(stats);
+    callbacksRef.current.onDeposit = (deposit: DepositEvent) => optionsRef.current.onDeposit?.(deposit);
+    callbacksRef.current.onConnection = (isConnected: boolean) => setConnected(isConnected);
 
-    statsCallbacks.add(onStats);
-    depositCallbacks.add(onDeposit);
-    connectionCallbacks.add(onConnection);
+    statsCallbacks.add(callbacksRef.current.onStats);
+    depositCallbacks.add(callbacksRef.current.onDeposit);
+    connectionCallbacks.add(callbacksRef.current.onConnection);
 
     // Connect if not already connected
     connect(url);
@@ -154,9 +168,12 @@ export function useWebSocket(
       subscriberCount--;
 
       // Unregister callbacks
-      statsCallbacks.delete(onStats);
-      depositCallbacks.delete(onDeposit);
-      connectionCallbacks.delete(onConnection);
+      if (callbacksRef.current.onStats) {
+        statsCallbacks.delete(callbacksRef.current.onStats);
+        depositCallbacks.delete(callbacksRef.current.onDeposit!);
+        connectionCallbacks.delete(callbacksRef.current.onConnection!);
+        callbacksRef.current = { onStats: null, onDeposit: null, onConnection: null };
+      }
 
       // Disconnect if no more subscribers
       if (subscriberCount === 0) {
