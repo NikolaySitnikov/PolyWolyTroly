@@ -117,13 +117,22 @@ export interface DepositsResponse {
  * @param page - Page number (default 1)
  * @param limit - Items per page (default 50)
  * @param walletAddress - Optional wallet address to filter by
+ * @param minAmount - Optional minimum amount filter (server-side)
  * @returns Promise resolving to paginated deposit data
  * @throws Error if the request fails
  */
-export async function fetchDeposits(page = 1, limit = 50, walletAddress?: string): Promise<DepositsResponse> {
+export async function fetchDeposits(
+  page = 1,
+  limit = 50,
+  walletAddress?: string,
+  minAmount?: number
+): Promise<DepositsResponse> {
   let url = `${api.baseUrl}/api/deposits?page=${page}&limit=${limit}`;
   if (walletAddress) {
     url += `&wallet=${walletAddress}`;
+  }
+  if (minAmount !== undefined && minAmount > 0) {
+    url += `&minAmount=${minAmount}`;
   }
   const response = await fetch(url);
 

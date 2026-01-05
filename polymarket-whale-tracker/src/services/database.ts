@@ -185,11 +185,12 @@ export const db = {
     };
   },
 
-  // Get recent deposits with pagination and optional wallet filter
+  // Get recent deposits with pagination and optional filters
   async getRecentDeposits(
     page: number,
     limit: number,
-    walletAddress?: string
+    walletAddress?: string,
+    minAmount?: number
   ): Promise<{
     deposits: any[];
     total: number;
@@ -198,25 +199,34 @@ export const db = {
   }> {
     const offset = (page - 1) * limit;
 
-    let depositsQuery: string;
-    let countQuery: string;
-    let queryParams: any[];
+    // Build WHERE clause dynamically based on filters
+    const conditions: string[] = [];
+    const queryParams: any[] = [limit, offset];
+    const countParams: any[] = [];
+    let paramIndex = 3;
+    let countParamIndex = 1;
 
     if (walletAddress) {
-      depositsQuery = `SELECT * FROM deposits WHERE wallet_address = $3 ORDER BY created_at DESC LIMIT $1 OFFSET $2`;
-      countQuery = `SELECT COUNT(*) as count FROM deposits WHERE wallet_address = $1`;
-      queryParams = [limit, offset, walletAddress.toLowerCase()];
-    } else {
-      depositsQuery = `SELECT * FROM deposits ORDER BY created_at DESC LIMIT $1 OFFSET $2`;
-      countQuery = `SELECT COUNT(*) as count FROM deposits`;
-      queryParams = [limit, offset];
+      conditions.push(`wallet_address = $${paramIndex}`);
+      queryParams.push(walletAddress.toLowerCase());
+      countParams.push(walletAddress.toLowerCase());
+      paramIndex++;
+      countParamIndex++;
     }
 
+    if (minAmount !== undefined && minAmount > 0) {
+      conditions.push(`amount >= $${paramIndex}`);
+      queryParams.push(minAmount);
+      countParams.push(minAmount);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const depositsQuery = `SELECT * FROM deposits ${whereClause} ORDER BY created_at DESC LIMIT $1 OFFSET $2`;
+    const countQuery = `SELECT COUNT(*) as count FROM deposits ${whereClause.replace(/\$(\d+)/g, (_, num) => `$${parseInt(num) - 2}`)}`;
+
     const depositsResult = await pool.query(depositsQuery, queryParams);
-    const countResult = await pool.query(
-      countQuery,
-      walletAddress ? [walletAddress.toLowerCase()] : []
-    );
+    const countResult = await pool.query(countQuery, countParams);
     const total = parseInt(countResult.rows[0]?.count || "0", 10);
 
     return {

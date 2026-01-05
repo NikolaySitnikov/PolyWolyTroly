@@ -103,8 +103,9 @@ export function createApp(): Express {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const walletFilter = req.query.wallet as string | undefined;
+      const minAmount = req.query.minAmount ? parseFloat(req.query.minAmount as string) : undefined;
 
-      const result = await db.getRecentDeposits(page, limit, walletFilter);
+      const result = await db.getRecentDeposits(page, limit, walletFilter, minAmount);
       res.json(result);
     } catch (error) {
       console.error("Error fetching deposits:", error);

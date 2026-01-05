@@ -119,7 +119,7 @@ function App() {
     setPage: setAlertsPage,
     refetch: refetchAlerts,
     addAlert,
-  } = useAlerts(ALERTS_PER_PAGE);
+  } = useAlerts(ALERTS_PER_PAGE, settings.minAlertThreshold);
 
   // Trending markets data
   const {
@@ -337,7 +337,7 @@ function App() {
             alerts={alerts}
             isMobile={isMobile}
             onAlertClick={handleAlertClick}
-            minThreshold={settings.minAlertThreshold}
+            activeMinThreshold={settings.minAlertThreshold}
             currentPage={alertsPage}
             totalPages={alertsTotalPages}
             totalItems={totalAlerts}

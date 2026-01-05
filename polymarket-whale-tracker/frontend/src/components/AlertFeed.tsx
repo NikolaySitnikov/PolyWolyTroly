@@ -18,8 +18,8 @@ interface AlertFeedProps {
   alerts: Alert[];
   isMobile: boolean;
   onAlertClick?: (alert: Alert) => void;
-  /** Minimum amount to display (filters out smaller alerts) */
-  minThreshold?: number;
+  /** Currently active minimum threshold (for display only - filtering done server-side) */
+  activeMinThreshold?: number;
   /** Pagination props (optional - if not provided, no pagination) */
   currentPage?: number;
   totalPages?: number;
@@ -111,7 +111,7 @@ export function AlertFeed({
   alerts,
   isMobile,
   onAlertClick,
-  minThreshold = 0,
+  activeMinThreshold,
   currentPage,
   totalPages,
   totalItems,
@@ -120,24 +120,15 @@ export function AlertFeed({
 }: AlertFeedProps) {
   const [filter, setFilter] = useState('');
 
-  // Filter alerts by wallet address and minimum threshold
+  // Filter alerts by wallet address only (min threshold applied server-side)
   const filteredAlerts = useMemo(() => {
-    let result = alerts;
-
-    // Apply minimum threshold filter
-    if (minThreshold > 0) {
-      result = result.filter((alert) => alert.amount >= minThreshold);
+    if (!filter) {
+      return alerts;
     }
-
-    // Apply address search filter
-    if (filter) {
-      result = result.filter((alert) =>
-        alert.walletAddress.toLowerCase().includes(filter.toLowerCase())
-      );
-    }
-
-    return result;
-  }, [alerts, filter, minThreshold]);
+    return alerts.filter((alert) =>
+      alert.walletAddress.toLowerCase().includes(filter.toLowerCase())
+    );
+  }, [alerts, filter]);
 
   return (
     <div
@@ -176,6 +167,26 @@ export function AlertFeed({
           >
             Live Feed
           </span>
+          {/* Active filter indicator */}
+          {activeMinThreshold !== undefined && activeMinThreshold > 0 && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '3px 8px',
+                background: `${tokens.colors.cyan}15`,
+                border: `1px solid ${tokens.colors.cyan}40`,
+                borderRadius: '999px',
+                fontSize: '11px',
+                fontFamily: tokens.fonts.mono,
+                fontWeight: 500,
+                color: tokens.colors.cyan,
+              }}
+              title="Minimum deposit threshold from Settings"
+            >
+              {formatUSD(activeMinThreshold)}+
+            </span>
+          )}
         </div>
         {/* Spacer to push search and indicator to the right */}
         <div style={{ flex: 1 }} />

@@ -124,29 +124,32 @@ describe('AlertFeed', () => {
     expect(handleClick).toHaveBeenCalledWith(mockAlerts[0]);
   });
 
-  describe('Minimum Threshold Filter', () => {
-    it('should show all alerts when minThreshold is 0', () => {
-      render(<AlertFeed alerts={mockAlerts} isMobile={false} minThreshold={0} />);
+  describe('Active Minimum Threshold Display', () => {
+    it('should not show filter indicator when activeMinThreshold is 0', () => {
+      render(<AlertFeed alerts={mockAlerts} isMobile={false} activeMinThreshold={0} />);
+      // All alerts should be displayed (filtering happens server-side)
       const alertItems = screen.getAllByTestId('alert-item');
       expect(alertItems).toHaveLength(3);
+      // No threshold indicator should be shown
+      expect(screen.queryByText(/\$.*\+/)).not.toBeInTheDocument();
     });
 
-    it('should filter alerts below minThreshold', () => {
-      render(<AlertFeed alerts={mockAlerts} isMobile={false} minThreshold={100000} />);
-      const alertItems = screen.getAllByTestId('alert-item');
-      // Only alerts with amount >= 100000 should be shown (125K and 1.5M)
-      expect(alertItems).toHaveLength(2);
+    it('should show filter indicator when activeMinThreshold is set', () => {
+      render(<AlertFeed alerts={mockAlerts} isMobile={false} activeMinThreshold={100000} />);
+      // Should display the threshold value as a pill/badge
+      expect(screen.getByText('$100.0K+')).toBeInTheDocument();
     });
 
-    it('should show no alerts when minThreshold is higher than all amounts', () => {
-      render(<AlertFeed alerts={mockAlerts} isMobile={false} minThreshold={2000000} />);
-      expect(screen.queryAllByTestId('alert-item')).toHaveLength(0);
-      expect(screen.getByText(/no alerts/i)).toBeInTheDocument();
+    it('should show filter indicator for large threshold values', () => {
+      render(<AlertFeed alerts={mockAlerts} isMobile={false} activeMinThreshold={1000000} />);
+      // Should format as $1.00M+
+      expect(screen.getByText('$1.00M+')).toBeInTheDocument();
     });
 
-    it('should show empty state message when all alerts filtered out', () => {
-      render(<AlertFeed alerts={mockAlerts} isMobile={false} minThreshold={10000000} />);
-      expect(screen.getByText(/waiting for whale activity/i)).toBeInTheDocument();
+    it('should not show filter indicator when activeMinThreshold is undefined', () => {
+      render(<AlertFeed alerts={mockAlerts} isMobile={false} />);
+      // No threshold indicator should be shown
+      expect(screen.queryByText(/\$.*\+/)).not.toBeInTheDocument();
     });
   });
 });
