@@ -85,6 +85,7 @@ function connect(url: string) {
           statsCallbacks.forEach((cb) => cb(message.data as StatsResponse));
           break;
         case 'new_deposit':
+          console.log('[WebSocket] depositCallbacks.size =', depositCallbacks.size);
           depositCallbacks.forEach((cb) => cb(message.data as DepositEvent));
           break;
       }
@@ -143,40 +144,39 @@ export function useWebSocket(
   }>({ onStats: null, onDeposit: null, onConnection: null });
 
   useEffect(() => {
-    // Only register if not already registered (handles StrictMode double-mount)
-    if (callbacksRef.current.onStats) {
-      // Already registered, just ensure connection
-      connect(url);
-      return;
+    // Create callbacks if not already created (first mount)
+    if (!callbacksRef.current.onStats) {
+      callbacksRef.current.onStats = (stats: StatsResponse) => optionsRef.current.onStats?.(stats);
+      callbacksRef.current.onDeposit = (deposit: DepositEvent) => optionsRef.current.onDeposit?.(deposit);
+      callbacksRef.current.onConnection = (isConnected: boolean) => setConnected(isConnected);
     }
 
-    subscriberCount++;
-
-    // Create callbacks with stable references stored in ref
-    callbacksRef.current.onStats = (stats: StatsResponse) => optionsRef.current.onStats?.(stats);
-    callbacksRef.current.onDeposit = (deposit: DepositEvent) => optionsRef.current.onDeposit?.(deposit);
-    callbacksRef.current.onConnection = (isConnected: boolean) => setConnected(isConnected);
-
+    // Always add to sets (they're Sets so duplicates are ignored)
+    // This handles both initial mount and StrictMode remount
     statsCallbacks.add(callbacksRef.current.onStats);
     depositCallbacks.add(callbacksRef.current.onDeposit);
     connectionCallbacks.add(callbacksRef.current.onConnection);
+
+    subscriberCount++;
+    console.log('[WebSocket] Mount: subscriberCount =', subscriberCount, 'depositCallbacks.size =', depositCallbacks.size);
 
     // Connect if not already connected
     connect(url);
 
     return () => {
       subscriberCount--;
+      console.log('[WebSocket] Unmount: subscriberCount =', subscriberCount);
 
-      // Unregister callbacks
-      if (callbacksRef.current.onStats) {
-        statsCallbacks.delete(callbacksRef.current.onStats);
-        depositCallbacks.delete(callbacksRef.current.onDeposit!);
-        connectionCallbacks.delete(callbacksRef.current.onConnection!);
-        callbacksRef.current = { onStats: null, onDeposit: null, onConnection: null };
-      }
+      // Remove callbacks from sets
+      statsCallbacks.delete(callbacksRef.current.onStats!);
+      depositCallbacks.delete(callbacksRef.current.onDeposit!);
+      connectionCallbacks.delete(callbacksRef.current.onConnection!);
 
-      // Disconnect if no more subscribers
+      console.log('[WebSocket] After cleanup: depositCallbacks.size =', depositCallbacks.size);
+
+      // Disconnect and reset ref only when truly unmounted
       if (subscriberCount === 0) {
+        callbacksRef.current = { onStats: null, onDeposit: null, onConnection: null };
         disconnect();
       }
     };
