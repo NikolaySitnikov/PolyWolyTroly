@@ -311,6 +311,35 @@ a {
 }
 
 /**
+ * Toast Notification Animations
+ * Per BRAND_GUIDELINES_EXTENDED.md:
+ * - Animation: Slide in from right (desktop) / top (mobile)
+ * - Duration: 250ms (normal)
+ * - Easing: ease-out-expo
+ */
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+/**
  * Whale tail flick animation for logo hover
  * Per DESIGN_SYSTEM.md: Animated Whale - tail flicks on hover
  *

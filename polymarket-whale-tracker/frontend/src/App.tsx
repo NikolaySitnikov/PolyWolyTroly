@@ -38,6 +38,7 @@ import { WalletProfileError } from './components/WalletProfileError';
 import { InlineLoading } from './components/InlineLoading';
 import { GlowText } from './components/GlowText';
 import { Settings } from './components/Settings';
+import { ToastContainer } from './components/ToastContainer';
 import { useSettings } from './contexts/SettingsContext';
 import type { ViewId } from './types/navigation';
 import type { Alert } from './types/alert';
@@ -611,6 +612,9 @@ function App() {
       {isMobile && (
         <MobileNav currentView={currentView} onNavigate={handleNavigate} />
       )}
+
+      {/* Toast Notifications */}
+      <ToastContainer isMobile={isMobile} />
     </div>
   );
 }

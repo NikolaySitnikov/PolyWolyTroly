@@ -9,6 +9,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import App from './App';
 import { SettingsProvider } from './contexts/SettingsContext';
+import { ToastProvider } from './contexts/ToastContext';
 import { ApiConnectivityProvider } from './hooks/useApiConnectivity';
 import * as api from './services/api';
 
@@ -20,7 +21,9 @@ function renderApp() {
   return render(
     <ApiConnectivityProvider>
       <SettingsProvider>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </SettingsProvider>
     </ApiConnectivityProvider>
   );
