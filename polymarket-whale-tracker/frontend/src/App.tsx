@@ -100,22 +100,6 @@ function mapSortFieldToApi(field: WhaleSortField): ApiSortField {
   return mapping[field];
 }
 
-/**
- * Module-level Set to deduplicate deposit events.
- * Must be outside component to survive React StrictMode remounts.
- */
-const processedDeposits = new Set<string>();
-
-function hasProcessedDeposit(txHash: string): boolean {
-  if (processedDeposits.has(txHash)) {
-    return true;
-  }
-  processedDeposits.add(txHash);
-  // Clean up after 60 seconds to prevent memory leak
-  setTimeout(() => processedDeposits.delete(txHash), 60000);
-  return false;
-}
-
 function App() {
   const isMobile = useMobile();
   const { settings } = useSettings();
@@ -223,13 +207,6 @@ function App() {
   // Stable callback for deposit handling - uses refs to avoid stale closures
   const handleDeposit = useCallback(
     (deposit: DepositEvent) => {
-      // Deduplicate: Skip if we've already processed this deposit
-      // (React StrictMode causes double WebSocket connections in dev)
-      if (hasProcessedDeposit(deposit.txHash)) {
-        console.log('[WebSocket] Skipping duplicate deposit:', deposit.txHash);
-        return;
-      }
-
       console.log('🔥 New deposit received via WebSocket:', deposit);
 
       // Add to live alert feed instantly
