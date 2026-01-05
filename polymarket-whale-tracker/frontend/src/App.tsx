@@ -361,6 +361,7 @@ function App() {
             isMobile={isMobile}
             onAlertClick={handleAlertClick}
             activeMinThreshold={settings.minAlertThreshold}
+            onNavigateToSettings={() => handleNavigate('settings')}
             currentPage={alertsPage}
             totalPages={alertsTotalPages}
             totalItems={totalAlerts}

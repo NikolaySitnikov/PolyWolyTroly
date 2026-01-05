@@ -31,6 +31,8 @@ interface AlertFeedProps {
   onAlertClick?: (alert: Alert) => void;
   /** Currently active minimum threshold (for display only - filtering done server-side) */
   activeMinThreshold?: number;
+  /** Navigate to Settings tab (for threshold controls) */
+  onNavigateToSettings?: () => void;
   /** Pagination props (optional - if not provided, no pagination) */
   currentPage?: number;
   totalPages?: number;
@@ -63,6 +65,95 @@ function formatAddress(address: string): string {
 
 // Note: AlertTypeBadge removed - redundant since all alerts are deposits
 // The card design now uses a 2-column stats grid matching WhaleTable pattern
+
+/**
+ * Shared FilterPill Component
+ *
+ * Clickable pill that displays the active threshold filter.
+ * Used in both mobile and desktop views to ensure consistent behavior.
+ * Clicking navigates to Settings tab for threshold controls.
+ */
+interface FilterPillProps {
+  threshold: number;
+  onClick?: () => void;
+  /** Compact mode for desktop header (no label, smaller padding) */
+  compact?: boolean;
+}
+
+function FilterPill({ threshold, onClick, compact = false }: FilterPillProps) {
+  if (compact) {
+    // Desktop compact version - just the pill, no "Filtering:" label
+    return (
+      <button
+        onClick={onClick}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: '3px 8px',
+          background: `${tokens.colors.cyan}15`,
+          border: `1px solid ${tokens.colors.cyan}40`,
+          borderRadius: '999px',
+          fontSize: '11px',
+          fontFamily: tokens.fonts.mono,
+          fontWeight: 500,
+          color: tokens.colors.cyan,
+          cursor: onClick ? 'pointer' : 'default',
+          transition: 'all 0.15s ease',
+        }}
+        title="Click to adjust threshold in Settings"
+      >
+        {formatUSD(threshold)}+
+      </button>
+    );
+  }
+
+  // Mobile version - includes "Filtering:" label with larger pill
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        background: 'none',
+        border: 'none',
+        padding: 0,
+        cursor: onClick ? 'pointer' : 'default',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >
+      <span
+        style={{
+          fontFamily: tokens.fonts.mono,
+          fontSize: '11px',
+          color: tokens.colors.textMuted,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+        }}
+      >
+        Filtering:
+      </span>
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: '5px 12px',
+          background: `${tokens.colors.cyan}15`,
+          border: `1px solid ${tokens.colors.cyan}50`,
+          borderRadius: '999px',
+          fontFamily: tokens.fonts.mono,
+          fontSize: '12px',
+          fontWeight: 600,
+          color: tokens.colors.cyan,
+          boxShadow: `0 0 15px ${tokens.colors.cyanGlow}`,
+          transition: 'all 0.15s ease',
+        }}
+      >
+        {formatUSD(threshold)}+
+      </span>
+    </button>
+  );
+}
 
 /**
  * Mobile Alert Card Component
@@ -256,6 +347,7 @@ export function AlertFeed({
   isMobile,
   onAlertClick,
   activeMinThreshold,
+  onNavigateToSettings,
   currentPage,
   totalPages,
   totalItems,
@@ -413,44 +505,12 @@ export function AlertFeed({
             )}
           </div>
 
-          {/* Active Filter Indicator */}
+          {/* Active Filter Indicator - Clickable to navigate to Settings */}
           {activeMinThreshold !== undefined && activeMinThreshold > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: tokens.fonts.mono,
-                  fontSize: '11px',
-                  color: tokens.colors.textMuted,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                }}
-              >
-                Filtering:
-              </span>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '5px 12px',
-                  background: `${tokens.colors.cyan}15`,
-                  border: `1px solid ${tokens.colors.cyan}50`,
-                  borderRadius: '999px',
-                  fontFamily: tokens.fonts.mono,
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  color: tokens.colors.cyan,
-                  boxShadow: `0 0 15px ${tokens.colors.cyanGlow}`,
-                }}
-              >
-                {formatUSD(activeMinThreshold)}+
-              </span>
-            </div>
+            <FilterPill
+              threshold={activeMinThreshold}
+              onClick={onNavigateToSettings}
+            />
           )}
         </div>
 
@@ -668,25 +728,13 @@ export function AlertFeed({
           >
             Live Feed
           </span>
-          {/* Active filter indicator */}
+          {/* Active filter indicator - Clickable to navigate to Settings */}
           {activeMinThreshold !== undefined && activeMinThreshold > 0 && (
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                padding: '3px 8px',
-                background: `${tokens.colors.cyan}15`,
-                border: `1px solid ${tokens.colors.cyan}40`,
-                borderRadius: '999px',
-                fontSize: '11px',
-                fontFamily: tokens.fonts.mono,
-                fontWeight: 500,
-                color: tokens.colors.cyan,
-              }}
-              title="Minimum deposit threshold from Settings"
-            >
-              {formatUSD(activeMinThreshold)}+
-            </span>
+            <FilterPill
+              threshold={activeMinThreshold}
+              onClick={onNavigateToSettings}
+              compact
+            />
           )}
         </div>
         {/* Spacer to push search and indicator to the right */}
