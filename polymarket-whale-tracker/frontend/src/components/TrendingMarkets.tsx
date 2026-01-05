@@ -990,7 +990,6 @@ export function TrendingMarkets({
                 marginLeft: '-16px',
                 marginRight: '-16px',
                 paddingLeft: '16px',
-                paddingRight: '16px',
               }}
             >
               {markets.map((market, index) => (
@@ -1001,6 +1000,8 @@ export function TrendingMarkets({
                   <MobileMarketCard market={market} index={index} />
                 </div>
               ))}
+              {/* Spacer for right padding */}
+              <div style={{ flexShrink: 0, width: '4px' }} />
             </div>
 
             {/* Scroll Indicators */}
