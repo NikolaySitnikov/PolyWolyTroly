@@ -5,7 +5,7 @@
  * Desktop shows a table, mobile shows cards.
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { WhaleTable } from './WhaleTable';
 import type { Whale } from '../types/whale';
@@ -191,53 +191,117 @@ describe('WhaleTable Component', () => {
     });
   });
 
-  describe('Sorting', () => {
+  describe('Sorting (Server-Side)', () => {
+    const mockOnSortChange = vi.fn();
+
+    beforeEach(() => {
+      mockOnSortChange.mockClear();
+    });
+
     it('should have sortable column headers', () => {
       render(
         <WhaleTable
           whales={mockWhales}
           isMobile={false}
           onWhaleClick={mockOnWhaleClick}
+          onSortChange={mockOnSortChange}
         />
       );
       const totalDepositedHeader = screen.getByTestId('sort-totalDeposited');
       expect(totalDepositedHeader).toBeInTheDocument();
     });
 
-    it('should sort by total deposited when header is clicked', () => {
+    it('should call onSortChange when header is clicked', () => {
       render(
         <WhaleTable
           whales={mockWhales}
           isMobile={false}
           onWhaleClick={mockOnWhaleClick}
+          sortBy="totalDeposited"
+          sortDir="desc"
+          onSortChange={mockOnSortChange}
         />
       );
-      // Default sort is by totalDeposited desc, so highest ($250K) should be first
-      const rows = screen.getAllByTestId(/^whale-row-/);
-      expect(rows[0]).toHaveAttribute(
-        'data-testid',
-        'whale-row-0x9876543210fedcba9876543210fedcba98765432'
-      );
+      const totalDepositedHeader = screen.getByTestId('sort-totalDeposited');
+      fireEvent.click(totalDepositedHeader);
+
+      // Should toggle from desc to asc for same field
+      expect(mockOnSortChange).toHaveBeenCalledWith('totalDeposited', 'asc');
     });
 
-    it('should toggle sort direction on second click', () => {
-      render(
+    it('should toggle sort direction on second click of same column', () => {
+      const { rerender } = render(
         <WhaleTable
           whales={mockWhales}
           isMobile={false}
           onWhaleClick={mockOnWhaleClick}
+          sortBy="totalDeposited"
+          sortDir="desc"
+          onSortChange={mockOnSortChange}
         />
       );
       const totalDepositedHeader = screen.getByTestId('sort-totalDeposited');
 
-      // Click to toggle to ascending (lowest first)
+      // Click to request toggle to ascending
       fireEvent.click(totalDepositedHeader);
+      expect(mockOnSortChange).toHaveBeenCalledWith('totalDeposited', 'asc');
 
+      // Simulate parent updating the sort state
+      rerender(
+        <WhaleTable
+          whales={mockWhales}
+          isMobile={false}
+          onWhaleClick={mockOnWhaleClick}
+          sortBy="totalDeposited"
+          sortDir="asc"
+          onSortChange={mockOnSortChange}
+        />
+      );
+
+      // Click again to request toggle back to descending
+      fireEvent.click(totalDepositedHeader);
+      expect(mockOnSortChange).toHaveBeenCalledWith('totalDeposited', 'desc');
+    });
+
+    it('should call onSortChange with desc when clicking a different column', () => {
+      render(
+        <WhaleTable
+          whales={mockWhales}
+          isMobile={false}
+          onWhaleClick={mockOnWhaleClick}
+          sortBy="totalDeposited"
+          sortDir="desc"
+          onSortChange={mockOnSortChange}
+        />
+      );
+      const depositCountHeader = screen.getByTestId('sort-depositCount');
+      fireEvent.click(depositCountHeader);
+
+      // Should default to desc when switching to a different column
+      expect(mockOnSortChange).toHaveBeenCalledWith('depositCount', 'desc');
+    });
+
+    it('should display rows in the order provided (server determines order)', () => {
+      render(
+        <WhaleTable
+          whales={mockWhales}
+          isMobile={false}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      // Rows should be in the exact order as mockWhales array
       const rows = screen.getAllByTestId(/^whale-row-/);
-      // After click, lowest should be first ($75K)
       expect(rows[0]).toHaveAttribute(
         'data-testid',
+        'whale-row-0x1234567890abcdef1234567890abcdef12345678'
+      );
+      expect(rows[1]).toHaveAttribute(
+        'data-testid',
         'whale-row-0xabcdef1234567890abcdef1234567890abcdef12'
+      );
+      expect(rows[2]).toHaveAttribute(
+        'data-testid',
+        'whale-row-0x9876543210fedcba9876543210fedcba98765432'
       );
     });
   });
@@ -313,7 +377,7 @@ describe('WhaleTable Component', () => {
         />
       );
       const firstRow = screen.getByTestId(
-        'whale-row-0x9876543210fedcba9876543210fedcba98765432'
+        'whale-row-0x1234567890abcdef1234567890abcdef12345678'
       );
       expect(firstRow).toHaveStyle({ cursor: 'pointer' });
     });
@@ -340,7 +404,7 @@ describe('WhaleTable Component', () => {
         />
       );
       const firstCard = screen.getByTestId(
-        'whale-card-0x9876543210fedcba9876543210fedcba98765432'
+        'whale-card-0x1234567890abcdef1234567890abcdef12345678'
       );
       expect(firstCard.style.transition).toContain('all');
     });
@@ -354,7 +418,7 @@ describe('WhaleTable Component', () => {
         />
       );
       const firstCard = screen.getByTestId(
-        'whale-card-0x9876543210fedcba9876543210fedcba98765432'
+        'whale-card-0x1234567890abcdef1234567890abcdef12345678'
       );
       expect(firstCard).toHaveStyle({ cursor: 'pointer' });
     });

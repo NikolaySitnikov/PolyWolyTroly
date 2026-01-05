@@ -8,10 +8,11 @@
  * Design: Based on App.jsx reference and PAGINATION_GUIDELINES.md
  */
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { tokens } from '../styles/tokens';
 import { formatUSD } from '../utils/formatters';
 import { Pagination } from './Pagination';
+import { useNewItemAnimation } from '../hooks/useNewItemAnimation';
 import type { Whale, WhaleSortField, SortDirection } from '../types/whale';
 
 interface WhaleTableProps {
@@ -76,6 +77,10 @@ export function WhaleTable({
     field: null,
     at: 0,
   });
+
+  // Track new items for animation (only animate truly new whales, not on initial load)
+  const getWhaleKey = useCallback((whale: Whale) => whale.address, []);
+  const shouldAnimateWhale = useNewItemAnimation(whales, getWhaleKey);
 
   // Filter whales (sorting is now done server-side)
   const filteredWhales = useMemo(() => {
@@ -449,7 +454,9 @@ export function WhaleTable({
               </div>
             </div>
           ) : (
-            filteredWhales.map((whale, i) => (
+            filteredWhales.map((whale) => {
+              const isNew = shouldAnimateWhale(whale);
+              return (
               <div
                 key={whale.address}
                 data-testid={`whale-card-${whale.address}`}
@@ -461,7 +468,8 @@ export function WhaleTable({
                   padding: '16px',
                   cursor: 'pointer',
                   transition: `all ${tokens.animation.durationFast} ${tokens.animation.easeOutExpo}`,
-                  animation: `fadeInUp 0.4s ${i * 0.04}s both cubic-bezier(0.16, 1, 0.3, 1)`,
+                  // Only animate new items
+                  animation: isNew ? 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
                   WebkitTapHighlightColor: 'transparent',
                 }}
                 onTouchStart={(e) => {
@@ -599,7 +607,8 @@ export function WhaleTable({
                   </div>
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
 
@@ -939,7 +948,9 @@ export function WhaleTable({
             </tr>
           </thead>
           <tbody>
-            {filteredWhales.map((whale, i) => (
+            {filteredWhales.map((whale) => {
+              const isNew = shouldAnimateWhale(whale);
+              return (
               <tr
                 key={whale.address}
                 data-testid={`whale-row-${whale.address}`}
@@ -948,7 +959,8 @@ export function WhaleTable({
                   borderBottom: `1px solid ${tokens.colors.border}`,
                   cursor: 'pointer',
                   transition: 'background 0.15s ease',
-                  animation: `fadeInUp 0.4s ${i * 0.03}s both cubic-bezier(0.16, 1, 0.3, 1)`,
+                  // Only animate new items
+                  animation: isNew ? 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = tokens.colors.surfaceHover;
@@ -1016,7 +1028,8 @@ export function WhaleTable({
                   {formatDate(whale.firstSeenAt)}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -7,11 +7,12 @@
  * @see ../Design docs/DESIGN_SYSTEM.md - AlertFeed section
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { tokens } from '../styles/tokens';
 import { LiveIndicator } from './LiveIndicator';
 import { EmptyState } from './EmptyState';
 import { Pagination } from './Pagination';
+import { useNewItemAnimation } from '../hooks/useNewItemAnimation';
 import type { Alert } from '../types/alert';
 
 interface AlertFeedProps {
@@ -119,6 +120,10 @@ export function AlertFeed({
   onPageChange,
 }: AlertFeedProps) {
   const [filter, setFilter] = useState('');
+
+  // Track new items for animation (only animate truly new alerts, not on initial load)
+  const getAlertKey = useCallback((alert: Alert) => alert.id, []);
+  const shouldAnimateAlert = useNewItemAnimation(alerts, getAlertKey);
 
   // Filter alerts by wallet address only (min threshold applied server-side)
   const filteredAlerts = useMemo(() => {
@@ -269,7 +274,9 @@ export function AlertFeed({
             variant={filter ? 'search' : 'waiting'}
           />
         ) : (
-          filteredAlerts.map((alert, index) => (
+          filteredAlerts.map((alert) => {
+            const isNew = shouldAnimateAlert(alert);
+            return (
             <div
               key={alert.id}
               data-testid="alert-item"
@@ -282,7 +289,8 @@ export function AlertFeed({
                 gap: '12px',
                 cursor: onAlertClick ? 'pointer' : 'default',
                 transition: 'background 0.15s ease',
-                animation: `fadeInUp 0.4s ${index * 0.08}s both cubic-bezier(0.16, 1, 0.3, 1)`,
+                // Only animate new items
+                animation: isNew ? 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
               }}
               onMouseEnter={(e) => {
                 if (onAlertClick) {
@@ -358,7 +366,8 @@ export function AlertFeed({
                 {formatRelativeTime(alert.timestamp)}
               </span>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 

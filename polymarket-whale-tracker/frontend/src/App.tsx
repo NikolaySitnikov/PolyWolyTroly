@@ -489,7 +489,7 @@ function App() {
             onWhaleClick={handleWhaleClick}
             currentPage={whalesPage}
             itemsPerPage={WHALES_PER_PAGE}
-            totalItems={totalWhales}
+            totalItems={stats?.whaleCount ?? totalWhales}
             onPageChange={setWhalesPage}
             sortBy={whaleSortBy}
             sortDir={whaleSortDir}
