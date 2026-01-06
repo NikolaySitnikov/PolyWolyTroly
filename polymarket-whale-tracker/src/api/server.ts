@@ -127,6 +127,21 @@ export function createApp(): Express {
     }
   });
 
+  // Whale of the Day endpoint - top depositor in last 24 hours
+  app.get("/api/whale-of-the-day", async (_req: Request, res: Response) => {
+    try {
+      const whale = await db.getWhaleOfTheDay();
+      if (!whale) {
+        res.json(null);
+        return;
+      }
+      res.json(whale);
+    } catch (error) {
+      console.error("Error fetching whale of the day:", error);
+      res.status(500).json({ error: "Failed to fetch whale of the day" });
+    }
+  });
+
   // Trending markets endpoint - fetches from Polymarket Gamma API
   app.get("/api/markets/trending", async (req: Request, res: Response) => {
     try {

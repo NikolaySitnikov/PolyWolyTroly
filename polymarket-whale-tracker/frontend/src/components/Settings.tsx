@@ -15,6 +15,7 @@
 import { tokens } from '../styles/tokens';
 import { useSettings } from '../contexts/SettingsContext';
 import { useToast } from '../contexts/ToastContext';
+import { useSound, type SoundType } from '../hooks/useSound';
 
 interface SettingsProps {
   isMobile: boolean;
@@ -430,9 +431,86 @@ function NotificationPreviewButton({
   );
 }
 
+/**
+ * Sound Preview Buttons
+ */
+function SoundPreviewButtons({
+  isMobile,
+  onPreview,
+}: {
+  isMobile: boolean;
+  onPreview: (type: SoundType) => void;
+}) {
+  const sounds: { type: SoundType; label: string; emoji: string }[] = [
+    { type: 'sonar', label: 'Sonar', emoji: '📡' },
+    { type: 'whale', label: 'Whale', emoji: '🐋' },
+    { type: 'chaching', label: 'Money', emoji: '💰' },
+    { type: 'success', label: 'Success', emoji: '✓' },
+    { type: 'error', label: 'Error', emoji: '✗' },
+  ];
+
+  const topRow = sounds.slice(0, 3); // Sonar, Whale, Money
+  const bottomRow = sounds.slice(3);  // Success, Error
+
+  const renderButton = ({ type, label, emoji }: { type: SoundType; label: string; emoji: string }) => (
+    <button
+      key={type}
+      onClick={() => onPreview(type)}
+      aria-label={`Preview ${label} sound`}
+      style={{
+        padding: isMobile ? '12px 14px' : '10px 14px',
+        background: tokens.colors.void,
+        border: `1px solid ${tokens.colors.border}`,
+        borderRadius: isMobile ? '10px' : '8px',
+        fontFamily: tokens.fonts.body,
+        fontSize: isMobile ? '13px' : '12px',
+        fontWeight: 500,
+        color: tokens.colors.textSecondary,
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '6px',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = tokens.colors.cyan;
+        e.currentTarget.style.color = tokens.colors.cyan;
+        e.currentTarget.style.boxShadow = `0 0 15px ${tokens.colors.cyanGlow}`;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = tokens.colors.border;
+        e.currentTarget.style.color = tokens.colors.textSecondary;
+        e.currentTarget.style.boxShadow = 'none';
+      }}
+    >
+      <span>{emoji}</span>
+      <span>{label}</span>
+    </button>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {/* Top row: 3 buttons */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+        {topRow.map(renderButton)}
+      </div>
+      {/* Bottom row: 2 buttons at 50% each */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+        {bottomRow.map(renderButton)}
+      </div>
+    </div>
+  );
+}
+
 export function Settings({ isMobile }: SettingsProps) {
   const { settings, updateSettings, resetSettings } = useSettings();
   const { addToast } = useToast();
+  const { previewSound } = useSound();
+
+  const handlePreviewSound = (type: SoundType) => {
+    previewSound(type);
+  };
 
   const handlePreviewNotification = () => {
     // Generate random whale data for preview
@@ -576,6 +654,28 @@ export function Settings({ isMobile }: SettingsProps) {
               Preview what whale alerts look like
             </div>
             <NotificationPreviewButton isMobile onPreview={handlePreviewNotification} />
+          </div>
+
+          {/* Sound Preview */}
+          <div
+            style={{
+              background: tokens.colors.surface,
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: '12px',
+              padding: '16px',
+            }}
+          >
+            <div
+              style={{
+                fontFamily: tokens.fonts.body,
+                fontSize: '13px',
+                color: tokens.colors.textMuted,
+                marginBottom: '12px',
+              }}
+            >
+              Preview sound effects
+            </div>
+            <SoundPreviewButtons isMobile onPreview={handlePreviewSound} />
           </div>
         </div>
 
@@ -787,6 +887,44 @@ export function Settings({ isMobile }: SettingsProps) {
               </div>
             </div>
             <NotificationPreviewButton isMobile={false} onPreview={handlePreviewNotification} />
+          </div>
+
+          {/* Sound Preview */}
+          <div
+            style={{
+              background: tokens.colors.surface,
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: '12px',
+              padding: '16px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px',
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontFamily: tokens.fonts.body,
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  color: tokens.colors.textPrimary,
+                  marginBottom: '4px',
+                }}
+              >
+                🔊 Preview Sounds
+              </div>
+              <div
+                style={{
+                  fontFamily: tokens.fonts.body,
+                  fontSize: '12px',
+                  color: tokens.colors.textMuted,
+                }}
+              >
+                Hear the notification sound effects
+              </div>
+            </div>
+            <SoundPreviewButtons isMobile={false} onPreview={handlePreviewSound} />
           </div>
         </div>
       </div>

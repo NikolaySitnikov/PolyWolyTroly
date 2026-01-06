@@ -398,6 +398,52 @@ a {
   }
 }
 
+/**
+ * WhaleOfTheDay Animations
+ * Per Design docs/Jan 4 2026 - WhaleOfTheDay — Design Guidelines
+ *
+ * Crown float: Gentle floating animation for the gold crown
+ * Expand in: Spring scale animation when expanding card
+ * Sparkle: Optional twinkling effect for crown sparkles
+ */
+
+/* Gentle floating animation for the crown */
+@keyframes crownFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-2px) rotate(-3deg);
+  }
+  75% {
+    transform: translateY(2px) rotate(3deg);
+  }
+}
+
+/* Spring scale animation for expanded card */
+@keyframes expandIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Sparkle twinkling effect for crown decoration */
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
   *,

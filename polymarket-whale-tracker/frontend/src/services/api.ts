@@ -294,3 +294,27 @@ export async function fetchHealth(): Promise<HealthResponse> {
 
   return response.json();
 }
+
+/**
+ * Whale of the Day response from API
+ */
+export interface WhaleOfTheDayResponse {
+  address: string;
+  totalToday: number;
+  depositCount: number;
+  largestDeposit: number;
+}
+
+/**
+ * Fetches whale of the day (top depositor in last 24 hours).
+ * @returns Promise resolving to whale data, or null if no deposits today
+ */
+export async function fetchWhaleOfTheDay(): Promise<WhaleOfTheDayResponse | null> {
+  const response = await fetch(`${api.baseUrl}/api/whale-of-the-day`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch whale of the day: ${response.status}`);
+  }
+
+  return response.json();
+}

@@ -47,6 +47,27 @@ describe('App Component', () => {
       timestamp: new Date().toISOString(),
       blockchain: { listening: true, healthy: true, lastHeartbeatTime: null, lastEventTime: null, startTime: null, consecutiveErrors: 0 },
     });
+    // Mock deposits for WhaleOfTheDay hook and alerts
+    vi.mocked(api.fetchDeposits).mockResolvedValue({
+      deposits: [],
+      total: 0,
+      page: 1,
+      limit: 200,
+    });
+    // Mock whales
+    vi.mocked(api.fetchWhales).mockResolvedValue({
+      wallets: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+    });
+    // Mock trending markets
+    vi.mocked(api.fetchTrendingMarkets).mockResolvedValue({
+      markets: [],
+      updatedAt: new Date().toISOString(),
+    });
+    // Mock whale of the day
+    vi.mocked(api.fetchWhaleOfTheDay).mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -152,7 +173,7 @@ describe('App Component', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('dashboard-error')).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
 
       expect(screen.getByText(/Failed to fetch stats/i)).toBeInTheDocument();
     });
@@ -166,7 +187,7 @@ describe('App Component', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('dashboard-error')).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
 
       expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
     });

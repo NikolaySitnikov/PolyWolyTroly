@@ -45,6 +45,7 @@ import { WhaleAnimation } from './components/WhaleAnimation';
 import { WhaleTableSkeleton } from './components/WhaleTableSkeleton';
 import { AlertFeedSkeleton } from './components/AlertFeedSkeleton';
 import { LiveTicker } from './components/LiveTicker';
+import { WhaleOfTheDay } from './components/WhaleOfTheDay';
 import { useSettings } from './contexts/SettingsContext';
 import { useToast } from './contexts/ToastContext';
 import type { ViewId } from './types/navigation';
@@ -777,6 +778,12 @@ function App() {
           alertCount={unreadAlertCount}
         />
       )}
+
+      {/* Whale of the Day - fixed floating badge */}
+      <WhaleOfTheDay
+        isMobile={isMobile}
+        onViewProfile={handleWhaleClick}
+      />
 
       {/* Toast Notifications */}
       <ToastContainer isMobile={isMobile} />

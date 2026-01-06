@@ -247,6 +247,39 @@ export const db = {
     };
   },
 
+  // Get whale of the day (top depositor in last 24 hours)
+  async getWhaleOfTheDay(): Promise<{
+    address: string;
+    totalToday: number;
+    depositCount: number;
+    largestDeposit: number;
+  } | null> {
+    const result = await pool.query(`
+      SELECT
+        wallet_address as address,
+        SUM(amount) as total_today,
+        COUNT(*) as deposit_count,
+        MAX(amount) as largest_deposit
+      FROM deposits
+      WHERE created_at >= NOW() - INTERVAL '24 hours'
+      GROUP BY wallet_address
+      ORDER BY total_today DESC
+      LIMIT 1
+    `);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0];
+    return {
+      address: row.address,
+      totalToday: parseFloat(row.total_today),
+      depositCount: parseInt(row.deposit_count, 10),
+      largestDeposit: parseFloat(row.largest_deposit),
+    };
+  },
+
   // Close pool (for cleanup)
   async close(): Promise<void> {
     await pool.end();
