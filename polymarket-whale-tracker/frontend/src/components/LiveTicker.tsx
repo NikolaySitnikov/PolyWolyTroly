@@ -1,17 +1,19 @@
 /**
  * LiveTicker Component
  *
- * Horizontal scrolling banner showing live whale activity.
- * Shows recent deposits with wallet addresses, amounts, and timing.
+ * Continuous horizontal scrolling marquee showing live whale activity.
+ * Uses CSS animation with duplicated content for seamless infinite loop.
  *
- * Per DESIGN_IMPLEMENTATION_ROADMAP.md Task 11:
- * "Implement live ticker banner (horizontal scrolling whale activity)"
+ * Key features:
+ * - Smooth continuous scroll that never stops
+ * - Seamless wrap-around (no jumps or stutters)
+ * - Click on items to navigate to whale profile
+ * - Whale emoji for large deposits ($100K+)
  *
  * @see ../../../DESIGN_IMPLEMENTATION_ROADMAP.md - Group 5, Task 11
- * @see ../styles/tokens.ts - Design tokens
  */
 
-import { useState, type CSSProperties } from 'react';
+import { useRef, useEffect, useState, type CSSProperties } from 'react';
 import { tokens } from '../styles/tokens';
 import { LAYOUT } from '../constants/layout';
 import type { Alert } from '../types/alert';
@@ -19,42 +21,31 @@ import type { Alert } from '../types/alert';
 /** Speed variants for ticker animation */
 export type TickerSpeed = 'slow' | 'normal' | 'fast';
 
-/** Pixels per second for each speed (higher = faster scrolling) */
-const SPEED_PPS: Record<TickerSpeed, number> = {
-  slow: 100,
-  normal: 150,
-  fast: 200,
+/** Animation duration in seconds for one complete scroll cycle */
+const DURATION_CONFIG: Record<TickerSpeed, number> = {
+  slow: 60,
+  normal: 40,
+  fast: 25,
 };
 
-/** Mobile speed multiplier (faster on mobile) */
-const MOBILE_SPEED_MULTIPLIER = 2;
-
-/** Estimated width per ticker item in pixels */
-const ITEM_WIDTH_ESTIMATE = 180; // Approx width of each item including padding
+/** Mobile uses shorter duration (faster visual speed) */
+const MOBILE_DURATION_CONFIG: Record<TickerSpeed, number> = {
+  slow: 30,
+  normal: 20,
+  fast: 12,
+};
 
 export interface LiveTickerProps {
-  /** Array of alerts to display in the ticker */
   alerts: Alert[];
-  /** Whether the component is hidden */
   hidden?: boolean;
-  /** Whether to show dismiss button */
   dismissable?: boolean;
-  /** Callback when dismiss button is clicked */
   onDismiss?: () => void;
-  /** Callback when a ticker item is clicked */
   onItemClick?: (alert: Alert) => void;
-  /** Whether in mobile mode */
   isMobile?: boolean;
-  /** Animation speed */
   speed?: TickerSpeed;
 }
 
-/**
- * Format amount for ticker display
- * $1,000,000 → "$1M"
- * $500,000 → "$500K"
- * $50,000 → "$50K"
- */
+/** Format amount for ticker display */
 function formatTickerAmount(amount: number): string {
   if (amount >= 1000000) {
     return `$${(amount / 1000000).toFixed(amount % 1000000 === 0 ? 0 : 1)}M`;
@@ -65,18 +56,13 @@ function formatTickerAmount(amount: number): string {
   return `$${amount.toLocaleString()}`;
 }
 
-/**
- * Truncate wallet address for display
- * 0x1234567890abcdef... → 0x1234...5678
- */
+/** Truncate wallet address for display */
 function truncateAddress(address: string): string {
   if (address.length <= 10) return address;
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-/**
- * Get relative time string
- */
+/** Get relative time string */
 function getRelativeTime(timestamp: string): string {
   const now = new Date();
   const then = new Date(timestamp);
@@ -90,28 +76,13 @@ function getRelativeTime(timestamp: string): string {
   return `${Math.floor(diffHours / 24)}d ago`;
 }
 
-/**
- * Determine if amount qualifies as "whale" level
- */
+/** Determine if amount qualifies as "whale" level ($100K+) */
 function isWhaleAmount(amount: number): boolean {
-  return amount >= 100000; // $100K+
+  return amount >= 100000;
 }
 
 /**
- * LiveTicker - Horizontal scrolling whale activity banner
- *
- * Displays recent whale deposits in a continuously scrolling banner.
- * Pauses on hover for readability.
- *
- * @example
- * ```tsx
- * <LiveTicker
- *   alerts={recentAlerts}
- *   onItemClick={(alert) => navigateToWallet(alert.walletAddress)}
- *   dismissable
- *   onDismiss={() => setShowTicker(false)}
- * />
- * ```
+ * LiveTicker - Continuous scrolling whale activity banner
  */
 export function LiveTicker({
   alerts,
@@ -123,23 +94,18 @@ export function LiveTicker({
   speed = 'normal',
 }: LiveTickerProps) {
   const [isPaused, setIsPaused] = useState(false);
+  const trackRef = useRef<HTMLDivElement>(null);
 
   // Don't render if hidden or no alerts
   if (hidden || alerts.length === 0) {
     return null;
   }
 
-  // Calculate animation duration based on content width and speed
-  // Duration = (total width to scroll) / (pixels per second)
-  // We scroll 50% of the total width (since content is duplicated)
-  const totalContentWidth = alerts.length * ITEM_WIDTH_ESTIMATE;
-  const pixelsPerSecond = isMobile
-    ? SPEED_PPS[speed] * MOBILE_SPEED_MULTIPLIER
-    : SPEED_PPS[speed];
-  const animationDuration = Math.max(5, totalContentWidth / pixelsPerSecond);
+  const duration = isMobile ? MOBILE_DURATION_CONFIG[speed] : DURATION_CONFIG[speed];
 
-  // Container styles - fixed position below header
+  // Styles
   const headerHeight = isMobile ? LAYOUT.header.mobile : LAYOUT.header.desktop;
+
   const containerStyle: CSSProperties = {
     position: 'fixed',
     top: headerHeight,
@@ -155,53 +121,51 @@ export function LiveTicker({
     zIndex: tokens.zIndex.sticky,
   };
 
-  // Track wrapper (for edge fade effect)
   const wrapperStyle: CSSProperties = {
     flex: 1,
     overflow: 'hidden',
-    maskImage: 'linear-gradient(90deg, transparent 0%, black 5%, black 95%, transparent 100%)',
-    WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, black 5%, black 95%, transparent 100%)',
+    position: 'relative',
+    maskImage: 'linear-gradient(90deg, transparent 0%, black 3%, black 97%, transparent 100%)',
+    WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, black 3%, black 97%, transparent 100%)',
   };
 
-  // Scrolling track styles
-  // On mobile, never pause (touch interactions shouldn't pause the ticker)
+  // Only pause on hover for desktop
   const shouldPause = !isMobile && isPaused;
+
   const trackStyle: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     whiteSpace: 'nowrap',
-    animation: `scroll ${animationDuration}s linear infinite`,
+    willChange: 'transform',
+    animation: `ticker-scroll ${duration}s linear infinite`,
     animationPlayState: shouldPause ? 'paused' : 'running',
   };
 
-  // Individual item styles
   const itemStyle: CSSProperties = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: isMobile ? '6px' : '8px',
-    padding: isMobile ? '0 16px' : '0 20px',
+    padding: isMobile ? '0 12px' : '0 16px',
     cursor: onItemClick ? 'pointer' : 'default',
-    transition: `opacity ${tokens.animation.durationFast} ease`,
+    flexShrink: 0,
   };
 
-  // Separator styles
   const separatorStyle: CSSProperties = {
     display: 'inline-block',
     width: '4px',
     height: '4px',
     borderRadius: '50%',
     background: tokens.colors.border,
-    margin: '0 8px',
+    margin: isMobile ? '0 6px' : '0 8px',
+    flexShrink: 0,
   };
 
-  // Address styles
   const addressStyle: CSSProperties = {
     fontFamily: tokens.fonts.mono,
     fontSize: isMobile ? tokens.fontSizes.xs : tokens.fontSizes.sm,
     color: tokens.colors.textSecondary,
   };
 
-  // Amount styles
   const amountStyle: CSSProperties = {
     fontFamily: tokens.fonts.mono,
     fontSize: isMobile ? tokens.fontSizes.xs : tokens.fontSizes.sm,
@@ -209,14 +173,12 @@ export function LiveTicker({
     color: tokens.colors.cyan,
   };
 
-  // Time styles
   const timeStyle: CSSProperties = {
     fontFamily: tokens.fonts.body,
     fontSize: tokens.fontSizes.xs,
     color: tokens.colors.textMuted,
   };
 
-  // Dismiss button styles
   const dismissStyle: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
@@ -230,17 +192,48 @@ export function LiveTicker({
     fontSize: '16px',
     transition: `color ${tokens.animation.durationFast} ease`,
     paddingRight: '8px',
+    flexShrink: 0,
   };
 
-  // Duplicate alerts for seamless loop
-  const tickerItems = [...alerts, ...alerts];
+  // Render a single ticker item
+  const renderItem = (alert: Alert, index: number, isOriginal: boolean) => (
+    <span
+      key={`${alert.id}-${isOriginal ? 'a' : 'b'}-${index}`}
+      style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+    >
+      <span
+        data-testid={isOriginal ? `ticker-item-${alert.id}` : undefined}
+        style={itemStyle}
+        onClick={() => onItemClick?.(alert)}
+        role={onItemClick ? 'button' : undefined}
+        tabIndex={onItemClick && isOriginal ? 0 : undefined}
+      >
+        {isWhaleAmount(alert.amount) && (
+          <span style={{ fontSize: isMobile ? '12px' : '14px' }}>🐋</span>
+        )}
+        <span
+          data-testid={isOriginal ? `ticker-address-${alert.id}` : undefined}
+          style={addressStyle}
+        >
+          {truncateAddress(alert.walletAddress)}
+        </span>
+        <span
+          data-testid={isOriginal ? `ticker-amount-${alert.id}` : undefined}
+          style={amountStyle}
+        >
+          {formatTickerAmount(alert.amount)}
+        </span>
+        <span style={timeStyle}>{getRelativeTime(alert.timestamp)}</span>
+      </span>
+      <span style={separatorStyle} aria-hidden="true" />
+    </span>
+  );
 
   return (
     <>
-      {/* Keyframe animation for scrolling */}
       <style>
         {`
-          @keyframes scroll {
+          @keyframes ticker-scroll {
             0% {
               transform: translateX(0);
             }
@@ -260,50 +253,18 @@ export function LiveTicker({
         style={containerStyle}
         aria-live="polite"
         aria-label="Live whale activity ticker"
-        // Only pause on hover for desktop - mobile touch doesn't need hover pause
         onMouseEnter={!isMobile ? () => setIsPaused(true) : undefined}
         onMouseLeave={!isMobile ? () => setIsPaused(false) : undefined}
       >
         <div style={wrapperStyle}>
-          <div data-testid="ticker-track" style={trackStyle}>
-            {tickerItems.map((alert, index) => (
-              <span key={`${alert.id}-${index}`}>
-                <span
-                  data-testid={index < alerts.length ? `ticker-item-${alert.id}` : undefined}
-                  style={itemStyle}
-                  onClick={() => onItemClick?.(alert)}
-                  role={onItemClick ? 'button' : undefined}
-                  tabIndex={onItemClick && index < alerts.length ? 0 : undefined}
-                >
-                  {/* Whale emoji for large deposits */}
-                  {isWhaleAmount(alert.amount) && (
-                    <span style={{ fontSize: isMobile ? '12px' : '14px' }}>🐋</span>
-                  )}
-                  {/* Wallet address */}
-                  <span
-                    data-testid={index < alerts.length ? `ticker-address-${alert.id}` : undefined}
-                    style={addressStyle}
-                  >
-                    {truncateAddress(alert.walletAddress)}
-                  </span>
-                  {/* Amount */}
-                  <span
-                    data-testid={index < alerts.length ? `ticker-amount-${alert.id}` : undefined}
-                    style={amountStyle}
-                  >
-                    {formatTickerAmount(alert.amount)}
-                  </span>
-                  {/* Time */}
-                  <span style={timeStyle}>{getRelativeTime(alert.timestamp)}</span>
-                </span>
-                {/* Separator dot */}
-                <span style={separatorStyle} aria-hidden="true" />
-              </span>
-            ))}
+          <div ref={trackRef} data-testid="ticker-track" style={trackStyle}>
+            {/* First set of items */}
+            {alerts.map((alert, i) => renderItem(alert, i, true))}
+            {/* Duplicate set for seamless loop */}
+            {alerts.map((alert, i) => renderItem(alert, i, false))}
           </div>
         </div>
 
-        {/* Dismiss button */}
         {dismissable && (
           <button
             data-testid="ticker-dismiss"
