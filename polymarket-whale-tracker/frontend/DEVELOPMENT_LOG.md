@@ -2135,4 +2135,54 @@ const RANK_COLORS = ['#ffd700', '#c0c0c0', '#cd7f32'];
 
 ---
 
+### Task: Implement Live Ticker Banner
+
+**Status**: ✅ COMPLETED
+
+**Goal**: Add horizontal scrolling banner showing live whale activity per DESIGN_IMPLEMENTATION_ROADMAP.md Task 11.
+
+**Implementation**:
+
+1. **Created LiveTicker component** (`src/components/LiveTicker.tsx`):
+   - Fixed position below header
+   - Horizontally scrolling whale activity
+   - Seamless infinite loop animation (duplicates items)
+   - Pauses on hover for readability
+   - Dismissable with close button
+   - Click on item navigates to wallet profile
+
+2. **Data displayed per item**:
+   - Wallet address (truncated: 0x1234...5678)
+   - Deposit amount (formatted: $500K, $1M)
+   - Relative time (7m ago, 1h ago)
+   - Whale emoji (🐋) for large deposits ($100K+)
+
+3. **Configuration**:
+   - Speed variants: `slow` (40s), `normal` (25s), `fast` (15s)
+   - Responsive height: 36px mobile, 40px desktop
+   - Edge fade effect using CSS mask
+
+4. **Updated layout constants** (`src/constants/layout.ts`):
+   - Added ticker heights (36px mobile, 40px desktop)
+   - Added `paddingTopNoTicker` for when ticker is hidden
+   - Dynamic padding calculation based on ticker visibility
+
+5. **Integrated into App.tsx**:
+   - Shows latest 10 alerts in ticker
+   - Hidden during loading or when no alerts
+   - Clicking item navigates to wallet profile
+   - Dismiss button hides ticker for session
+
+**Accessibility**:
+- `aria-live="polite"` for screen reader announcements
+- `aria-label="Live whale activity ticker"`
+- Dismiss button has `aria-label="Dismiss ticker"`
+- Respects `prefers-reduced-motion` media query
+
+**Tests**: 25 new tests for LiveTicker component
+
+**Total Tests**: 627 passing
+
+---
+
 *"In the void, whales move in silence. We see them."*

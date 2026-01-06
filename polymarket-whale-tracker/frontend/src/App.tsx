@@ -44,6 +44,7 @@ import { PullToRefresh } from './components/PullToRefresh';
 import { WhaleAnimation } from './components/WhaleAnimation';
 import { WhaleTableSkeleton } from './components/WhaleTableSkeleton';
 import { AlertFeedSkeleton } from './components/AlertFeedSkeleton';
+import { LiveTicker } from './components/LiveTicker';
 import { useSettings } from './contexts/SettingsContext';
 import { useToast } from './contexts/ToastContext';
 import type { ViewId } from './types/navigation';
@@ -128,6 +129,9 @@ function App() {
   // Whale table sort state (managed here for server-side sorting)
   const [whaleSortBy, setWhaleSortBy] = useState<WhaleSortField>('totalDeposited');
   const [whaleSortDir, setWhaleSortDir] = useState<SortDirection>('desc');
+
+  // Live ticker visibility state
+  const [showLiveTicker, setShowLiveTicker] = useState(true);
 
   const { data: stats, loading, error, refetch, updateStats } = useStats();
   const WHALES_PER_PAGE = 20;
@@ -693,19 +697,62 @@ function App() {
         alertCount={unreadAlertCount}
       />
 
+      {/* Live Ticker - horizontal scrolling whale activity */}
+      <LiveTicker
+        alerts={alerts.slice(0, 10)} // Show last 10 alerts
+        hidden={!showLiveTicker || alertsLoading || alerts.length === 0}
+        dismissable
+        onDismiss={() => setShowLiveTicker(false)}
+        onItemClick={(alert) => handleNavigate('wallet', alert.walletAddress)}
+        isMobile={isMobile}
+        speed="normal"
+      />
+
       {/* Main content area */}
-      {isMobile ? (
-        <PullToRefresh
-          onRefresh={handlePullToRefresh}
-          disabled={currentView === 'settings'} // Disable on settings page
-        >
+      {(() => {
+        // Determine if ticker is visible to adjust padding
+        const tickerVisible = showLiveTicker && !alertsLoading && alerts.length > 0;
+        const mobilePaddingTop = tickerVisible
+          ? LAYOUT.content.paddingTop.mobile
+          : LAYOUT.content.paddingTopNoTicker.mobile;
+        const desktopPaddingTop = tickerVisible
+          ? LAYOUT.content.paddingTop.desktop
+          : LAYOUT.content.paddingTopNoTicker.desktop;
+
+        return isMobile ? (
+          <PullToRefresh
+            onRefresh={handlePullToRefresh}
+            disabled={currentView === 'settings'} // Disable on settings page
+          >
+            <main
+              style={{
+                position: 'relative',
+                zIndex: 2,
+                padding: tokens.spacing[4],
+                paddingTop: mobilePaddingTop,
+                paddingBottom: LAYOUT.content.paddingBottom.mobile,
+                maxWidth: '1400px',
+                margin: '0 auto',
+              }}
+            >
+              {/* View content */}
+              {currentView === 'dashboard' && renderDashboardContent()}
+              {currentView === 'whales' && renderWhalesContent()}
+              {currentView === 'alerts' && renderAlertsContent()}
+              {currentView === 'wallet' && renderWalletContent()}
+
+              {/* Settings page */}
+              {currentView === 'settings' && <Settings isMobile={isMobile} />}
+            </main>
+          </PullToRefresh>
+        ) : (
           <main
             style={{
               position: 'relative',
               zIndex: 2,
-              padding: tokens.spacing[4],
-              paddingTop: LAYOUT.content.paddingTop.mobile,
-              paddingBottom: LAYOUT.content.paddingBottom.mobile,
+              padding: tokens.spacing[8],
+              paddingTop: desktopPaddingTop,
+              paddingBottom: LAYOUT.content.paddingBottom.desktop,
               maxWidth: '1400px',
               margin: '0 auto',
             }}
@@ -719,29 +766,8 @@ function App() {
             {/* Settings page */}
             {currentView === 'settings' && <Settings isMobile={isMobile} />}
           </main>
-        </PullToRefresh>
-      ) : (
-        <main
-          style={{
-            position: 'relative',
-            zIndex: 2,
-            padding: tokens.spacing[8],
-            paddingTop: LAYOUT.content.paddingTop.desktop,
-            paddingBottom: LAYOUT.content.paddingBottom.desktop,
-            maxWidth: '1400px',
-            margin: '0 auto',
-          }}
-        >
-          {/* View content */}
-          {currentView === 'dashboard' && renderDashboardContent()}
-          {currentView === 'whales' && renderWhalesContent()}
-          {currentView === 'alerts' && renderAlertsContent()}
-          {currentView === 'wallet' && renderWalletContent()}
-
-          {/* Settings page */}
-          {currentView === 'settings' && <Settings isMobile={isMobile} />}
-        </main>
-      )}
+        );
+      })()}
 
       {/* Mobile Bottom Navigation */}
       {isMobile && (

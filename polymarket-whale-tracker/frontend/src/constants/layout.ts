@@ -12,15 +12,26 @@ export const LAYOUT = {
     desktop: '70px',
   },
 
+  /** LiveTicker heights (when visible) */
+  ticker: {
+    mobile: '36px',
+    desktop: '40px',
+  },
+
   /** MobileNav height (excluding safe area) */
   mobileNav: {
     height: '70px',
   },
 
-  /** Content padding to account for fixed header and mobile nav */
+  /** Content padding to account for fixed header, ticker, and mobile nav */
   content: {
-    /** paddingTop = header height + extra spacing */
+    /** paddingTop = header height + ticker height + extra spacing */
     paddingTop: {
+      mobile: '116px',  // 60px header + 36px ticker + 20px spacing
+      desktop: '140px', // 70px header + 40px ticker + 30px spacing
+    },
+    /** paddingTop without ticker */
+    paddingTopNoTicker: {
       mobile: '80px',  // 60px header + 20px spacing
       desktop: '100px', // 70px header + 30px spacing
     },
