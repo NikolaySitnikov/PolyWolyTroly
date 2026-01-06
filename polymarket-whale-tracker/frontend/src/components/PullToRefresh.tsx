@@ -170,7 +170,7 @@ export function PullToRefresh({
   const getWhaleAnimation = (): string => {
     switch (state) {
       case 'loading':
-        return 'whaleSwim 3s ease-in-out infinite'; // Match WhaleAnimation loading
+        return 'whaleSwimPTR 3s ease-in-out infinite';
       case 'complete':
         return 'whaleDive 0.3s ease-in forwards';
       default:
@@ -207,7 +207,7 @@ export function PullToRefresh({
       {/* Keyframe animations */}
       <style>
         {`
-          @keyframes whaleSwim {
+          @keyframes whaleSwimPTR {
             0%, 100% {
               transform: translateX(0) rotate(0deg);
             }
