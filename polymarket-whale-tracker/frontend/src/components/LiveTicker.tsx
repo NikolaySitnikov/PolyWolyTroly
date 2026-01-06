@@ -26,11 +26,11 @@ const SPEED_CONFIG: Record<TickerSpeed, number> = {
   fast: 15,
 };
 
-/** Speed configuration for mobile (faster due to smaller screen) */
+/** Speed configuration for mobile (much faster due to smaller screen) */
 const MOBILE_SPEED_CONFIG: Record<TickerSpeed, number> = {
-  slow: 20,
-  normal: 12,
-  fast: 8,
+  slow: 12,
+  normal: 8,
+  fast: 5,
 };
 
 export interface LiveTickerProps {
