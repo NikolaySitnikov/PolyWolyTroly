@@ -19,11 +19,18 @@ import type { Alert } from '../types/alert';
 /** Speed variants for ticker animation */
 export type TickerSpeed = 'slow' | 'normal' | 'fast';
 
-/** Speed configuration in seconds per loop */
+/** Speed configuration in seconds per loop (desktop) */
 const SPEED_CONFIG: Record<TickerSpeed, number> = {
   slow: 40,
   normal: 25,
   fast: 15,
+};
+
+/** Speed configuration for mobile (faster due to smaller screen) */
+const MOBILE_SPEED_CONFIG: Record<TickerSpeed, number> = {
+  slow: 20,
+  normal: 12,
+  fast: 8,
 };
 
 export interface LiveTickerProps {
@@ -123,7 +130,7 @@ export function LiveTicker({
     return null;
   }
 
-  const animationDuration = SPEED_CONFIG[speed];
+  const animationDuration = isMobile ? MOBILE_SPEED_CONFIG[speed] : SPEED_CONFIG[speed];
 
   // Container styles - fixed position below header
   const headerHeight = isMobile ? LAYOUT.header.mobile : LAYOUT.header.desktop;
@@ -151,12 +158,14 @@ export function LiveTicker({
   };
 
   // Scrolling track styles
+  // On mobile, never pause (touch interactions shouldn't pause the ticker)
+  const shouldPause = !isMobile && isPaused;
   const trackStyle: CSSProperties = {
     display: 'flex',
     alignItems: 'center',
     whiteSpace: 'nowrap',
     animation: `scroll ${animationDuration}s linear infinite`,
-    animationPlayState: isPaused ? 'paused' : 'running',
+    animationPlayState: shouldPause ? 'paused' : 'running',
   };
 
   // Individual item styles
@@ -245,8 +254,9 @@ export function LiveTicker({
         style={containerStyle}
         aria-live="polite"
         aria-label="Live whale activity ticker"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
+        // Only pause on hover for desktop - mobile touch doesn't need hover pause
+        onMouseEnter={!isMobile ? () => setIsPaused(true) : undefined}
+        onMouseLeave={!isMobile ? () => setIsPaused(false) : undefined}
       >
         <div style={wrapperStyle}>
           <div data-testid="ticker-track" style={trackStyle}>

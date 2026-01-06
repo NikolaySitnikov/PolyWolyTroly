@@ -703,7 +703,7 @@ function App() {
         hidden={!showLiveTicker || alertsLoading || alerts.length === 0}
         dismissable
         onDismiss={() => setShowLiveTicker(false)}
-        onItemClick={(alert) => handleNavigate('wallet', alert.walletAddress)}
+        onItemClick={(alert) => handleWhaleClick(alert.walletAddress)}
         isMobile={isMobile}
         speed="normal"
       />
