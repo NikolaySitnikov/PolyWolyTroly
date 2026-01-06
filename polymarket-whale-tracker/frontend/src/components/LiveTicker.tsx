@@ -15,12 +15,15 @@ import type { Alert } from '../types/alert';
 /** Speed variants for ticker animation */
 export type TickerSpeed = 'slow' | 'normal' | 'fast';
 
-/** Target time in seconds for content to scroll across the visible screen */
-const SCROLL_TIME_SECONDS: Record<TickerSpeed, number> = {
-  slow: 15,
-  normal: 10,
-  fast: 6,
+/** Pixels per second for each speed level */
+const SPEED_PX_PER_SEC: Record<TickerSpeed, number> = {
+  slow: 40,
+  normal: 70,
+  fast: 120,
 };
+
+/** Mobile speed multiplier */
+const MOBILE_SPEED_MULTIPLIER = 1.3;
 
 export interface LiveTickerProps {
   alerts: Alert[];
@@ -85,7 +88,6 @@ export function LiveTicker({
 }: LiveTickerProps) {
   const [isPaused, setIsPaused] = useState(false);
   const [contentWidth, setContentWidth] = useState(0);
-  const [screenWidth, setScreenWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
   const contentRef = useRef<HTMLDivElement>(null);
 
   // Measure content width when alerts change
@@ -97,26 +99,18 @@ export function LiveTicker({
     }
   }, [alerts]);
 
-  // Track screen width for dynamic speed calculation
-  useEffect(() => {
-    const handleResize = () => setScreenWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   // Don't render if hidden or no alerts
   if (hidden || alerts.length === 0) {
     return null;
   }
 
-  // Calculate animation duration:
-  // We want content to scroll across the visible screen in SCROLL_TIME_SECONDS
-  // Speed = screenWidth / scrollTime (px per second)
-  // Duration = contentWidth / speed = contentWidth * scrollTime / screenWidth
-  const scrollTime = SCROLL_TIME_SECONDS[speed];
-  const duration = contentWidth > 0
-    ? Math.max(5, (contentWidth * scrollTime) / screenWidth)
-    : 15;
+  // Calculate duration based on content width and desired speed
+  const pxPerSec = isMobile
+    ? SPEED_PX_PER_SEC[speed] * MOBILE_SPEED_MULTIPLIER
+    : SPEED_PX_PER_SEC[speed];
+
+  // Duration = width / speed, with minimum of 5 seconds
+  const duration = contentWidth > 0 ? Math.max(5, contentWidth / pxPerSec) : 20;
 
   // Styles
   const headerHeight = isMobile ? LAYOUT.header.mobile : LAYOUT.header.desktop;
