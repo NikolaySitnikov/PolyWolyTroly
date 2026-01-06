@@ -42,6 +42,8 @@ import { ToastContainer } from './components/ToastContainer';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { PullToRefresh } from './components/PullToRefresh';
 import { WhaleAnimation } from './components/WhaleAnimation';
+import { WhaleTableSkeleton } from './components/WhaleTableSkeleton';
+import { AlertFeedSkeleton } from './components/AlertFeedSkeleton';
 import { useSettings } from './contexts/SettingsContext';
 import { useToast } from './contexts/ToastContext';
 import type { ViewId } from './types/navigation';
@@ -410,14 +412,8 @@ function App() {
           </p>
         </div>
 
-        {/* Loading state - uses ASCII whale animation per brand guidelines */}
-        {alertsLoading && (
-          <WhaleAnimation
-            state="loading"
-            title="Hunting for alerts..."
-            subtitle="Scanning for whale activity..."
-          />
-        )}
+        {/* Loading state - skeleton shaped like actual content */}
+        {alertsLoading && <AlertFeedSkeleton isMobile={isMobile} count={5} />}
 
         {/* Error state */}
         {alertsError && (
@@ -542,14 +538,8 @@ function App() {
           </p>
         </div>
 
-        {/* Loading state - uses ASCII whale animation per brand guidelines */}
-        {whalesLoading && (
-          <WhaleAnimation
-            state="loading"
-            title="Scanning the depths..."
-            subtitle="Looking for whale activity..."
-          />
-        )}
+        {/* Loading state - skeleton shaped like actual content */}
+        {whalesLoading && <WhaleTableSkeleton isMobile={isMobile} count={5} />}
 
         {/* Error state */}
         {whalesError && (

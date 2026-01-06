@@ -1991,4 +1991,111 @@ All tasks from GROUP 1 (Core Animations & Visual Effects) have been completed:
 
 ---
 
+---
+
+## GROUP 5: Mobile Interactions & Polish
+
+### Task: Ranking Badges to Whale Cards (DEFERRED)
+
+**Status**: ⏸️ DEFERRED - To be implemented with P&L tracking feature
+
+**Goal**: Display position-specific ranking medals (🥇, 🥈, 🥉) for top 3 whales based on performance/ranking.
+
+**Design Reference**: `Design docs/App.jsx` lines 1569-1597
+
+**Design Specifications**:
+```tsx
+// Medal icons by position
+const RANK_MEDALS = ['🥇', '🥈', '🥉'];
+
+// Background gradients per rank (gold, silver, bronze)
+const RANK_COLORS = ['#ffd700', '#c0c0c0', '#cd7f32'];
+
+// Avatar replacement styling
+{
+  width: '40px',
+  height: '40px',
+  borderRadius: '10px',
+  background: `linear-gradient(135deg, ${RANK_COLORS[rank]}40, ${tokens.colors.cyan}20)`,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '20px',
+}
+```
+
+**Implementation Approach** (when P&L tracking is ready):
+
+1. **Update AchievementBadge component** (`src/components/AchievementBadge.tsx`):
+   - Add new achievement types: `'rank-1'`, `'rank-2'`, `'rank-3'`
+   - Each with distinct medal emoji and colored background
+   - Or update `'top-depositor'` to accept a `rank` prop (1-3)
+
+2. **Update getWhaleAchievements function**:
+   - Pass actual rank position (1, 2, 3) instead of just checking top 3
+   - Return appropriate badge based on exact position
+
+3. **Update WhaleTable component**:
+   - Option A: Replace whale avatar (🐋) with rank medal for top 3
+   - Option B: Show rank medal in achievements section with position indicator
+   - The design mockup shows avatar replacement approach
+
+4. **Data requirements**:
+   - Needs P&L (Profit/Loss) data per whale to rank properly
+   - Or could rank by totalDeposited (current) if preferred
+   - Win rate data would enhance the feature
+
+**Files to modify**:
+- `src/components/AchievementBadge.tsx` - Add rank-specific types
+- `src/components/WhaleTable.tsx` - Display rank badges
+- `src/types/whale.ts` - Add rank/P&L fields if needed
+
+**Why Deferred**: The ranking badges feature makes most sense when paired with P&L tracking, as the design mockup shows whales ranked by P&L performance, not just deposit volume. Implementing now would require deciding on a ranking criteria that may change.
+
+---
+
+### Task: Implement Skeleton Loading Components
+
+**Status**: ✅ COMPLETED
+
+**Goal**: Create skeleton loading components shaped like actual content for smooth loading transitions.
+
+**Implementation**:
+
+1. **Created base Skeleton components** (`src/components/Skeleton.tsx`):
+   - `Skeleton` - Base animated placeholder with shimmer effect
+   - `SkeletonText` - Text-shaped skeleton with size variants (sm/md/lg)
+   - `SkeletonCard` - Card-shaped skeleton matching whale/alert cards
+   - `SkeletonRow` - Table row-shaped skeleton for desktop views
+
+2. **Created WhaleTableSkeleton** (`src/components/WhaleTableSkeleton.tsx`):
+   - Mobile view: Skeleton cards matching `MobileWhaleCard` structure
+   - Desktop view: Skeleton rows matching table columns (Wallet, Total Deposited, Deposits, First Seen)
+   - Includes sticky header placeholder and search bar skeleton
+   - Staggered animation delays for visual flow
+
+3. **Created AlertFeedSkeleton** (`src/components/AlertFeedSkeleton.tsx`):
+   - Mobile view: Skeleton cards matching `MobileAlertCard` structure
+   - Desktop view: Skeleton rows matching alert list items
+   - Includes header with Live Feed placeholder and filter pill
+   - Staggered animation delays for visual flow
+
+4. **Updated App.tsx**:
+   - Replaced `WhaleAnimation` loading states with proper skeleton components
+   - `whalesLoading` → `<WhaleTableSkeleton isMobile={isMobile} count={5} />`
+   - `alertsLoading` → `<AlertFeedSkeleton isMobile={isMobile} count={5} />`
+
+**Features**:
+- Shimmer animation (1.5s infinite) per DESIGN_SYSTEM.md
+- Shapes match actual content for smooth visual transition
+- Staggered delays (50ms desktop rows, 100ms mobile cards) for organic feel
+- Responsive (different layouts for mobile vs desktop)
+- Uses design tokens for consistent styling
+
+**Tests**: 27 new tests (13 Skeleton + 7 WhaleTableSkeleton + 7 AlertFeedSkeleton)
+
+**Total Tests**: 583 passing
+
+---
+
 *"In the void, whales move in silence. We see them."*
