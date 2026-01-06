@@ -21,16 +21,16 @@ export type TickerSpeed = 'slow' | 'normal' | 'fast';
 
 /** Pixels per second for each speed (higher = faster scrolling) */
 const SPEED_PPS: Record<TickerSpeed, number> = {
-  slow: 30,
-  normal: 50,
-  fast: 80,
+  slow: 100,
+  normal: 150,
+  fast: 200,
 };
 
 /** Mobile speed multiplier (faster on mobile) */
-const MOBILE_SPEED_MULTIPLIER = 1.5;
+const MOBILE_SPEED_MULTIPLIER = 2;
 
 /** Estimated width per ticker item in pixels */
-const ITEM_WIDTH_ESTIMATE = 200; // Approx width of each item including padding
+const ITEM_WIDTH_ESTIMATE = 180; // Approx width of each item including padding
 
 export interface LiveTickerProps {
   /** Array of alerts to display in the ticker */
@@ -136,7 +136,7 @@ export function LiveTicker({
   const pixelsPerSecond = isMobile
     ? SPEED_PPS[speed] * MOBILE_SPEED_MULTIPLIER
     : SPEED_PPS[speed];
-  const animationDuration = Math.max(10, totalContentWidth / pixelsPerSecond);
+  const animationDuration = Math.max(5, totalContentWidth / pixelsPerSecond);
 
   // Container styles - fixed position below header
   const headerHeight = isMobile ? LAYOUT.header.mobile : LAYOUT.header.desktop;
