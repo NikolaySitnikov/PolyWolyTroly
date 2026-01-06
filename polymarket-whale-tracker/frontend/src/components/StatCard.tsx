@@ -13,15 +13,17 @@
  * - Flash animation on value change (green for increase, red for decrease)
  */
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, type ComponentType } from 'react';
 import { tokens } from '../styles/tokens';
+import type { IconProps } from './icons';
 
 type AccentColor = 'cyan' | 'magenta' | 'purple' | 'profit' | 'loss';
 
 interface StatCardProps {
   label: string;
   value: string;
-  icon: string;
+  /** Icon can be a string (emoji) or a React component */
+  icon: string | ComponentType<IconProps>;
   subValue?: string;
   trend?: number;
   accentColor?: AccentColor;
@@ -142,7 +144,25 @@ export function StatCard({
         >
           {label}
         </span>
-        <span style={{ fontSize: '18px', opacity: 0.7 }}>{icon}</span>
+        <span
+          style={{
+            fontSize: '18px',
+            opacity: 0.8,
+            display: 'flex',
+            alignItems: 'center',
+            color: accent,
+            filter: `drop-shadow(0 0 10px ${accent}40)`,
+          }}
+        >
+          {typeof icon === 'function' ? (
+            (() => {
+              const IconComponent = icon;
+              return <IconComponent size={24} color={accent} />;
+            })()
+          ) : (
+            icon
+          )}
+        </span>
       </div>
 
       {/* Main value */}

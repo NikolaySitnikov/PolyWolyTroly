@@ -19,8 +19,9 @@ import { tokens } from '../styles/tokens';
 import { LiveIndicator } from './LiveIndicator';
 import { Tooltip } from './Tooltip';
 import { Button } from './Button';
-import { NAV_ITEMS } from '../types/navigation';
+import { NAV_ITEMS, isIconComponent } from '../types/navigation';
 import type { ViewId } from '../types/navigation';
+import { iconStyles } from './icons';
 
 interface HeaderProps {
   currentView: ViewId;
@@ -177,7 +178,16 @@ export function Header({ currentView, onNavigate, isMobile, alertCount }: Header
                   }
                 }}
               >
-                <span>{item.icon}</span>
+                <span style={{ display: 'flex', alignItems: 'center' }}>
+                  {isIconComponent(item.icon) ? (
+                    <item.icon
+                      size={18}
+                      style={isActive ? iconStyles.active : iconStyles.secondary}
+                    />
+                  ) : (
+                    item.icon
+                  )}
+                </span>
                 {item.label}
                 {/* Alert Badge */}
                 {showBadge && (

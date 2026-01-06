@@ -14,8 +14,9 @@
  */
 
 import { tokens } from '../styles/tokens';
-import { MOBILE_NAV_ITEMS } from '../types/navigation';
+import { MOBILE_NAV_ITEMS, isIconComponent } from '../types/navigation';
 import type { ViewId, NavItem } from '../types/navigation';
+import { iconStyles } from './icons';
 
 interface MobileNavProps {
   currentView: ViewId;
@@ -91,13 +92,23 @@ function NavItem({
         {/* Icon */}
         <span
           style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             fontSize: '22px',
             filter: isActive ? 'none' : 'grayscale(30%)',
             opacity: isActive ? 1 : 0.7,
             transition: 'all 0.2s ease',
           }}
         >
-          {item.icon}
+          {isIconComponent(item.icon) ? (
+            <item.icon
+              size={22}
+              style={isActive ? iconStyles.active : iconStyles.secondary}
+            />
+          ) : (
+            item.icon
+          )}
         </span>
 
         {/* Badge Count */}
