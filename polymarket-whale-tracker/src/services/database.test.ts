@@ -3,11 +3,22 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const mockQuery = vi.fn();
 const mockEnd = vi.fn();
 
+// Mock client for transaction support
+const mockClientQuery = vi.fn();
+const mockClientRelease = vi.fn();
+const mockConnect = vi.fn(() =>
+  Promise.resolve({
+    query: mockClientQuery,
+    release: mockClientRelease,
+  })
+);
+
 // Create a mock constructor function
 function MockPool() {
   return {
     query: mockQuery,
     end: mockEnd,
+    connect: mockConnect,
   };
 }
 
@@ -26,6 +37,9 @@ vi.mock("../config/index.js", () => ({
     database: {
       url: "postgresql://localhost:5432/test",
     },
+    app: {
+      maxAlerts: 10000,
+    },
   },
 }));
 
@@ -34,6 +48,9 @@ describe("database service", () => {
     vi.resetModules();
     mockQuery.mockReset();
     mockEnd.mockReset();
+    mockClientQuery.mockReset();
+    mockClientRelease.mockReset();
+    mockConnect.mockClear();
   });
 
   describe("walletExists", () => {
@@ -109,10 +126,13 @@ describe("database service", () => {
   });
 
   describe("recordDeposit", () => {
-    it("should insert a deposit and update wallet totals", async () => {
-      mockQuery
+    it("should insert a deposit, update wallet totals, and prune old deposits", async () => {
+      mockClientQuery
+        .mockResolvedValueOnce({ rows: [] }) // BEGIN
         .mockResolvedValueOnce({ rows: [{ id: 42 }] }) // INSERT deposit
-        .mockResolvedValueOnce({ rows: [] }); // UPDATE wallet
+        .mockResolvedValueOnce({ rows: [] }) // UPDATE wallet
+        .mockResolvedValueOnce({ rows: [] }) // DELETE prune
+        .mockResolvedValueOnce({ rows: [] }); // COMMIT
 
       const { db } = await import("./database.js");
       const result = await db.recordDeposit(
@@ -123,11 +143,15 @@ describe("database service", () => {
       );
 
       expect(result).toBe(42);
-      expect(mockQuery).toHaveBeenCalledTimes(2);
+      expect(mockConnect).toHaveBeenCalled();
+      expect(mockClientQuery).toHaveBeenCalledTimes(5);
+
+      // Verify BEGIN
+      expect(mockClientQuery).toHaveBeenNthCalledWith(1, "BEGIN");
 
       // Verify INSERT query
-      expect(mockQuery).toHaveBeenNthCalledWith(
-        1,
+      expect(mockClientQuery).toHaveBeenNthCalledWith(
+        2,
         `INSERT INTO deposits (tx_hash, wallet_address, amount, block_number)
          VALUES ($1, $2, $3, $4)
          RETURNING id`,
@@ -135,8 +159,8 @@ describe("database service", () => {
       );
 
       // Verify UPDATE query
-      expect(mockQuery).toHaveBeenNthCalledWith(
-        2,
+      expect(mockClientQuery).toHaveBeenNthCalledWith(
+        3,
         `UPDATE wallets
          SET total_deposited = total_deposited + $1,
              deposit_count = deposit_count + 1,
@@ -144,41 +168,71 @@ describe("database service", () => {
          WHERE address = $2`,
         [15000, "0xwalletaddress"]
       );
+
+      // Verify DELETE prune query
+      expect(mockClientQuery).toHaveBeenNthCalledWith(
+        4,
+        `DELETE FROM deposits
+         WHERE id IN (
+           SELECT id FROM deposits
+           ORDER BY id DESC
+           OFFSET $1
+         )`,
+        [10000]
+      );
+
+      // Verify COMMIT
+      expect(mockClientQuery).toHaveBeenNthCalledWith(5, "COMMIT");
+
+      // Verify client was released
+      expect(mockClientRelease).toHaveBeenCalled();
     });
 
     it("should return null for duplicate tx_hash (error code 23505)", async () => {
       const duplicateError = new Error("duplicate key value") as Error & { code: string };
       duplicateError.code = "23505";
-      mockQuery.mockRejectedValue(duplicateError);
+      mockClientQuery
+        .mockResolvedValueOnce({ rows: [] }) // BEGIN
+        .mockRejectedValueOnce(duplicateError); // INSERT fails
 
       const { db } = await import("./database.js");
       const result = await db.recordDeposit("0xDuplicateTx", "0xWallet", 1000, BigInt(100));
 
       expect(result).toBeNull();
+      expect(mockClientRelease).toHaveBeenCalled();
     });
 
-    it("should throw error for non-duplicate errors", async () => {
+    it("should throw error for non-duplicate errors and rollback", async () => {
       const otherError = new Error("Connection error") as Error & { code: string };
       otherError.code = "ECONNREFUSED";
-      mockQuery.mockRejectedValue(otherError);
+      mockClientQuery
+        .mockResolvedValueOnce({ rows: [] }) // BEGIN
+        .mockRejectedValueOnce(otherError); // INSERT fails
 
       const { db } = await import("./database.js");
 
       await expect(
         db.recordDeposit("0xTx", "0xWallet", 1000, BigInt(100))
       ).rejects.toThrow("Connection error");
+
+      // Verify ROLLBACK was called
+      expect(mockClientQuery).toHaveBeenCalledWith("ROLLBACK");
+      expect(mockClientRelease).toHaveBeenCalled();
     });
 
     it("should convert bigint block number to string", async () => {
-      mockQuery
-        .mockResolvedValueOnce({ rows: [{ id: 1 }] })
-        .mockResolvedValueOnce({ rows: [] });
+      mockClientQuery
+        .mockResolvedValueOnce({ rows: [] }) // BEGIN
+        .mockResolvedValueOnce({ rows: [{ id: 1 }] }) // INSERT
+        .mockResolvedValueOnce({ rows: [] }) // UPDATE
+        .mockResolvedValueOnce({ rows: [] }) // DELETE prune
+        .mockResolvedValueOnce({ rows: [] }); // COMMIT
 
       const { db } = await import("./database.js");
       await db.recordDeposit("0xTx", "0xWallet", 1000, BigInt(9999999999999));
 
-      expect(mockQuery).toHaveBeenNthCalledWith(
-        1,
+      expect(mockClientQuery).toHaveBeenNthCalledWith(
+        2,
         expect.any(String),
         ["0xTx", "0xwallet", 1000, "9999999999999"]
       );

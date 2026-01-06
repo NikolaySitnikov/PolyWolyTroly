@@ -32,10 +32,11 @@ export async function setupDatabase() {
     );
 
     -- Notifications table: tracks sent alerts
+    -- deposit_id uses ON DELETE SET NULL so pruning old deposits doesn't fail
     CREATE TABLE IF NOT EXISTS notifications (
       id SERIAL PRIMARY KEY,
       wallet_address VARCHAR(42) NOT NULL,
-      deposit_id INTEGER REFERENCES deposits(id),
+      deposit_id INTEGER REFERENCES deposits(id) ON DELETE SET NULL,
       notification_type VARCHAR(50) NOT NULL,
       message TEXT,
       sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -47,6 +48,7 @@ export async function setupDatabase() {
     CREATE INDEX IF NOT EXISTS idx_wallets_first_seen ON wallets(first_seen_at);
     CREATE INDEX IF NOT EXISTS idx_deposits_wallet ON deposits(wallet_address);
     CREATE INDEX IF NOT EXISTS idx_deposits_block ON deposits(block_number);
+    CREATE INDEX IF NOT EXISTS idx_deposits_id ON deposits(id);
   `;
 
   try {

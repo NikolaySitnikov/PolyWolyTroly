@@ -18,6 +18,7 @@ export const config = {
   app: {
     minDepositAmount: Number(process.env.MIN_DEPOSIT_AMOUNT) || 1500,
     nodeEnv: process.env.NODE_ENV || "development",
+    maxAlerts: 10000,
   },
 };
 

@@ -10,6 +10,7 @@
     "start": "node dist/index.js",
     "start:api": "node dist/api/index.js",
     "db:setup": "tsx src/scripts/setupDatabase.ts",
+    "db:migrate:alert-limit": "tsx src/scripts/migrateAlertLimit.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
