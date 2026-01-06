@@ -58,8 +58,8 @@ describe('useAlerts', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    // Called with page, limit, walletAddress (undefined), minAmount (undefined)
-    expect(fetchDeposits).toHaveBeenCalledWith(1, 20, undefined, undefined);
+    // Called with page, limit, walletAddress (undefined), minAmount (undefined), sortBy, sortDir
+    expect(fetchDeposits).toHaveBeenCalledWith(1, 20, undefined, undefined, 'created_at', 'desc');
   });
 
   it('should transform deposits to alerts', async () => {

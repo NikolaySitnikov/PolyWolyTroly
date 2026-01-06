@@ -135,11 +135,19 @@ export interface DepositsResponse {
 }
 
 /**
+ * Sort field options for deposits API
+ * Maps frontend names to backend column names
+ */
+export type DepositSortField = 'amount' | 'created_at' | 'type';
+
+/**
  * Fetches paginated list of recent deposits.
  * @param page - Page number (default 1)
  * @param limit - Items per page (default 50)
  * @param walletAddress - Optional wallet address to filter by
  * @param minAmount - Optional minimum amount filter (server-side)
+ * @param sortBy - Field to sort by (default 'created_at')
+ * @param sortDir - Sort direction (default 'desc')
  * @returns Promise resolving to paginated deposit data
  * @throws Error if the request fails
  */
@@ -147,16 +155,25 @@ export async function fetchDeposits(
   page = 1,
   limit = 50,
   walletAddress?: string,
-  minAmount?: number
+  minAmount?: number,
+  sortBy: DepositSortField = 'created_at',
+  sortDir: SortDirection = 'desc'
 ): Promise<DepositsResponse> {
-  let url = `${api.baseUrl}/api/deposits?page=${page}&limit=${limit}`;
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    sortBy,
+    sortDir,
+  });
+
   if (walletAddress) {
-    url += `&wallet=${walletAddress}`;
+    params.append('wallet', walletAddress);
   }
   if (minAmount !== undefined && minAmount > 0) {
-    url += `&minAmount=${minAmount}`;
+    params.append('minAmount', String(minAmount));
   }
-  const response = await fetch(url);
+
+  const response = await fetch(`${api.baseUrl}/api/deposits?${params.toString()}`);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch deposits: ${response.status}`);

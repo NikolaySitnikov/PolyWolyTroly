@@ -2,28 +2,36 @@
  * AlertFeed Component
  *
  * Live feed of whale alerts (deposits).
- * Follows the design system from DESIGN_SYSTEM.md
+ * Redesigned to match WhaleTable design patterns:
+ * - Desktop: 4-column table (Wallet | Type | Amount | Time)
+ * - Mobile: Card stack with unified card design
  *
- * Enhanced mobile view with:
- * - Sticky header with live indicator and count badge
- * - Touch-optimized alert cards matching WhaleTable pattern
- * - Unified time formatting (formatCardTime)
- * - Consistent hover/touch interactions
- * - Glass morphism sticky pagination
- * - Active filter display
+ * Features:
+ * - Sortable columns on desktop
+ * - Search by wallet address
+ * - Transaction type badges
+ * - Unified time formatting
+ * - Glass morphism sticky pagination on mobile
  *
- * @see ../Design docs/DESIGN_SYSTEM.md - AlertFeed section
  * @see ../styles/cardStyles.ts - Unified card patterns
+ * @see ./WhaleTable.tsx - Reference design
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { tokens } from '../styles/tokens';
 import { formatCardTime } from '../styles/cardStyles';
-// LiveIndicator removed - redundant with page-level indicator in header
-import { EmptyState } from './EmptyState';
+import { formatUSD } from '../utils/formatters';
 import { Pagination } from './Pagination';
+import { CopyableAddress } from './CopyableAddress';
 import { useNewItemAnimation } from '../hooks/useNewItemAnimation';
-import type { Alert } from '../types/alert';
+import type { Alert, AlertType } from '../types/alert';
+import { ALERT_TYPE_CONFIG } from '../types/alert';
+
+/** Sort fields for alerts (type not sortable - all deposits are same type) */
+export type AlertSortField = 'amount' | 'timestamp';
+
+/** Sort direction */
+export type SortDirection = 'asc' | 'desc';
 
 interface AlertFeedProps {
   alerts: Alert[];
@@ -39,32 +47,46 @@ interface AlertFeedProps {
   totalItems?: number;
   itemsPerPage?: number;
   onPageChange?: (page: number) => void;
+  /** Current sort field (server-side sorting) */
+  sortBy?: AlertSortField;
+  /** Current sort direction (server-side sorting) */
+  sortDir?: SortDirection;
+  /** Callback when sort changes */
+  onSortChange?: (field: AlertSortField, direction: SortDirection) => void;
 }
+
 
 /**
- * Format a number as USD with K/M suffix
+ * Transaction Type Badge Component
+ * Displays the alert type with consistent styling
  */
-function formatUSD(num: number): string {
-  if (Math.abs(num) >= 1000000) {
-    return `$${(num / 1000000).toFixed(2)}M`;
-  }
-  if (Math.abs(num) >= 1000) {
-    return `$${(num / 1000).toFixed(1)}K`;
-  }
-  return `$${num.toFixed(0)}`;
+function TransactionTypeBadge({ type, size = 'md' }: { type: AlertType; size?: 'sm' | 'md' }) {
+  const config = ALERT_TYPE_CONFIG[type];
+  const isSmall = size === 'sm';
+
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: isSmall ? '4px' : '6px',
+        padding: isSmall ? '3px 8px' : '5px 12px',
+        background: config.bgColor,
+        border: `1px solid ${config.borderColor}`,
+        borderRadius: '999px',
+        fontFamily: tokens.fonts.mono,
+        fontSize: isSmall ? '11px' : '12px',
+        fontWeight: 500,
+        color: config.textColor,
+        textTransform: 'capitalize',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span style={{ fontSize: isSmall ? '10px' : '12px' }}>{config.emoji}</span>
+      {config.label}
+    </span>
+  );
 }
-
-/**
- * Format wallet address with truncation (0x1234...7890)
- */
-function formatAddress(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
-
-// Note: Using formatCardTime from cardStyles.ts for unified time formatting
-
-// Note: AlertTypeBadge removed - redundant since all alerts are deposits
-// The card design now uses a 2-column stats grid matching WhaleTable pattern
 
 /**
  * Shared FilterPill Component
@@ -80,9 +102,18 @@ interface FilterPillProps {
   compact?: boolean;
 }
 
+function formatThresholdUSD(num: number): string {
+  if (Math.abs(num) >= 1000000) {
+    return `$${(num / 1000000).toFixed(2)}M`;
+  }
+  if (Math.abs(num) >= 1000) {
+    return `$${(num / 1000).toFixed(1)}K`;
+  }
+  return `$${num.toFixed(0)}`;
+}
+
 function FilterPill({ threshold, onClick, compact = false }: FilterPillProps) {
   if (compact) {
-    // Desktop compact version - just the pill, no "Filtering:" label
     return (
       <button
         onClick={onClick}
@@ -102,12 +133,11 @@ function FilterPill({ threshold, onClick, compact = false }: FilterPillProps) {
         }}
         title="Click to adjust threshold in Settings"
       >
-        {formatUSD(threshold)}+
+        {formatThresholdUSD(threshold)}+
       </button>
     );
   }
 
-  // Mobile version - includes "Filtering:" label with larger pill
   return (
     <button
       onClick={onClick}
@@ -149,198 +179,13 @@ function FilterPill({ threshold, onClick, compact = false }: FilterPillProps) {
           transition: 'all 0.15s ease',
         }}
       >
-        {formatUSD(threshold)}+
+        {formatThresholdUSD(threshold)}+
       </span>
     </button>
   );
 }
 
-/**
- * Mobile Alert Card Component
- * UNIFIED with WhaleTable card pattern
- *
- * Features:
- * - Same card structure as WhaleTable
- * - Hover glow effect (cyan border + translateY + boxShadow)
- * - Touch scale feedback
- * - 2-column stats grid
- * - Unified time format (formatCardTime)
- * - No arrow indicator (clickable is implied)
- */
-function MobileAlertCard({
-  alert,
-  onClick,
-  isNew,
-}: {
-  alert: Alert;
-  onClick?: () => void;
-  isNew: boolean;
-}) {
-  return (
-    <div
-      data-testid="alert-item"
-      onClick={onClick}
-      style={{
-        background: tokens.colors.surface,
-        border: `1px solid ${tokens.colors.border}`,
-        borderRadius: '14px',
-        padding: '16px',
-        cursor: onClick ? 'pointer' : 'default',
-        transition: `all ${tokens.animation.durationFast} ${tokens.animation.easeOutExpo}`,
-        animation: isNew
-          ? 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
-          : 'none',
-        WebkitTapHighlightColor: 'transparent',
-      }}
-      onTouchStart={(e) => {
-        if (onClick) {
-          e.currentTarget.style.transform = 'scale(0.98)';
-          e.currentTarget.style.background = tokens.colors.surfaceHover;
-        }
-      }}
-      onTouchEnd={(e) => {
-        e.currentTarget.style.transform = 'scale(1)';
-        e.currentTarget.style.background = tokens.colors.surface;
-      }}
-      onAnimationEnd={(e) => {
-        e.currentTarget.style.animation = 'none';
-      }}
-      // Hover glow effect (matches WhaleTable)
-      onMouseEnter={(e) => {
-        if (window.matchMedia('(hover: hover)').matches && onClick) {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.borderColor = tokens.colors.cyan;
-          e.currentTarget.style.boxShadow = `0 0 30px ${tokens.colors.cyanGlow}, inset 0 1px 0 ${tokens.colors.cyan}`;
-        }
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'scale(1)';
-        e.currentTarget.style.borderColor = tokens.colors.border;
-        e.currentTarget.style.boxShadow = 'none';
-        e.currentTarget.style.background = tokens.colors.surface;
-      }}
-    >
-      {/* Card Header - matches WhaleTable structure */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '14px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Icon - contextual (💰 for deposits) */}
-          <div
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '12px',
-              background: `linear-gradient(135deg, ${tokens.colors.profit}25, ${tokens.colors.cyan}15)`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '20px',
-              boxShadow: `0 0 20px ${tokens.colors.profitGlow}`,
-              flexShrink: 0,
-            }}
-          >
-            💰
-          </div>
-
-          {/* Address - same style as WhaleTable */}
-          <div
-            style={{
-              fontFamily: tokens.fonts.mono,
-              fontSize: '13px',
-              fontWeight: 500,
-              color: tokens.colors.cyan,
-              textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
-            }}
-          >
-            {formatAddress(alert.walletAddress)}
-          </div>
-        </div>
-
-        {/* Time pill - unified format (matches WhaleTable) */}
-        <span
-          style={{
-            fontFamily: tokens.fonts.mono,
-            fontSize: '11px',
-            color: tokens.colors.textMuted,
-            padding: '4px 8px',
-            background: `${tokens.colors.void}80`,
-            borderRadius: '6px',
-          }}
-        >
-          {formatCardTime(alert.timestamp)}
-        </span>
-      </div>
-
-      {/* Stats Grid - matches WhaleTable 2-column layout */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '16px',
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontFamily: tokens.fonts.mono,
-              fontSize: '10px',
-              color: tokens.colors.textMuted,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              marginBottom: '4px',
-            }}
-          >
-            Amount
-          </div>
-          <div
-            style={{
-              fontFamily: tokens.fonts.mono,
-              fontSize: '17px',
-              fontWeight: 600,
-              color: tokens.colors.profit,
-              textShadow: `0 0 15px ${tokens.colors.profitGlow}`,
-            }}
-          >
-            +{formatUSD(alert.amount)}
-          </div>
-        </div>
-        <div>
-          <div
-            style={{
-              fontFamily: tokens.fonts.mono,
-              fontSize: '10px',
-              color: tokens.colors.textMuted,
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              marginBottom: '4px',
-            }}
-          >
-            Type
-          </div>
-          <div
-            style={{
-              fontFamily: tokens.fonts.mono,
-              fontSize: '17px',
-              fontWeight: 600,
-              color: tokens.colors.textPrimary,
-              textTransform: 'capitalize',
-            }}
-          >
-            {alert.type}
-          </div>
-        </div>
-      </div>
-
-      {/* Arrow indicator removed - card is clickable, no redundant affordance */}
-    </div>
-  );
-}
+const DEFAULT_ITEMS_PER_PAGE = 20;
 
 export function AlertFeed({
   alerts,
@@ -348,38 +193,200 @@ export function AlertFeed({
   onAlertClick,
   activeMinThreshold,
   onNavigateToSettings,
-  currentPage,
+  currentPage = 1,
   totalPages,
   totalItems,
-  itemsPerPage = 20,
+  itemsPerPage = DEFAULT_ITEMS_PER_PAGE,
   onPageChange,
+  sortBy = 'timestamp',
+  sortDir = 'desc',
+  onSortChange,
 }: AlertFeedProps) {
   const [filter, setFilter] = useState('');
-  const [searchFocused, setSearchFocused] = useState(false);
+  const lastPointerSortRef = useRef<{ field: AlertSortField | null; at: number }>({
+    field: null,
+    at: 0,
+  });
 
-  // Track new items for animation (only animate truly new alerts, not on initial load)
+  // Track new items for animation
   const getAlertKey = useCallback((alert: Alert) => alert.id, []);
   const shouldAnimateAlert = useNewItemAnimation(alerts, getAlertKey);
 
-  // Filter alerts by wallet address only (min threshold applied server-side)
+  // Filter alerts by wallet address (client-side only, sorting is server-side)
   const filteredAlerts = useMemo(() => {
-    if (!filter) {
-      return alerts;
-    }
+    if (!filter) return alerts;
     return alerts.filter((alert) =>
       alert.walletAddress.toLowerCase().includes(filter.toLowerCase())
     );
   }, [alerts, filter]);
 
-  // Calculate pagination values for mobile
-  const startItem = totalItems === 0 ? 0 : ((currentPage ?? 1) - 1) * itemsPerPage + 1;
-  const endItem = Math.min((currentPage ?? 1) * itemsPerPage, totalItems ?? 0);
-  const hasMultiplePages = (totalPages ?? 0) > 1;
-  const showPaginationRibbon = onPageChange && (totalItems ?? 0) > 0;
+  // Calculate pagination
+  const actualTotal = totalItems ?? filteredAlerts.length;
+  const actualTotalPages = totalPages ?? Math.ceil(actualTotal / itemsPerPage);
 
-  // =====================
-  // MOBILE VIEW
-  // =====================
+  // Handle column header click for sorting (delegates to parent)
+  const handleSort = (field: AlertSortField) => {
+    if (!onSortChange) return;
+    const nextDir = sortBy === field ? (sortDir === 'desc' ? 'asc' : 'desc') : 'desc';
+    onSortChange(field, nextDir);
+  };
+
+  const handleSortActivate = (field: AlertSortField, source: 'pointer' | 'click') => {
+    if (source === 'click') {
+      const { field: lastField, at } = lastPointerSortRef.current;
+      if (lastField === field && Date.now() - at < 500) {
+        return;
+      }
+    } else {
+      lastPointerSortRef.current = { field, at: Date.now() };
+    }
+    handleSort(field);
+  };
+
+  // Empty state
+  if (alerts.length === 0) {
+    return (
+      <div
+        data-testid="alert-feed"
+        style={{
+          background: tokens.colors.surface,
+          border: `1px solid ${tokens.colors.border}`,
+          borderRadius: '12px',
+          padding: '40px',
+          textAlign: 'center',
+          backgroundColor: tokens.colors.surface,
+        }}
+      >
+        <pre
+          style={{
+            fontFamily: tokens.fonts.mono,
+            fontSize: '10px',
+            lineHeight: 1.2,
+            color: tokens.colors.cyan,
+            textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
+            margin: '0 0 24px 0',
+          }}
+        >
+{`        .
+       ":"
+     ___:____     |"\\/"|
+   ,'        \`.    \\  /
+   |  -        \\___/  |
+ ~^~^~^~^~^~^~^~^~^~^~^~^~`}
+        </pre>
+        <div
+          style={{
+            fontFamily: tokens.fonts.display,
+            fontSize: '24px',
+            color: tokens.colors.textPrimary,
+            marginBottom: '8px',
+          }}
+        >
+          No alerts yet
+        </div>
+        <p
+          style={{
+            fontFamily: tokens.fonts.body,
+            color: tokens.colors.textSecondary,
+          }}
+        >
+          Waiting for whale activity...
+        </p>
+      </div>
+    );
+  }
+
+  // No search results
+  if (filteredAlerts.length === 0 && filter) {
+    return (
+      <div
+        data-testid="alert-feed"
+        style={{
+          background: tokens.colors.surface,
+          border: `1px solid ${tokens.colors.border}`,
+          borderRadius: '12px',
+          overflow: 'hidden',
+          backgroundColor: tokens.colors.surface,
+        }}
+      >
+        {/* Search bar */}
+        <div
+          style={{
+            padding: '16px 20px',
+            borderBottom: `1px solid ${tokens.colors.border}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+          }}
+        >
+          <span style={{ color: tokens.colors.textMuted }}>🔍</span>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              maxWidth: '300px',
+              flex: '0 1 300px',
+            }}
+          >
+            <input
+              type="text"
+              placeholder="Search by address..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              style={{
+                flex: 1,
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                fontFamily: tokens.fonts.body,
+                fontSize: '14px',
+                color: tokens.colors.textPrimary,
+                minWidth: 0,
+              }}
+            />
+            {filter && (
+              <button
+                onClick={() => setFilter('')}
+                aria-label="Clear search"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  padding: '4px 8px',
+                  cursor: 'pointer',
+                  color: tokens.colors.textMuted,
+                  fontSize: '16px',
+                  lineHeight: 1,
+                  borderRadius: '4px',
+                  transition: 'color 0.15s ease',
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = tokens.colors.textPrimary;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = tokens.colors.textMuted;
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+        </div>
+        <div
+          style={{
+            padding: '48px 24px',
+            textAlign: 'center',
+            color: tokens.colors.textSecondary,
+          }}
+        >
+          No alerts found matching "{filter}"
+        </div>
+      </div>
+    );
+  }
+
+  // Mobile card view
   if (isMobile) {
     return (
       <div
@@ -388,8 +395,7 @@ export function AlertFeed({
           display: 'flex',
           flexDirection: 'column',
           minHeight: '100%',
-          // Padding for sticky pagination ribbon
-          paddingBottom: showPaginationRibbon ? (hasMultiplePages ? '140px' : '80px') : '0',
+          paddingBottom: onPageChange && actualTotalPages > 1 ? '140px' : '0',
         }}
       >
         {/* ===== STICKY HEADER ===== */}
@@ -407,7 +413,7 @@ export function AlertFeed({
             paddingRight: '16px',
           }}
         >
-          {/* Title Row - matches WhaleTable header */}
+          {/* Title Row */}
           <div
             style={{
               display: 'flex',
@@ -430,7 +436,7 @@ export function AlertFeed({
               </span>
             </div>
 
-            {/* Count badge only - no Live Indicator (redundant with page-level indicator) */}
+            {/* Alert count badge */}
             <span
               style={{
                 display: 'inline-flex',
@@ -446,11 +452,11 @@ export function AlertFeed({
                 boxShadow: `0 0 15px ${tokens.colors.cyanGlow}`,
               }}
             >
-              {(totalItems ?? alerts.length).toLocaleString()}
+              {actualTotal.toLocaleString()}
             </span>
           </div>
 
-          {/* Search Bar with focus glow */}
+          {/* Search Bar */}
           <div
             style={{
               display: 'flex',
@@ -458,11 +464,10 @@ export function AlertFeed({
               gap: '10px',
               padding: '12px 14px',
               background: tokens.colors.surface,
-              border: `1px solid ${searchFocused ? tokens.colors.cyan : tokens.colors.border}`,
+              border: `1px solid ${tokens.colors.border}`,
               borderRadius: '12px',
               marginBottom: '12px',
               transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-              boxShadow: searchFocused ? `0 0 20px ${tokens.colors.cyanGlow}` : 'none',
             }}
           >
             <span style={{ color: tokens.colors.textMuted, fontSize: '16px' }}>🔍</span>
@@ -471,8 +476,6 @@ export function AlertFeed({
               placeholder="Search by address..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
               style={{
                 flex: 1,
                 background: 'transparent',
@@ -506,7 +509,63 @@ export function AlertFeed({
             )}
           </div>
 
-          {/* Active Filter Indicator - Clickable to navigate to Settings */}
+          {/* Sort Pills */}
+          <div
+            style={{
+              display: 'flex',
+              gap: '8px',
+              overflowX: 'auto',
+              paddingBottom: '4px',
+              marginBottom: activeMinThreshold !== undefined && activeMinThreshold > 0 ? '12px' : '-4px',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+          >
+            {[
+              { field: 'amount' as AlertSortField, label: 'Amount', icon: '💰' },
+              { field: 'timestamp' as AlertSortField, label: 'Time', icon: '⏰' },
+            ].map((option) => {
+              const isActive = sortBy === option.field;
+              return (
+                <button
+                  key={option.field}
+                  onPointerDown={() => handleSortActivate(option.field, 'pointer')}
+                  onClick={() => handleSortActivate(option.field, 'click')}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '10px 16px',
+                    background: isActive ? `${tokens.colors.cyan}20` : tokens.colors.surface,
+                    border: `1px solid ${isActive ? tokens.colors.cyan : tokens.colors.border}`,
+                    borderRadius: '20px',
+                    fontFamily: tokens.fonts.body,
+                    fontSize: '13px',
+                    fontWeight: isActive ? 600 : 500,
+                    color: isActive ? tokens.colors.cyan : tokens.colors.textSecondary,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    whiteSpace: 'nowrap',
+                    boxShadow: isActive ? `0 0 15px ${tokens.colors.cyanGlow}` : 'none',
+                    minHeight: '44px',
+                    flexShrink: 0,
+                    touchAction: 'manipulation',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <span style={{ fontSize: '14px' }}>{option.icon}</span>
+                  <span>{option.label}</span>
+                  {isActive && (
+                    <span style={{ fontSize: '12px', opacity: 0.8 }}>
+                      {sortDir === 'desc' ? '↓' : '↑'}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Active Filter Indicator */}
           {activeMinThreshold !== undefined && activeMinThreshold > 0 && (
             <FilterPill
               threshold={activeMinThreshold}
@@ -517,78 +576,155 @@ export function AlertFeed({
 
         {/* ===== ALERT CARDS ===== */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {filteredAlerts.length === 0 ? (
-            <div
-              style={{
-                padding: '48px 20px',
-                textAlign: 'center',
-                background: tokens.colors.surface,
-                borderRadius: '14px',
-                border: `1px solid ${tokens.colors.border}`,
-              }}
-            >
-              {filter ? (
-                <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.5 }}>🔍</div>
-              ) : (
-                /* ASCII whale art - per BRAND_GUIDELINES_EXTENDED.md */
-                <pre
+          {filteredAlerts.map((alert) => {
+            const isNew = shouldAnimateAlert(alert);
+
+            return (
+              <div
+                key={alert.id}
+                data-testid="alert-item"
+                onClick={() => onAlertClick?.(alert)}
+                style={{
+                  background: tokens.colors.surface,
+                  border: `1px solid ${tokens.colors.border}`,
+                  borderRadius: '14px',
+                  padding: '16px',
+                  cursor: onAlertClick ? 'pointer' : 'default',
+                  transition: `all ${tokens.animation.durationFast} ${tokens.animation.easeOutExpo}`,
+                  animation: isNew ? 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+                onTouchStart={(e) => {
+                  if (onAlertClick) {
+                    e.currentTarget.style.transform = 'scale(0.98)';
+                    e.currentTarget.style.background = tokens.colors.surfaceHover;
+                  }
+                }}
+                onTouchEnd={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.background = tokens.colors.surface;
+                }}
+                onAnimationEnd={(e) => {
+                  e.currentTarget.style.animation = 'none';
+                }}
+                onMouseEnter={(e) => {
+                  if (window.matchMedia('(hover: hover)').matches && onAlertClick) {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.borderColor = tokens.colors.cyan;
+                    e.currentTarget.style.boxShadow = `0 0 30px ${tokens.colors.cyanGlow}, inset 0 1px 0 ${tokens.colors.cyan}`;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  e.currentTarget.style.borderColor = tokens.colors.border;
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.background = tokens.colors.surface;
+                }}
+              >
+                {/* Card Header */}
+                <div
                   style={{
-                    fontFamily: tokens.fonts.mono,
-                    fontSize: '10px',
-                    lineHeight: 1.2,
-                    color: tokens.colors.cyan,
-                    textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
-                    margin: '0 0 16px 0',
-                    opacity: 0.7,
-                    animation: 'subtleFloat 4s ease-in-out infinite',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '14px',
                   }}
                 >
-{`        .
-       ":"
-     ___:____     |"\\/"|
-   ,'        \`.    \\  /
-   |  -        \\___/  |
- ~^~^~^~^~^~^~^~^~^~^~^~^~`}
-                </pre>
-              )}
-              <div
-                style={{
-                  fontFamily: tokens.fonts.body,
-                  fontSize: '15px',
-                  color: tokens.colors.textSecondary,
-                  marginBottom: '4px',
-                }}
-              >
-                {filter ? `No alerts matching "${filter}"` : 'No alerts yet'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div
+                      style={{
+                        width: '42px',
+                        height: '42px',
+                        borderRadius: '12px',
+                        background: `linear-gradient(135deg, ${tokens.colors.profit}25, ${tokens.colors.cyan}15)`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px',
+                        boxShadow: `0 0 20px ${tokens.colors.profitGlow}`,
+                      }}
+                    >
+                      💰
+                    </div>
+                    <CopyableAddress
+                      address={alert.walletAddress}
+                      fontSize="13px"
+                    />
+                  </div>
+                  <span
+                    style={{
+                      fontFamily: tokens.fonts.mono,
+                      fontSize: '11px',
+                      color: tokens.colors.textMuted,
+                      padding: '4px 8px',
+                      background: `${tokens.colors.void}80`,
+                      borderRadius: '6px',
+                    }}
+                  >
+                    {formatCardTime(alert.timestamp)}
+                  </span>
+                </div>
+
+                {/* Stats Grid */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '16px',
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: tokens.fonts.mono,
+                        fontSize: '10px',
+                        color: tokens.colors.textMuted,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      Amount
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: tokens.fonts.mono,
+                        fontSize: '17px',
+                        fontWeight: 600,
+                        color: tokens.colors.profit,
+                        textShadow: `0 0 15px ${tokens.colors.profitGlow}`,
+                      }}
+                    >
+                      +{formatUSD(alert.amount)}
+                    </div>
+                  </div>
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: tokens.fonts.mono,
+                        fontSize: '10px',
+                        color: tokens.colors.textMuted,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      Type
+                    </div>
+                    <TransactionTypeBadge type={alert.type} size="md" />
+                  </div>
+                </div>
               </div>
-              <div
-                style={{
-                  fontFamily: tokens.fonts.mono,
-                  fontSize: '12px',
-                  color: tokens.colors.textMuted,
-                }}
-              >
-                {filter ? 'Try a different address' : 'Waiting for whale activity...'}
-              </div>
-            </div>
-          ) : (
-            filteredAlerts.map((alert) => (
-              <MobileAlertCard
-                key={alert.id}
-                alert={alert}
-                onClick={onAlertClick ? () => onAlertClick(alert) : undefined}
-                isNew={shouldAnimateAlert(alert)}
-              />
-            ))
-          )}
+            );
+          })}
         </div>
 
-        {/* ===== STICKY GLASS PAGINATION ===== */}
-        {showPaginationRibbon && (
+        {/* ===== STICKY PAGINATION ===== */}
+        {onPageChange && actualTotalPages > 1 && (
           <div
             style={{
               position: 'fixed',
-              bottom: '78px', // Above mobile nav
+              bottom: '78px',
               left: '16px',
               right: '16px',
               zIndex: 100,
@@ -596,10 +732,9 @@ export function AlertFeed({
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: hasMultiplePages ? '6px' : '0',
-              padding: hasMultiplePages ? '14px 20px' : '12px 20px',
+              gap: '6px',
+              padding: '14px 20px',
 
-              // Glass morphism
               background: `${tokens.colors.surface}e8`,
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
@@ -613,122 +748,98 @@ export function AlertFeed({
               `,
             }}
           >
-            {/* Navigation Row - only show when multiple pages */}
-            {hasMultiplePages && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-                {/* Previous Button */}
-                <button
-                  onClick={() => onPageChange!((currentPage ?? 1) - 1)}
-                  disabled={(currentPage ?? 1) === 1}
-                  aria-label="Previous page"
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: tokens.colors.surface,
-                    border: `1px solid ${tokens.colors.border}`,
-                    borderRadius: '14px',
-                    fontSize: '20px',
-                    color: (currentPage ?? 1) === 1 ? tokens.colors.muted : tokens.colors.textSecondary,
-                    cursor: (currentPage ?? 1) === 1 ? 'not-allowed' : 'pointer',
-                    opacity: (currentPage ?? 1) === 1 ? 0.4 : 1,
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  ‹
-                </button>
-
-                {/* Page Info */}
-                <div style={{ textAlign: 'center' }}>
-                  <div
-                    style={{
-                      fontFamily: tokens.fonts.mono,
-                      fontSize: '15px',
-                      fontWeight: 600,
-                      color: tokens.colors.textPrimary,
-                    }}
-                  >
-                    Page{' '}
-                    <span
-                      style={{
-                        color: tokens.colors.cyan,
-                        textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
-                      }}
-                    >
-                      {currentPage ?? 1}
-                    </span>
-                    {' '}of {totalPages ?? 1}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: tokens.fonts.mono,
-                      fontSize: '11px',
-                      color: tokens.colors.textMuted,
-                      marginTop: '2px',
-                    }}
-                  >
-                    Showing {startItem}-{endItem} of {(totalItems ?? 0).toLocaleString()} alerts
-                  </div>
-                </div>
-
-                {/* Next Button */}
-                <button
-                  onClick={() => onPageChange!((currentPage ?? 1) + 1)}
-                  disabled={(currentPage ?? 1) === (totalPages ?? 1)}
-                  aria-label="Next page"
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: (currentPage ?? 1) === (totalPages ?? 1) ? tokens.colors.surface : tokens.colors.cyan,
-                    border: `1px solid ${(currentPage ?? 1) === (totalPages ?? 1) ? tokens.colors.border : tokens.colors.cyan}`,
-                    borderRadius: '14px',
-                    fontSize: '20px',
-                    color: (currentPage ?? 1) === (totalPages ?? 1) ? tokens.colors.muted : tokens.colors.void,
-                    cursor: (currentPage ?? 1) === (totalPages ?? 1) ? 'not-allowed' : 'pointer',
-                    opacity: (currentPage ?? 1) === (totalPages ?? 1) ? 0.4 : 1,
-                    transition: 'all 0.15s ease',
-                    boxShadow: (currentPage ?? 1) !== (totalPages ?? 1) ? `0 0 25px ${tokens.colors.cyanGlow}` : 'none',
-                  }}
-                >
-                  ›
-                </button>
-              </div>
-            )}
-
-            {/* Summary ribbon - only show standalone when single page */}
-            {!hasMultiplePages && (
-              <div
+            {/* Navigation Row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+              {/* Previous Button */}
+              <button
+                onClick={() => onPageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                aria-label="Previous page"
                 style={{
-                  fontFamily: tokens.fonts.mono,
-                  fontSize: '12px',
-                  color: tokens.colors.textMuted,
+                  width: '48px',
+                  height: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: tokens.colors.surface,
+                  border: `1px solid ${tokens.colors.border}`,
+                  borderRadius: '14px',
+                  fontSize: '20px',
+                  color: currentPage === 1 ? tokens.colors.muted : tokens.colors.textSecondary,
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === 1 ? 0.4 : 1,
+                  transition: 'all 0.15s ease',
                 }}
               >
-                Showing{' '}
-                <span style={{ color: tokens.colors.textSecondary, fontWeight: 500 }}>
-                  {startItem}-{endItem}
-                </span>{' '}
-                of{' '}
-                <span style={{ color: tokens.colors.textSecondary, fontWeight: 500 }}>
-                  {(totalItems ?? 0).toLocaleString()}
-                </span>{' '}
-                alerts
+                ‹
+              </button>
+
+              {/* Page Info */}
+              <div style={{ textAlign: 'center' }}>
+                <div
+                  style={{
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    color: tokens.colors.textPrimary,
+                  }}
+                >
+                  Page{' '}
+                  <span
+                    style={{
+                      color: tokens.colors.cyan,
+                      textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
+                    }}
+                  >
+                    {currentPage}
+                  </span>
+                  {' '}of {actualTotalPages}
+                </div>
+                <div
+                  style={{
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '11px',
+                    color: tokens.colors.textMuted,
+                    marginTop: '2px',
+                  }}
+                >
+                  Showing {((currentPage - 1) * itemsPerPage) + 1}-
+                  {Math.min(currentPage * itemsPerPage, actualTotal)} of {actualTotal.toLocaleString()}
+                </div>
               </div>
-            )}
+
+              {/* Next Button */}
+              <button
+                onClick={() => onPageChange(currentPage + 1)}
+                disabled={currentPage === actualTotalPages}
+                aria-label="Next page"
+                style={{
+                  width: '48px',
+                  height: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: currentPage === actualTotalPages ? tokens.colors.surface : tokens.colors.cyan,
+                  border: `1px solid ${currentPage === actualTotalPages ? tokens.colors.border : tokens.colors.cyan}`,
+                  borderRadius: '14px',
+                  fontSize: '20px',
+                  color: currentPage === actualTotalPages ? tokens.colors.muted : tokens.colors.void,
+                  cursor: currentPage === actualTotalPages ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === actualTotalPages ? 0.4 : 1,
+                  transition: 'all 0.15s ease',
+                  boxShadow: currentPage !== actualTotalPages ? `0 0 25px ${tokens.colors.cyanGlow}` : 'none',
+                }}
+              >
+                ›
+              </button>
+            </div>
           </div>
         )}
       </div>
     );
   }
 
-  // =====================
-  // DESKTOP VIEW
-  // =====================
+  // Desktop table view
   return (
     <div
       data-testid="alert-feed"
@@ -737,20 +848,19 @@ export function AlertFeed({
         border: `1px solid ${tokens.colors.border}`,
         borderRadius: '12px',
         overflow: 'hidden',
-        // Fixed height on desktop to match WhaleTable (including its pagination area)
+        backgroundColor: tokens.colors.surface,
         height: '722px',
         display: 'flex',
         flexDirection: 'column',
       }}
     >
-      {/* Header */}
+      {/* Header with search */}
       <div
         style={{
           padding: '16px 20px',
           borderBottom: `1px solid ${tokens.colors.border}`,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
           gap: '12px',
         }}
       >
@@ -766,7 +876,6 @@ export function AlertFeed({
           >
             Live Feed
           </span>
-          {/* Active filter indicator - Clickable to navigate to Settings */}
           {activeMinThreshold !== undefined && activeMinThreshold > 0 && (
             <FilterPill
               threshold={activeMinThreshold}
@@ -775,7 +884,7 @@ export function AlertFeed({
             />
           )}
         </div>
-        {/* Spacer to push search and indicator to the right */}
+        {/* Spacer */}
         <div style={{ flex: 1 }} />
         {/* Search input */}
         <div
@@ -788,7 +897,6 @@ export function AlertFeed({
             border: `1px solid ${tokens.colors.border}`,
             borderRadius: '8px',
             maxWidth: '250px',
-            minWidth: '120px',
           }}
         >
           <span style={{ color: tokens.colors.textMuted, fontSize: '14px' }}>🔍</span>
@@ -805,7 +913,7 @@ export function AlertFeed({
               fontFamily: tokens.fonts.body,
               fontSize: '13px',
               color: tokens.colors.textPrimary,
-              minWidth: '80px',
+              minWidth: '120px',
             }}
           />
           {filter && (
@@ -834,8 +942,7 @@ export function AlertFeed({
             </button>
           )}
         </div>
-        {/* Count badge - matches WhaleTable desktop header */}
-        {/* No LiveIndicator here - redundant with page-level indicator */}
+        {/* Alert count badge */}
         <span
           style={{
             display: 'inline-flex',
@@ -851,204 +958,188 @@ export function AlertFeed({
             color: tokens.colors.cyan,
           }}
         >
-          {(totalItems ?? alerts.length).toLocaleString()} alerts
+          {actualTotal.toLocaleString()} alerts
         </span>
       </div>
 
-      {/* Alert List */}
+      {/* Scrollable table container */}
       <div
         style={{
           flex: 1,
           overflowY: 'auto',
         }}
       >
-        {filteredAlerts.length === 0 ? (
-          filter ? (
-            <EmptyState
-              icon="🔍"
-              message={`No alerts found matching "${filter}"`}
-              variant="search"
-            />
-          ) : (
-            /* ASCII whale empty state - per BRAND_GUIDELINES_EXTENDED.md */
-            <div
-              style={{
-                padding: '48px 24px',
-                textAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <pre
+        <table role="table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+          <thead
+            style={{
+              position: 'sticky',
+              top: 0,
+              zIndex: 1,
+            }}
+          >
+            <tr style={{ background: tokens.colors.void }}>
+              <th
                 style={{
+                  padding: '12px 16px',
+                  textAlign: 'left',
                   fontFamily: tokens.fonts.mono,
-                  fontSize: '12px',
-                  lineHeight: 1.3,
-                  color: tokens.colors.cyan,
-                  textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
-                  margin: '0 0 24px 0',
-                  opacity: 0.5,
-                  animation: 'subtleFloat 4s ease-in-out infinite',
-                }}
-              >
-{`       .  °  .
-      ":"
-    ___:____     |"\\/"|
-  ,'        \`.    \\  /
-  |  -        \\___/  |
-~^~^~^~^~^~^~^~^~^~^~^~^~`}
-              </pre>
-              <div
-                style={{
-                  fontFamily: tokens.fonts.display,
-                  fontSize: '18px',
-                  fontWeight: 700,
-                  color: tokens.colors.textPrimary,
-                  marginBottom: '8px',
-                }}
-              >
-                No alerts yet
-              </div>
-              <p
-                style={{
-                  fontFamily: tokens.fonts.body,
-                  fontSize: '14px',
+                  fontSize: '10px',
+                  fontWeight: 500,
                   color: tokens.colors.textMuted,
-                  margin: 0,
-                  maxWidth: '300px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  whiteSpace: 'nowrap',
+                  width: '35%',
                 }}
               >
-                Waiting for whale activity...
-              </p>
-            </div>
-          )
-        ) : (
-          filteredAlerts.map((alert) => {
-            const isNew = shouldAnimateAlert(alert);
-            return (
-              <div
-                key={alert.id}
-                data-testid="alert-item"
-                onClick={() => onAlertClick?.(alert)}
+                Wallet
+              </th>
+              <th
                 style={{
-                  padding: '14px 20px',
-                  borderBottom: `1px solid ${tokens.colors.border}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  cursor: onAlertClick ? 'pointer' : 'default',
-                  transition: 'background 0.15s ease',
-                  // Only animate new items
-                  animation: isNew ? 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
-                }}
-                onMouseEnter={(e) => {
-                  if (onAlertClick) {
-                    e.currentTarget.style.background = tokens.colors.surfaceHover;
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
+                  padding: '12px 16px',
+                  textAlign: 'left',
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: '10px',
+                  fontWeight: 500,
+                  color: tokens.colors.textMuted,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  whiteSpace: 'nowrap',
+                  width: '20%',
                 }}
               >
-                {/* Icon */}
-                <div
+                Type
+              </th>
+              <th
+                data-testid="sort-amount"
+                onClick={() => handleSort('amount')}
+                style={{
+                  padding: '12px 16px',
+                  textAlign: 'left',
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: '10px',
+                  fontWeight: 500,
+                  color: sortBy === 'amount' ? tokens.colors.cyan : tokens.colors.textMuted,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  userSelect: 'none',
+                  width: '25%',
+                }}
+              >
+                Amount{' '}
+                {sortBy === 'amount' && (sortDir === 'desc' ? '↓' : '↑')}
+              </th>
+              <th
+                data-testid="sort-timestamp"
+                onClick={() => handleSort('timestamp')}
+                style={{
+                  padding: '12px 16px',
+                  textAlign: 'left',
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: '10px',
+                  fontWeight: 500,
+                  color: sortBy === 'timestamp' ? tokens.colors.cyan : tokens.colors.textMuted,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  userSelect: 'none',
+                  width: '20%',
+                }}
+              >
+                Time{' '}
+                {sortBy === 'timestamp' && (sortDir === 'desc' ? '↓' : '↑')}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredAlerts.map((alert) => {
+              const isNew = shouldAnimateAlert(alert);
+              return (
+                <tr
+                  key={alert.id}
+                  data-testid="alert-item"
+                  onClick={() => onAlertClick?.(alert)}
                   style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '8px',
-                    background: `${tokens.colors.profit}15`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '14px',
-                    flexShrink: 0,
+                    borderBottom: `1px solid ${tokens.colors.border}`,
+                    cursor: onAlertClick ? 'pointer' : 'default',
+                    transition: 'background 0.15s ease',
+                    animation: isNew ? 'scaleIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)' : 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (onAlertClick) {
+                      e.currentTarget.style.background = tokens.colors.surfaceHover;
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
                   }}
                 >
-                  💰
-                </div>
-
-                {/* Content */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
+                  <td style={{ padding: '14px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '8px',
+                          background: `linear-gradient(135deg, ${tokens.colors.profit}30, ${tokens.colors.cyan}30)`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '14px',
+                        }}
+                      >
+                        💰
+                      </div>
+                      <CopyableAddress
+                        address={alert.walletAddress}
+                        fontSize="11px"
+                      />
+                    </div>
+                  </td>
+                  <td style={{ padding: '14px 16px' }}>
+                    <TransactionTypeBadge type={alert.type} size="sm" />
+                  </td>
+                  <td
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      marginBottom: '2px',
-                      flexWrap: 'wrap',
+                      padding: '14px 16px',
+                      fontFamily: tokens.fonts.mono,
+                      fontSize: '13px',
+                      color: tokens.colors.profit,
+                      fontWeight: 500,
                     }}
                   >
-                    <span
-                      style={{
-                        fontFamily: tokens.fonts.mono,
-                        fontSize: '13px',
-                        color: tokens.colors.cyan,
-                      }}
-                    >
-                      {formatAddress(alert.walletAddress)}
-                    </span>
-                    {/* Deposit badge - simplified from AlertTypeBadge */}
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        padding: '4px 10px',
-                        background: `${tokens.colors.profit}15`,
-                        border: `1px solid ${tokens.colors.profit}`,
-                        borderRadius: '999px',
-                        fontSize: '12px',
-                        fontFamily: tokens.fonts.mono,
-                        fontWeight: 500,
-                        color: tokens.colors.profit,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                      }}
-                    >
-                      {alert.type}
-                    </span>
-                  </div>
-                  <div
+                    +{formatUSD(alert.amount)}
+                  </td>
+                  <td
                     style={{
-                      fontSize: '12px',
-                      color: tokens.colors.textSecondary,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      padding: '14px 16px',
+                      fontFamily: tokens.fonts.mono,
+                      fontSize: '11px',
+                      color: tokens.colors.textMuted,
                     }}
                   >
-                    {formatUSD(alert.amount)}
-                  </div>
-                </div>
-
-                {/* Time - unified format */}
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontFamily: tokens.fonts.mono,
-                    color: tokens.colors.textMuted,
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}
-                >
-                  {formatCardTime(alert.timestamp)}
-                </span>
-              </div>
-            );
-          })
-        )}
+                    {formatCardTime(alert.timestamp)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
-      {/* Pagination - always show when pagination props are provided (ribbon shows even for single page) */}
-      {onPageChange && totalPages !== undefined && currentPage !== undefined && (
+      {/* Pagination */}
+      {onPageChange && actualTotalPages > 1 && (
         <Pagination
           currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={totalItems ?? 0}
+          totalPages={actualTotalPages}
+          totalItems={actualTotal}
           itemsPerPage={itemsPerPage}
           onPageChange={onPageChange}
           entityName="alerts"
+          isMobile={isMobile}
         />
       )}
     </div>

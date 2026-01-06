@@ -77,14 +77,14 @@ describe('AlertFeed', () => {
 
   it('should format amounts in USD', () => {
     render(<AlertFeed alerts={mockAlerts} isMobile={false} />);
-    expect(screen.getByText('$50.0K')).toBeInTheDocument();
-    expect(screen.getByText('$125.0K')).toBeInTheDocument();
-    expect(screen.getByText('$1.50M')).toBeInTheDocument();
+    expect(screen.getByText('+$50.0K')).toBeInTheDocument();
+    expect(screen.getByText('+$125.0K')).toBeInTheDocument();
+    expect(screen.getByText('+$1.50M')).toBeInTheDocument();
   });
 
   it('should show deposit type badge', () => {
     render(<AlertFeed alerts={mockAlerts} isMobile={false} />);
-    const badges = screen.getAllByText('deposit');
+    const badges = screen.getAllByText('Deposit');
     expect(badges.length).toBeGreaterThan(0);
   });
 

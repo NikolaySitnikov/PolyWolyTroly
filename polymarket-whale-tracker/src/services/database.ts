@@ -38,15 +38,18 @@ export const db = {
     );
   },
 
-  // Record a deposit
+  // Record a deposit and prune old deposits if limit exceeded
   async recordDeposit(
     txHash: string,
     walletAddress: string,
     amount: number,
     blockNumber: bigint
   ): Promise<number | null> {
+    const client = await pool.connect();
     try {
-      const result = await pool.query(
+      await client.query("BEGIN");
+
+      const result = await client.query(
         `INSERT INTO deposits (tx_hash, wallet_address, amount, block_number)
          VALUES ($1, $2, $3, $4)
          RETURNING id`,
@@ -54,7 +57,7 @@ export const db = {
       );
 
       // Update wallet totals
-      await pool.query(
+      await client.query(
         `UPDATE wallets
          SET total_deposited = total_deposited + $1,
              deposit_count = deposit_count + 1,
@@ -63,11 +66,26 @@ export const db = {
         [amount, walletAddress.toLowerCase()]
       );
 
+      // Prune oldest deposits beyond the limit (keeps most recent maxAlerts)
+      await client.query(
+        `DELETE FROM deposits
+         WHERE id IN (
+           SELECT id FROM deposits
+           ORDER BY id DESC
+           OFFSET $1
+         )`,
+        [config.app.maxAlerts]
+      );
+
+      await client.query("COMMIT");
       return result.rows[0]?.id;
     } catch (error: any) {
+      await client.query("ROLLBACK");
       // Duplicate tx_hash - already processed
       if (error.code === "23505") return null;
       throw error;
+    } finally {
+      client.release();
     }
   },
 
@@ -195,12 +213,14 @@ export const db = {
     };
   },
 
-  // Get recent deposits with pagination and optional filters
+  // Get recent deposits with pagination, optional filters, and sorting
   async getRecentDeposits(
     page: number,
     limit: number,
     walletAddress?: string,
-    minAmount?: number
+    minAmount?: number,
+    sortBy: 'amount' | 'created_at' | 'type' = 'created_at',
+    sortDir: 'asc' | 'desc' = 'desc'
   ): Promise<{
     deposits: any[];
     total: number;
@@ -209,19 +229,23 @@ export const db = {
   }> {
     const offset = (page - 1) * limit;
 
+    // Validate and sanitize sort parameters to prevent SQL injection
+    const validSortFields = ['amount', 'created_at', 'type'];
+    const validSortDirs = ['asc', 'desc'];
+    const safeSortBy = validSortFields.includes(sortBy) ? sortBy : 'created_at';
+    const safeSortDir = validSortDirs.includes(sortDir) ? sortDir.toUpperCase() : 'DESC';
+
     // Build WHERE clause dynamically based on filters
     const conditions: string[] = [];
     const queryParams: any[] = [limit, offset];
     const countParams: any[] = [];
     let paramIndex = 3;
-    let countParamIndex = 1;
 
     if (walletAddress) {
       conditions.push(`wallet_address = $${paramIndex}`);
       queryParams.push(walletAddress.toLowerCase());
       countParams.push(walletAddress.toLowerCase());
       paramIndex++;
-      countParamIndex++;
     }
 
     if (minAmount !== undefined && minAmount > 0) {
@@ -232,7 +256,7 @@ export const db = {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const depositsQuery = `SELECT * FROM deposits ${whereClause} ORDER BY created_at DESC LIMIT $1 OFFSET $2`;
+    const depositsQuery = `SELECT * FROM deposits ${whereClause} ORDER BY ${safeSortBy} ${safeSortDir} LIMIT $1 OFFSET $2`;
     const countQuery = `SELECT COUNT(*) as count FROM deposits ${whereClause.replace(/\$(\d+)/g, (_, num) => `$${parseInt(num) - 2}`)}`;
 
     const depositsResult = await pool.query(depositsQuery, queryParams);

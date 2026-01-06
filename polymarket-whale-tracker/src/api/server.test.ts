@@ -262,7 +262,9 @@ describe("API Server", () => {
         1,
         20,
         "0x1234567890123456789012345678901234567890",
-        undefined
+        undefined,
+        "created_at",
+        "desc"
       );
     });
 

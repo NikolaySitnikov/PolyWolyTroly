@@ -11,6 +11,31 @@
 export type AlertType = 'deposit';
 
 /**
+ * Configuration for alert type badges
+ * Used for consistent styling across desktop table and mobile cards
+ */
+export interface AlertTypeConfig {
+  emoji: string;
+  label: string;
+  bgColor: string;
+  textColor: string;
+  borderColor: string;
+}
+
+/**
+ * Badge configuration for each alert type
+ */
+export const ALERT_TYPE_CONFIG: Record<AlertType, AlertTypeConfig> = {
+  deposit: {
+    emoji: '💰',
+    label: 'Deposit',
+    bgColor: 'rgba(0, 255, 136, 0.15)',
+    textColor: '#00ff88',
+    borderColor: '#00ff88',
+  },
+};
+
+/**
  * A single alert item in the feed
  */
 export interface Alert {

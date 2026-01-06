@@ -111,7 +111,7 @@ export function createApp(): Express {
     }
   });
 
-  // Deposits list endpoint with pagination and filtering - connected to database
+  // Deposits list endpoint with pagination, filtering, and sorting - connected to database
   app.get("/api/deposits", async (req: Request, res: Response) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -119,7 +119,21 @@ export function createApp(): Express {
       const walletFilter = req.query.wallet as string | undefined;
       const minAmount = req.query.minAmount ? parseFloat(req.query.minAmount as string) : undefined;
 
-      const result = await db.getRecentDeposits(page, limit, walletFilter, minAmount);
+      // Validate sort parameters
+      const validSortFields = ['amount', 'created_at', 'type'];
+      const validSortDirs = ['asc', 'desc'];
+
+      const sortByParam = req.query.sortBy as string;
+      const sortDirParam = req.query.sortDir as string;
+
+      const sortBy = validSortFields.includes(sortByParam)
+        ? sortByParam as 'amount' | 'created_at' | 'type'
+        : 'created_at';
+      const sortDir = validSortDirs.includes(sortDirParam)
+        ? sortDirParam as 'asc' | 'desc'
+        : 'desc';
+
+      const result = await db.getRecentDeposits(page, limit, walletFilter, minAmount, sortBy, sortDir);
       res.json(result);
     } catch (error) {
       console.error("Error fetching deposits:", error);

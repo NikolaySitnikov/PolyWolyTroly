@@ -41,7 +41,6 @@ import { Settings } from './components/Settings';
 import { ToastContainer } from './components/ToastContainer';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { PullToRefresh } from './components/PullToRefresh';
-import { WhaleAnimation } from './components/WhaleAnimation';
 import { WhaleTableSkeleton } from './components/WhaleTableSkeleton';
 import { AlertFeedSkeleton } from './components/AlertFeedSkeleton';
 import { LiveTicker } from './components/LiveTicker';
@@ -51,7 +50,8 @@ import { useToast } from './contexts/ToastContext';
 import type { ViewId } from './types/navigation';
 import type { Alert } from './types/alert';
 import type { WhaleSortField, SortDirection } from './types/whale';
-import type { WhaleSortField as ApiSortField } from './services/api';
+import type { WhaleSortField as ApiSortField, DepositSortField } from './services/api';
+import type { AlertSortField } from './components/AlertFeed';
 
 /**
  * Parse URL hash to determine view and wallet address
@@ -107,6 +107,17 @@ function mapSortFieldToApi(field: WhaleSortField): ApiSortField {
   return mapping[field];
 }
 
+/**
+ * Map alert sort field to API deposit sort field
+ */
+function mapAlertSortFieldToApi(field: AlertSortField): DepositSortField {
+  const mapping: Record<AlertSortField, DepositSortField> = {
+    amount: 'amount',
+    timestamp: 'created_at',
+  };
+  return mapping[field];
+}
+
 function App() {
   const isMobile = useMobile();
   const { settings } = useSettings();
@@ -130,6 +141,10 @@ function App() {
   // Whale table sort state (managed here for server-side sorting)
   const [whaleSortBy, setWhaleSortBy] = useState<WhaleSortField>('totalDeposited');
   const [whaleSortDir, setWhaleSortDir] = useState<SortDirection>('desc');
+
+  // Alert feed sort state (managed here for server-side sorting)
+  const [alertSortBy, setAlertSortBy] = useState<AlertSortField>('timestamp');
+  const [alertSortDir, setAlertSortDir] = useState<SortDirection>('desc');
 
   // Live ticker visibility state
   const [showLiveTicker, setShowLiveTicker] = useState(true);
@@ -160,7 +175,12 @@ function App() {
     setPage: setAlertsPage,
     refetch: refetchAlerts,
     addAlert,
-  } = useAlerts(ALERTS_PER_PAGE, settings.minAlertThreshold);
+  } = useAlerts(
+    ALERTS_PER_PAGE,
+    settings.minAlertThreshold,
+    mapAlertSortFieldToApi(alertSortBy),
+    alertSortDir
+  );
 
   // Trending markets data
   const {
@@ -368,6 +388,11 @@ function App() {
     setWhaleSortDir(direction);
   };
 
+  const handleAlertSortChange = (field: AlertSortField, direction: SortDirection) => {
+    setAlertSortBy(field);
+    setAlertSortDir(direction);
+  };
+
   // Swipe handlers for mobile whale cards (feature placeholder - shows toast feedback)
   const handleFollowWhale = (address: string) => {
     const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -479,6 +504,9 @@ function App() {
             totalItems={totalAlerts}
             itemsPerPage={ALERTS_PER_PAGE}
             onPageChange={setAlertsPage}
+            sortBy={alertSortBy}
+            sortDir={alertSortDir}
+            onSortChange={handleAlertSortChange}
           />
         )}
       </div>
