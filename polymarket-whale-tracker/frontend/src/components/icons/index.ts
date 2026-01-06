@@ -15,3 +15,5 @@ export { SettingsIcon } from './SettingsIcon';
 
 // KPI Card Icons (24px)
 export { WhaleTrackedIcon } from './WhaleTrackedIcon';
+export { VolumeIcon } from './VolumeIcon';
+export { NewWhaleIcon } from './NewWhaleIcon';

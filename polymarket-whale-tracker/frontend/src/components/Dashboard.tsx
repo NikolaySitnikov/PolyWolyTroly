@@ -14,6 +14,7 @@ import { tokens } from '../styles/tokens';
 import { StatCard } from './StatCard';
 import { GlowText } from './GlowText';
 import { formatUSD } from '../utils/formatters';
+import { WhaleTrackedIcon, VolumeIcon, AlertsIcon, NewWhaleIcon } from './icons';
 
 interface DashboardStats {
   whaleCount: number;
@@ -80,7 +81,7 @@ export function Dashboard({ stats, isMobile }: DashboardProps) {
           numericValue={stats.whaleCount}
           trend={stats.whaleCountTrend}
           subValue="24h"
-          icon="🐋"
+          icon={WhaleTrackedIcon}
           delay={0}
         />
         <StatCard
@@ -89,7 +90,7 @@ export function Dashboard({ stats, isMobile }: DashboardProps) {
           numericValue={stats.totalVolume}
           trend={stats.totalVolumeTrend}
           subValue="24h"
-          icon="📊"
+          icon={VolumeIcon}
           accentColor="magenta"
           delay={50}
         />
@@ -98,7 +99,7 @@ export function Dashboard({ stats, isMobile }: DashboardProps) {
           value={stats.alertsToday.toString()}
           numericValue={stats.alertsToday}
           subValue="deposits & trades"
-          icon="⚡"
+          icon={AlertsIcon}
           accentColor="purple"
           delay={100}
         />
@@ -107,7 +108,7 @@ export function Dashboard({ stats, isMobile }: DashboardProps) {
           value={stats.newWhalesToday.toString()}
           numericValue={stats.newWhalesToday}
           subValue="wallets"
-          icon="🆕"
+          icon={NewWhaleIcon}
           accentColor="profit"
           delay={150}
         />

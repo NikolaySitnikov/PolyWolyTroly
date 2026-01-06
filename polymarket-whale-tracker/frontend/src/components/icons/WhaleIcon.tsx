@@ -14,6 +14,7 @@ import { IconWrapper, type IconProps } from './Icon';
 export function WhaleIcon(props: IconProps) {
   return (
     <IconWrapper {...props} viewBox="0 0 18 18">
+      {/* Original Geometric Whale Silhouette */}
       <path
         fill="currentColor"
         stroke="none"

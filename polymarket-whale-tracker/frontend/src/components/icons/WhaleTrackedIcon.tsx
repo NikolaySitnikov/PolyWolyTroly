@@ -14,15 +14,68 @@ import { IconWrapper, type IconProps } from './Icon';
 export function WhaleTrackedIcon(props: IconProps) {
   return (
     <IconWrapper {...props} viewBox="0 0 24 24">
-      <g fill="none" stroke="currentColor" strokeWidth="1.5">
-        <circle cx="20" cy="5" r="3.25" />
-        <circle cx="20" cy="5" r="1.25" fill="currentColor" stroke="none" />
-      </g>
+      {/* 
+        Mini ASCII Whale 
+        Mimicking:
+          .
+        __|__
+       |  o  |
+      */}
+
+      {/* Spout (.) */}
+      <circle cx="12" cy="7" r="1" fill="currentColor" />
+
+      {/* Back (___|___) */}
       <path
-        fill="currentColor"
-        stroke="none"
-        d="M2,13 C2,7.5 7,3.5 14,4.5 C18,5 20.5,7.5 21.5,10 L23,8 V16 L21.5,14 C20,16 17.5,18.5 12.5,19.5 C7,20.5 2,18.5 2,13 Z"
+        d="M6,10 H18"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="square"
       />
+      <path
+        d="M12,10 V8"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="square"
+      />
+
+      {/* Body (| o |) */}
+      <path
+        d="M6,10 V16 H18 V10"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="square"
+        fill="none"
+      />
+
+      {/* Eye (o) */}
+      <circle cx="10" cy="13" r="1.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+
+      {/* Tail (\ /) */}
+      <path
+        d="M18,12 L21,10 M18,14 L21,16"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="square"
+      />
+
+      {/* Tracking signals ( ) ) ) */}
+      <path
+        d="M20,6 C21,6 22,7 22,8"
+        stroke="var(--cyan)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        opacity="0.8"
+      />
+      <path
+        d="M22,4 C24,4 25,6 25,8"
+        stroke="var(--cyan)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        opacity="0.5"
+        transform="translate(-1, 0)"
+      />
+
     </IconWrapper>
   );
 }
