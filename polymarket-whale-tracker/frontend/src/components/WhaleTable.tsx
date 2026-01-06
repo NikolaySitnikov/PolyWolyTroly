@@ -288,19 +288,16 @@ export function WhaleTable({
               marginBottom: '14px',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '20px' }}>🐋</span>
-              <span
-                style={{
-                  fontFamily: tokens.fonts.display,
-                  fontSize: '18px',
-                  fontWeight: 700,
-                  color: tokens.colors.textPrimary,
-                }}
-              >
-                Whales
-              </span>
-            </div>
+            <span
+              style={{
+                fontFamily: tokens.fonts.display,
+                fontSize: '18px',
+                fontWeight: 700,
+                color: tokens.colors.textPrimary,
+              }}
+            >
+              Whales
+            </span>
 
             {/* Whale count badge */}
             <span

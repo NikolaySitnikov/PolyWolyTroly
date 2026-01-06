@@ -52,10 +52,10 @@ describe('Settings Component', () => {
       expect(screen.getByText('Settings')).toBeInTheDocument();
     });
 
-    it('should render settings icon', () => {
+    it('should render settings heading', () => {
       renderWithProvider();
 
-      expect(screen.getByText('⚙️')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
     });
   });
 

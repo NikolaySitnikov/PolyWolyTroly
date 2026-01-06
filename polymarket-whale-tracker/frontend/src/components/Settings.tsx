@@ -554,24 +554,21 @@ export function Settings({ isMobile }: SettingsProps) {
             paddingRight: '16px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '24px' }}>⚙️</span>
-            <h1
-              style={{
-                fontFamily: tokens.fonts.display,
-                fontSize: '22px',
-                fontWeight: 700,
-                color: tokens.colors.textPrimary,
-                margin: 0,
-              }}
-            >
-              Settings
-            </h1>
-          </div>
+          <h1
+            style={{
+              fontFamily: tokens.fonts.display,
+              fontSize: '22px',
+              fontWeight: 700,
+              color: tokens.colors.textPrimary,
+              margin: 0,
+            }}
+          >
+            Settings
+          </h1>
         </div>
 
         {/* ===== ALERT THRESHOLDS ===== */}
-        <SectionHeader icon="💰" title="Alert Thresholds" />
+        <SectionHeader title="Alert Thresholds" />
         <div
           style={{
             background: tokens.colors.surface,
@@ -599,7 +596,7 @@ export function Settings({ isMobile }: SettingsProps) {
         </div>
 
         {/* ===== NOTIFICATIONS ===== */}
-        <SectionHeader icon="🔔" title="Notifications" />
+        <SectionHeader title="Notifications" />
         <div
           style={{
             display: 'flex',
@@ -683,29 +680,174 @@ export function Settings({ isMobile }: SettingsProps) {
         <SectionHeader title="About" />
         <div
           style={{
-            background: tokens.colors.surface,
+            background: `linear-gradient(135deg, ${tokens.colors.surface} 0%, ${tokens.colors.void} 100%)`,
             border: `1px solid ${tokens.colors.border}`,
             borderRadius: '14px',
             padding: '20px',
             marginBottom: '24px',
+            position: 'relative',
+            overflow: 'hidden',
           }}
         >
+          {/* Animated background glow */}
           <div
             style={{
+              position: 'absolute',
+              top: '-50%',
+              left: '-50%',
+              width: '200%',
+              height: '200%',
+              background: `radial-gradient(ellipse at 20% 50%, ${tokens.colors.cyanGlow} 0%, transparent 40%),
+                           radial-gradient(ellipse at 80% 50%, ${tokens.colors.magentaGlow} 0%, transparent 40%)`,
+              animation: 'aboutGlowPulseDesktop 6s ease-in-out infinite',
+              pointerEvents: 'none',
+            }}
+          />
+
+          {/* Content */}
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 1,
               display: 'flex',
               alignItems: 'center',
-              gap: '12px',
-              marginBottom: '12px',
+              gap: '16px',
             }}
           >
-            <span style={{ fontSize: '28px' }}>🐋</span>
-            <div>
+            {/* Whale scene */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {/* Animated spray/bubbles above whale */}
+              <div
+                style={{
+                  position: 'relative',
+                  width: '120px',
+                  height: '14px',
+                  marginBottom: '2px',
+                }}
+              >
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: '25%',
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '7px',
+                    color: tokens.colors.cyan,
+                    opacity: 0.7,
+                    animation: 'bubbleFloat1 3s ease-in-out infinite',
+                  }}
+                >
+                  ◦
+                </span>
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: '35%',
+                    top: '3px',
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '5px',
+                    color: tokens.colors.cyan,
+                    opacity: 0.5,
+                    animation: 'bubbleFloat2 2.5s ease-in-out infinite 0.3s',
+                  }}
+                >
+                  ○
+                </span>
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: '30%',
+                    top: '1px',
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '8px',
+                    color: tokens.colors.cyan,
+                    opacity: 0.6,
+                    animation: 'bubbleFloat3 3.5s ease-in-out infinite 0.7s',
+                  }}
+                >
+                  ◯
+                </span>
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: '40%',
+                    top: '5px',
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '4px',
+                    color: tokens.colors.cyan,
+                    opacity: 0.4,
+                    animation: 'bubbleFloat1 2.8s ease-in-out infinite 1s',
+                  }}
+                >
+                  •
+                </span>
+              </div>
+
+              {/* Main whale - detailed version */}
+              <div
+                style={{
+                  animation: 'whaleSwim 3s ease-in-out infinite',
+                }}
+              >
+                <pre
+                  style={{
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '5px',
+                    lineHeight: 1.2,
+                    color: tokens.colors.cyan,
+                    textShadow: `0 0 15px ${tokens.colors.cyanGlow}, 0 0 30px ${tokens.colors.cyanGlow}`,
+                    margin: 0,
+                  }}
+                >{`                       ████
+                  ████████████
+             ▄██████████████████▄        ░░░
+           ▄████████████████████████▄    ░░░░░
+         ▄██████  ◉  █████████████████████▄░░░░
+        ████████████████████████████████████████
+       ██████████████████████████████████████████
+        █████████████████████████████▀▀▀████████
+         ▀██████████████████████▀▀   ▀▀▀▀▀▀▀▀▀
+           ▀▀██████████████▀▀▀
+              ▀▀▀▀▀▀▀▀▀▀`}</pre>
+              </div>
+
+              {/* Animated waves */}
+              <pre
+                style={{
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: '5px',
+                  lineHeight: 1,
+                  color: tokens.colors.cyan,
+                  textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
+                  margin: 0,
+                  marginTop: '2px',
+                  animation: 'waveShimmer 2s ease-in-out infinite',
+                  opacity: 0.6,
+                }}
+              >
+                ≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋
+              </pre>
+            </div>
+
+            {/* Brand info */}
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div
                 style={{
                   fontFamily: tokens.fonts.display,
                   fontSize: '18px',
-                  fontWeight: 700,
-                  color: tokens.colors.textPrimary,
+                  fontWeight: 800,
+                  background: `linear-gradient(135deg, ${tokens.colors.cyan} 0%, ${tokens.colors.magenta} 100%)`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  letterSpacing: '-0.02em',
+                  marginBottom: '4px',
                 }}
               >
                 PolyWolyTroly
@@ -713,24 +855,60 @@ export function Settings({ isMobile }: SettingsProps) {
               <div
                 style={{
                   fontFamily: tokens.fonts.mono,
-                  fontSize: '12px',
+                  fontSize: '8px',
                   color: tokens.colors.textMuted,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  marginBottom: '10px',
                 }}
               >
                 v1.0.0 • Whale Intelligence
               </div>
+              <div
+                style={{
+                  fontFamily: tokens.fonts.body,
+                  fontSize: '11px',
+                  color: tokens.colors.textSecondary,
+                  lineHeight: 1.5,
+                }}
+              >
+                Track whale wallets on Polymarket. Follow the smart money,
+                discover high-conviction bets.
+              </div>
+              <div
+                style={{
+                  fontFamily: tokens.fonts.body,
+                  fontSize: '10px',
+                  color: tokens.colors.textMuted,
+                  fontStyle: 'italic',
+                  marginTop: '10px',
+                }}
+              >
+                "In the void, whales move in silence. We see them."
+              </div>
             </div>
           </div>
-          <div
-            style={{
-              fontFamily: tokens.fonts.body,
-              fontSize: '13px',
-              color: tokens.colors.textSecondary,
-              lineHeight: 1.5,
-            }}
-          >
-            Track whale wallets on Polymarket. Follow smart money, discover high-conviction bets.
-          </div>
+
+          {/* Inline keyframes */}
+          <style>{`
+            @keyframes aboutGlowPulseDesktop {
+              0%, 100% { opacity: 0.2; transform: translate(0, 0) rotate(0deg); }
+              33% { opacity: 0.35; transform: translate(3%, 2%) rotate(1deg); }
+              66% { opacity: 0.25; transform: translate(-2%, -1%) rotate(-1deg); }
+            }
+            @keyframes bubbleFloat1 {
+              0%, 100% { transform: translateY(0); opacity: 0.7; }
+              50% { transform: translateY(-12px); opacity: 0.3; }
+            }
+            @keyframes bubbleFloat2 {
+              0%, 100% { transform: translateY(0); opacity: 0.5; }
+              50% { transform: translateY(-15px); opacity: 0.2; }
+            }
+            @keyframes bubbleFloat3 {
+              0%, 100% { transform: translateY(0); opacity: 0.6; }
+              50% { transform: translateY(-10px); opacity: 0.25; }
+            }
+          `}</style>
         </div>
 
         {/* ===== RESET BUTTON ===== */}
@@ -779,20 +957,17 @@ export function Settings({ isMobile }: SettingsProps) {
           marginBottom: '32px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '24px' }}>⚙️</span>
-          <h1
-            style={{
-              fontFamily: tokens.fonts.display,
-              fontSize: '24px',
-              fontWeight: 700,
-              color: tokens.colors.textPrimary,
-              margin: 0,
-            }}
-          >
-            Settings
-          </h1>
-        </div>
+        <h1
+          style={{
+            fontFamily: tokens.fonts.display,
+            fontSize: '24px',
+            fontWeight: 700,
+            color: tokens.colors.textPrimary,
+            margin: 0,
+          }}
+        >
+          Settings
+        </h1>
         <button
           onClick={resetSettings}
           aria-label="Reset to defaults"
@@ -815,7 +990,7 @@ export function Settings({ isMobile }: SettingsProps) {
 
       {/* Alert Thresholds */}
       <div style={{ marginBottom: '24px' }}>
-        <SectionHeader icon="💰" title="Alert Thresholds" />
+        <SectionHeader title="Alert Thresholds" />
         <div
           style={{
             background: tokens.colors.surface,
@@ -834,7 +1009,7 @@ export function Settings({ isMobile }: SettingsProps) {
 
       {/* Notifications */}
       <div style={{ marginBottom: '24px' }}>
-        <SectionHeader icon="🔔" title="Notifications" />
+        <SectionHeader title="Notifications" />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <SettingRow icon="📱" label="Telegram Alerts" isMobile={false}>
             <Toggle
@@ -934,38 +1109,235 @@ export function Settings({ isMobile }: SettingsProps) {
         <SectionHeader title="About" />
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            background: tokens.colors.surface,
+            background: `linear-gradient(135deg, ${tokens.colors.surface} 0%, ${tokens.colors.void} 100%)`,
             border: `1px solid ${tokens.colors.border}`,
             borderRadius: '12px',
-            padding: '20px',
+            padding: '32px',
+            position: 'relative',
+            overflow: 'hidden',
           }}
         >
-          <span style={{ fontSize: '40px' }}>🐋</span>
-          <div>
+          {/* Animated background glow */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '-50%',
+              left: '-50%',
+              width: '200%',
+              height: '200%',
+              background: `radial-gradient(ellipse at 20% 50%, ${tokens.colors.cyanGlow} 0%, transparent 40%),
+                           radial-gradient(ellipse at 80% 50%, ${tokens.colors.magentaGlow} 0%, transparent 40%)`,
+              animation: 'aboutGlowPulseDesktop 6s ease-in-out infinite',
+              pointerEvents: 'none',
+            }}
+          />
+
+          {/* Content */}
+          <div
+            style={{
+              position: 'relative',
+              zIndex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '32px',
+            }}
+          >
+            {/* Whale scene */}
             <div
               style={{
-                fontFamily: tokens.fonts.display,
-                fontSize: '18px',
-                fontWeight: 700,
-                color: tokens.colors.textPrimary,
-                marginBottom: '4px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                flexShrink: 0,
               }}
             >
-              PolyWolyTroly
+              {/* Animated spray/bubbles above whale */}
+              <div
+                style={{
+                  position: 'relative',
+                  width: '180px',
+                  height: '20px',
+                  marginBottom: '4px',
+                }}
+              >
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: '25%',
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '10px',
+                    color: tokens.colors.cyan,
+                    opacity: 0.7,
+                    animation: 'bubbleFloat1 3s ease-in-out infinite',
+                  }}
+                >
+                  ◦
+                </span>
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: '35%',
+                    top: '5px',
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '8px',
+                    color: tokens.colors.cyan,
+                    opacity: 0.5,
+                    animation: 'bubbleFloat2 2.5s ease-in-out infinite 0.3s',
+                  }}
+                >
+                  ○
+                </span>
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: '30%',
+                    top: '2px',
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '12px',
+                    color: tokens.colors.cyan,
+                    opacity: 0.6,
+                    animation: 'bubbleFloat3 3.5s ease-in-out infinite 0.7s',
+                  }}
+                >
+                  ◯
+                </span>
+                <span
+                  style={{
+                    position: 'absolute',
+                    left: '40%',
+                    top: '8px',
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '6px',
+                    color: tokens.colors.cyan,
+                    opacity: 0.4,
+                    animation: 'bubbleFloat1 2.8s ease-in-out infinite 1s',
+                  }}
+                >
+                  •
+                </span>
+              </div>
+
+              {/* Main whale - larger, more detailed */}
+              <div
+                style={{
+                  animation: 'whaleSwim 3s ease-in-out infinite',
+                }}
+              >
+                <pre
+                  style={{
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '9px',
+                    lineHeight: 1.2,
+                    color: tokens.colors.cyan,
+                    textShadow: `0 0 15px ${tokens.colors.cyanGlow}, 0 0 30px ${tokens.colors.cyanGlow}`,
+                    margin: 0,
+                  }}
+                >{`                       ████
+                  ████████████
+             ▄██████████████████▄        ░░░
+           ▄████████████████████████▄    ░░░░░
+         ▄██████  ◉  █████████████████████▄░░░░
+        ████████████████████████████████████████
+       ██████████████████████████████████████████
+        █████████████████████████████▀▀▀████████
+         ▀██████████████████████▀▀   ▀▀▀▀▀▀▀▀▀
+           ▀▀██████████████▀▀▀
+              ▀▀▀▀▀▀▀▀▀▀`}</pre>
+              </div>
+
+              {/* Animated waves */}
+              <pre
+                style={{
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: '9px',
+                  lineHeight: 1,
+                  color: tokens.colors.cyan,
+                  textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
+                  margin: 0,
+                  marginTop: '4px',
+                  animation: 'waveShimmer 2s ease-in-out infinite',
+                  opacity: 0.6,
+                }}
+              >
+                ≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋≋
+              </pre>
             </div>
-            <div
-              style={{
-                fontFamily: tokens.fonts.mono,
-                fontSize: '12px',
-                color: tokens.colors.textMuted,
-              }}
-            >
-              v1.0.0 • Whale Intelligence Platform for Polymarket
+
+            {/* Brand info */}
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  fontFamily: tokens.fonts.display,
+                  fontSize: '28px',
+                  fontWeight: 800,
+                  background: `linear-gradient(135deg, ${tokens.colors.cyan} 0%, ${tokens.colors.magenta} 100%)`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  letterSpacing: '-0.02em',
+                  marginBottom: '8px',
+                }}
+              >
+                PolyWolyTroly
+              </div>
+              <div
+                style={{
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: '11px',
+                  color: tokens.colors.textMuted,
+                  letterSpacing: '0.15em',
+                  textTransform: 'uppercase',
+                  marginBottom: '16px',
+                }}
+              >
+                v1.0.0 • Whale Intelligence Platform
+              </div>
+              <div
+                style={{
+                  fontFamily: tokens.fonts.body,
+                  fontSize: '14px',
+                  color: tokens.colors.textSecondary,
+                  lineHeight: 1.6,
+                  maxWidth: '320px',
+                }}
+              >
+                Track whale wallets on Polymarket. Follow the smart money,
+                discover high-conviction bets, and stay ahead of the market.
+              </div>
+              <div
+                style={{
+                  fontFamily: tokens.fonts.body,
+                  fontSize: '13px',
+                  color: tokens.colors.textMuted,
+                  fontStyle: 'italic',
+                  marginTop: '16px',
+                }}
+              >
+                "In the void, whales move in silence. We see them."
+              </div>
             </div>
           </div>
+
+          {/* Inline keyframes for desktop */}
+          <style>{`
+            @keyframes aboutGlowPulseDesktop {
+              0%, 100% { opacity: 0.2; transform: translate(0, 0) rotate(0deg); }
+              33% { opacity: 0.35; transform: translate(3%, 2%) rotate(1deg); }
+              66% { opacity: 0.25; transform: translate(-2%, -1%) rotate(-1deg); }
+            }
+            @keyframes bubbleFloat1 {
+              0%, 100% { transform: translateY(0); opacity: 0.7; }
+              50% { transform: translateY(-12px); opacity: 0.3; }
+            }
+            @keyframes bubbleFloat2 {
+              0%, 100% { transform: translateY(0); opacity: 0.5; }
+              50% { transform: translateY(-15px); opacity: 0.2; }
+            }
+            @keyframes bubbleFloat3 {
+              0%, 100% { transform: translateY(0); opacity: 0.6; }
+              50% { transform: translateY(-10px); opacity: 0.25; }
+            }
+          `}</style>
         </div>
       </div>
     </div>

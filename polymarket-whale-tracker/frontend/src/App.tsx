@@ -429,7 +429,7 @@ function App() {
               letterSpacing: '-0.02em',
             }}
           >
-            ⚡ Live <GlowText>Alerts</GlowText>
+            Live <GlowText>Alerts</GlowText>
           </h1>
           <p
             style={{
@@ -558,7 +558,7 @@ function App() {
               letterSpacing: '-0.02em',
             }}
           >
-            🐋 Tracked <GlowText>Whales</GlowText>
+            Tracked <GlowText>Whales</GlowText>
           </h1>
           <p
             style={{
@@ -749,10 +749,7 @@ function App() {
           : LAYOUT.content.paddingTopNoTicker.desktop;
 
         return isMobile ? (
-          <PullToRefresh
-            onRefresh={handlePullToRefresh}
-            disabled={currentView === 'settings'} // Disable on settings page
-          >
+          <PullToRefresh onRefresh={handlePullToRefresh}>
             <main
               style={{
                 position: 'relative',
