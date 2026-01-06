@@ -2098,4 +2098,41 @@ const RANK_COLORS = ['#ffd700', '#c0c0c0', '#cd7f32'];
 
 ---
 
+### Task: Add Button Micro-interactions (lift effect with glow)
+
+**Status**: ✅ COMPLETED
+
+**Goal**: Create reusable Button component with micro-interactions per DESIGN_SYSTEM.md.
+
+**Implementation**:
+
+1. **Created Button component** (`src/components/Button.tsx`):
+   - **Variants**: `primary`, `secondary`, `ghost`, `danger`
+   - **Sizes**: `sm`, `md`, `lg`
+   - **States**: `loading`, `disabled`, `fullWidth`
+   - **Micro-interactions**:
+     - Hover: Scale up (1.02), lift (-2px), enhanced glow
+     - Click: Scale down (0.98)
+     - Smooth transitions using `easeOutExpo`
+
+2. **Updated components to use Button**:
+   - `Header.tsx` - "Connect Telegram" button
+   - `DashboardError.tsx` - "Retry" button
+   - `WalletProfileError.tsx` - "Back", "Browse Whales", "Try Again" buttons
+
+**Features per DESIGN_SYSTEM.md**:
+- Scale up slightly (1.02) on hover ✅
+- Glow effect appears/enhances on hover ✅
+- Lift effect (-2px translateY) on hover ✅
+- Scale down (0.98) on click ✅
+- Cursor changes to pointer ✅
+- Disabled state (opacity 0.5, no interactions) ✅
+- Loading spinner with animation ✅
+
+**Tests**: 19 new tests for Button component
+
+**Total Tests**: 602 passing
+
+---
+
 *"In the void, whales move in silence. We see them."*

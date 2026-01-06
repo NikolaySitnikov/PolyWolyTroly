@@ -9,6 +9,7 @@
 
 import { tokens } from '../styles/tokens';
 import { WhaleAnimation } from './WhaleAnimation';
+import { Button } from './Button';
 
 interface DashboardErrorProps {
   error: string;
@@ -52,32 +53,9 @@ export function DashboardError({ error, onRetry, isMobile }: DashboardErrorProps
       </p>
 
       {/* Retry button */}
-      <button
-        onClick={onRetry}
-        style={{
-          padding: `${tokens.spacing[3]} ${tokens.spacing[6]}`,
-          background: tokens.colors.cyan,
-          border: 'none',
-          borderRadius: tokens.radius.md,
-          fontFamily: tokens.fonts.body,
-          fontSize: tokens.fontSizes.sm,
-          fontWeight: tokens.fontWeights.semibold,
-          color: tokens.colors.void,
-          cursor: 'pointer',
-          boxShadow: `0 0 20px ${tokens.colors.cyanGlow}`,
-          transition: 'all 150ms ease',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'scale(1.02)';
-          e.currentTarget.style.boxShadow = `0 0 30px ${tokens.colors.cyanGlow}`;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.boxShadow = `0 0 20px ${tokens.colors.cyanGlow}`;
-        }}
-      >
+      <Button onClick={onRetry} variant="primary" size="md">
         Retry
-      </button>
+      </Button>
 
       {/* Helpful hint */}
       <p

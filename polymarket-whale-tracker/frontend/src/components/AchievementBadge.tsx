@@ -12,6 +12,7 @@
 
 import React, { type CSSProperties } from 'react';
 import { tokens } from '../styles/tokens';
+import { Tooltip } from './Tooltip';
 
 /** Available achievement badge types */
 export type AchievementType =
@@ -153,12 +154,11 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
     color: tokens.colors.textPrimary,
   };
 
-  return (
+  const badge = (
     <span
       data-testid={`achievement-badge-${type}`}
       style={badgeStyle}
       aria-label={`${config.label}: ${config.description}`}
-      title={showTooltip ? `${config.label}: ${config.description}` : undefined}
     >
       <span>{config.emoji}</span>
       {rank !== undefined && (
@@ -166,6 +166,26 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
       )}
     </span>
   );
+
+  if (showTooltip) {
+    return (
+      <Tooltip
+        content={
+          <div>
+            <div style={{ fontWeight: 600, color: tokens.colors.textPrimary, marginBottom: '4px' }}>
+              {config.label}
+            </div>
+            <div>{config.description}</div>
+          </div>
+        }
+        placement="top"
+      >
+        {badge}
+      </Tooltip>
+    );
+  }
+
+  return badge;
 };
 
 export interface AchievementBadgesProps {

@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { tokens } from '../styles/tokens';
 import { LiveIndicator } from './LiveIndicator';
 import { Tooltip } from './Tooltip';
+import { Button } from './Button';
 import { NAV_ITEMS } from '../types/navigation';
 import type { ViewId } from '../types/navigation';
 
@@ -215,31 +216,9 @@ export function Header({ currentView, onNavigate, isMobile, alertCount }: Header
         <LiveIndicator />
         {!isMobile && (
           <Tooltip content="Get whale alerts directly in Telegram" placement="bottom">
-            <button
-              style={{
-                padding: '10px 20px',
-                background: tokens.colors.cyan,
-                border: 'none',
-                borderRadius: tokens.radius.md,
-                fontFamily: tokens.fonts.body,
-                fontSize: '14px',
-                fontWeight: tokens.fontWeights.semibold,
-                color: tokens.colors.void,
-                cursor: 'pointer',
-                boxShadow: `0 0 20px ${tokens.colors.cyanGlow}`,
-                transition: `all ${tokens.animation.durationFast} ease`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.filter = 'brightness(1.1)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.filter = 'brightness(1)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
+            <Button variant="primary" size="md">
               Connect Telegram
-            </button>
+            </Button>
           </Tooltip>
         )}
       </div>
