@@ -2,18 +2,12 @@
  * LiveTicker Component
  *
  * Continuous horizontal scrolling marquee showing live whale activity.
- * Uses CSS animation with duplicated content for seamless infinite loop.
- *
- * Key features:
- * - Smooth continuous scroll that never stops
- * - Seamless wrap-around (no jumps or stutters)
- * - Click on items to navigate to whale profile
- * - Whale emoji for large deposits ($100K+)
+ * Animation speed is based on actual content width for consistent scroll speed.
  *
  * @see ../../../DESIGN_IMPLEMENTATION_ROADMAP.md - Group 5, Task 11
  */
 
-import { useRef, useEffect, useState, type CSSProperties } from 'react';
+import { useRef, useEffect, useState, useCallback, type CSSProperties } from 'react';
 import { tokens } from '../styles/tokens';
 import { LAYOUT } from '../constants/layout';
 import type { Alert } from '../types/alert';
@@ -21,19 +15,15 @@ import type { Alert } from '../types/alert';
 /** Speed variants for ticker animation */
 export type TickerSpeed = 'slow' | 'normal' | 'fast';
 
-/** Animation duration in seconds for one complete scroll cycle */
-const DURATION_CONFIG: Record<TickerSpeed, number> = {
-  slow: 60,
-  normal: 40,
-  fast: 25,
+/** Pixels per second for each speed level */
+const SPEED_PX_PER_SEC: Record<TickerSpeed, number> = {
+  slow: 40,
+  normal: 70,
+  fast: 120,
 };
 
-/** Mobile uses shorter duration (faster visual speed) */
-const MOBILE_DURATION_CONFIG: Record<TickerSpeed, number> = {
-  slow: 30,
-  normal: 20,
-  fast: 12,
-};
+/** Mobile speed multiplier */
+const MOBILE_SPEED_MULTIPLIER = 1.3;
 
 export interface LiveTickerProps {
   alerts: Alert[];
@@ -83,6 +73,9 @@ function isWhaleAmount(amount: number): boolean {
 
 /**
  * LiveTicker - Continuous scrolling whale activity banner
+ *
+ * Uses measured content width to calculate animation duration,
+ * ensuring consistent scroll speed regardless of content length.
  */
 export function LiveTicker({
   alerts,
@@ -94,14 +87,30 @@ export function LiveTicker({
   speed = 'normal',
 }: LiveTickerProps) {
   const [isPaused, setIsPaused] = useState(false);
-  const trackRef = useRef<HTMLDivElement>(null);
+  const [contentWidth, setContentWidth] = useState(0);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Measure content width when alerts change
+  useEffect(() => {
+    if (contentRef.current) {
+      // Measure just the first set of items (half of total since we duplicate)
+      const width = contentRef.current.scrollWidth / 2;
+      setContentWidth(width);
+    }
+  }, [alerts]);
 
   // Don't render if hidden or no alerts
   if (hidden || alerts.length === 0) {
     return null;
   }
 
-  const duration = isMobile ? MOBILE_DURATION_CONFIG[speed] : DURATION_CONFIG[speed];
+  // Calculate duration based on content width and desired speed
+  const pxPerSec = isMobile
+    ? SPEED_PX_PER_SEC[speed] * MOBILE_SPEED_MULTIPLIER
+    : SPEED_PX_PER_SEC[speed];
+
+  // Duration = width / speed, with minimum of 5 seconds
+  const duration = contentWidth > 0 ? Math.max(5, contentWidth / pxPerSec) : 20;
 
   // Styles
   const headerHeight = isMobile ? LAYOUT.header.mobile : LAYOUT.header.desktop;
@@ -129,15 +138,17 @@ export function LiveTicker({
     WebkitMaskImage: 'linear-gradient(90deg, transparent 0%, black 3%, black 97%, transparent 100%)',
   };
 
-  // Only pause on hover for desktop
   const shouldPause = !isMobile && isPaused;
 
   const trackStyle: CSSProperties = {
-    display: 'flex',
+    display: 'inline-flex',
     alignItems: 'center',
     whiteSpace: 'nowrap',
     willChange: 'transform',
-    animation: `ticker-scroll ${duration}s linear infinite`,
+    // Only apply animation once we've measured the width
+    animation: contentWidth > 0
+      ? `ticker-scroll ${duration}s linear infinite`
+      : 'none',
     animationPlayState: shouldPause ? 'paused' : 'running',
   };
 
@@ -257,7 +268,7 @@ export function LiveTicker({
         onMouseLeave={!isMobile ? () => setIsPaused(false) : undefined}
       >
         <div style={wrapperStyle}>
-          <div ref={trackRef} data-testid="ticker-track" style={trackStyle}>
+          <div ref={contentRef} data-testid="ticker-track" style={trackStyle}>
             {/* First set of items */}
             {alerts.map((alert, i) => renderItem(alert, i, true))}
             {/* Duplicate set for seamless loop */}
