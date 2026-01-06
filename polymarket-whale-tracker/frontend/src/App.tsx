@@ -699,7 +699,7 @@ function App() {
 
       {/* Live Ticker - horizontal scrolling whale activity */}
       <LiveTicker
-        alerts={alerts.slice(0, 10)} // Show last 10 alerts
+        alerts={alerts.slice(0, 20)} // Show last 20 alerts
         hidden={!showLiveTicker || alertsLoading || alerts.length === 0}
         dismissable
         onDismiss={() => setShowLiveTicker(false)}

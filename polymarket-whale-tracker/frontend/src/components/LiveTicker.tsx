@@ -19,19 +19,18 @@ import type { Alert } from '../types/alert';
 /** Speed variants for ticker animation */
 export type TickerSpeed = 'slow' | 'normal' | 'fast';
 
-/** Speed configuration in seconds per loop (desktop) */
-const SPEED_CONFIG: Record<TickerSpeed, number> = {
-  slow: 40,
-  normal: 25,
-  fast: 15,
+/** Pixels per second for each speed (higher = faster scrolling) */
+const SPEED_PPS: Record<TickerSpeed, number> = {
+  slow: 30,
+  normal: 50,
+  fast: 80,
 };
 
-/** Speed configuration for mobile (much faster due to smaller screen) */
-const MOBILE_SPEED_CONFIG: Record<TickerSpeed, number> = {
-  slow: 12,
-  normal: 8,
-  fast: 5,
-};
+/** Mobile speed multiplier (faster on mobile) */
+const MOBILE_SPEED_MULTIPLIER = 1.5;
+
+/** Estimated width per ticker item in pixels */
+const ITEM_WIDTH_ESTIMATE = 200; // Approx width of each item including padding
 
 export interface LiveTickerProps {
   /** Array of alerts to display in the ticker */
@@ -130,7 +129,14 @@ export function LiveTicker({
     return null;
   }
 
-  const animationDuration = isMobile ? MOBILE_SPEED_CONFIG[speed] : SPEED_CONFIG[speed];
+  // Calculate animation duration based on content width and speed
+  // Duration = (total width to scroll) / (pixels per second)
+  // We scroll 50% of the total width (since content is duplicated)
+  const totalContentWidth = alerts.length * ITEM_WIDTH_ESTIMATE;
+  const pixelsPerSecond = isMobile
+    ? SPEED_PPS[speed] * MOBILE_SPEED_MULTIPLIER
+    : SPEED_PPS[speed];
+  const animationDuration = Math.max(10, totalContentWidth / pixelsPerSecond);
 
   // Container styles - fixed position below header
   const headerHeight = isMobile ? LAYOUT.header.mobile : LAYOUT.header.desktop;
