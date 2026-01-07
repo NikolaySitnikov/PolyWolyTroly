@@ -55,6 +55,7 @@ REST API + WebSocket server that powers the web dashboard:
 - **GET /api/stats** - Dashboard statistics (whale count, volume, alerts)
 - **GET /api/wallets** - Paginated whale list with search/sort
 - **GET /api/wallets/:address** - Individual wallet details
+- **GET /api/wallets/:address/trading** - Trading data (positions, activity, metrics, profile)
 - **GET /api/deposits** - Recent deposit history
 - **GET /api/markets/trending** - Top prediction markets by whale volume
 - **WS /ws** - Real-time deposit events via WebSocket
@@ -64,10 +65,26 @@ React + TypeScript + Vite dashboard with cyberpunk terminal aesthetic:
 - **Dashboard**: Real-time stats with live WebSocket updates
 - **Whale Table**: Searchable, sortable list with pagination
 - **Alert Feed**: Live deposit notifications
-- **Wallet Profiles**: Individual wallet details and transaction history
+- **Wallet Profiles**: Individual wallet details, transaction history, and trading performance
 - **Trending Markets**: Top markets by whale activity
 - **Settings**: User preferences, theme, notifications
-- **126 tests** with Vitest + React Testing Library
+- **780+ tests** with Vitest + React Testing Library
+
+### Trading Data Integration (In Progress)
+Integration of Polymarket trading data (P&L, positions, activity) for each whale:
+
+**Frontend Types** (src/types/):
+- `polymarket.ts` - Polymarket API types (positions, activity, trades, profiles)
+- `position.ts` - Position interface with category configs and sorting
+- `activity.ts` - Activity interface with type configs and filtering
+- `profile.ts` - UserProfile interface with avatar utilities
+- `whale.ts` - Extended with trading fields (pnl, winRate, portfolioValue, etc.)
+
+**Frontend Hooks** (src/hooks/):
+- `usePositions.ts` - Fetch positions with pagination, sorting, filtering
+- `useActivity.ts` - Fetch activity with pagination, type filtering, load-more
+- `useProfile.ts` - Fetch Gamma API profile
+- `usePolymarketTrading.ts` - Combined hook for all trading data
 
 ### Key Services
 

@@ -210,12 +210,26 @@ PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymar
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  POLYMARKET DATA API                                                         │
 │                                                                              │
-│  Endpoint: https://data-api.polymarket.com/activity?user={address}          │
+│  Base URL: https://data-api.polymarket.com                                  │
 │                                                                              │
-│  Purpose: Check if a wallet has ANY historical trading activity             │
-│  Response: Array of trades (empty = new user, has items = returning user)   │
+│  Endpoints:                                                                  │
+│  • /activity?user={address}   - Trading activity history                    │
+│  • /positions?user={address}  - Current & historical positions              │
+│  • /value?user={address}      - Portfolio value & P&L metrics               │
 │                                                                              │
-│  NOTE: This is the SOURCE OF TRUTH for "is this wallet new?"                │
+│  Purpose: Trading data for whale profiles (P&L, positions, win rate)        │
+│  NOTE: Also used as SOURCE OF TRUTH for "is this wallet new?"               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  POLYMARKET GAMMA API                                                        │
+│                                                                              │
+│  Base URL: https://gamma-api.polymarket.com                                 │
+│                                                                              │
+│  Endpoints:                                                                  │
+│  • /public-profile?address={address} - User profile (name, avatar, etc.)    │
+│                                                                              │
+│  Purpose: Display names and avatars for whale profiles                      │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -560,7 +574,7 @@ frontend/src/
 │   ├── Dashboard.tsx          # Stats overview
 │   ├── WhaleTable.tsx         # Searchable/sortable whale list
 │   ├── AlertFeed.tsx          # Live deposit notifications
-│   ├── WalletProfile.tsx      # Individual wallet details
+│   ├── WalletProfile.tsx      # Individual wallet details + trading data
 │   ├── TrendingMarkets.tsx    # Top markets list
 │   ├── Header.tsx             # Navigation
 │   ├── MobileNav.tsx          # Mobile navigation
@@ -572,11 +586,22 @@ frontend/src/
 │   ├── useAlerts.ts           # Alert feed
 │   ├── useWallet.ts           # Individual wallet data
 │   ├── useTrendingMarkets.ts  # Markets data
-│   └── useWebSocket.ts        # Real-time updates
+│   ├── useWebSocket.ts        # Real-time updates
+│   ├── usePositions.ts        # Trading positions with sorting/filtering
+│   ├── useActivity.ts         # Trading activity with type filtering
+│   ├── useProfile.ts          # Polymarket Gamma API profile
+│   └── usePolymarketTrading.ts # Combined trading data hook
 ├── styles/
 │   ├── tokens.ts              # Design system tokens
 │   └── globals.css            # Global styles
-└── types/                     # TypeScript types
+├── services/
+│   └── api.ts                 # API client with fetchTradingData()
+└── types/
+    ├── polymarket.ts          # Polymarket API types
+    ├── position.ts            # Position with category configs
+    ├── activity.ts            # Activity with type configs
+    ├── profile.ts             # UserProfile with avatar utilities
+    └── whale.ts               # Whale with trading performance fields
 ```
 
 ---
