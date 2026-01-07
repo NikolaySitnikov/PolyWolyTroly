@@ -127,6 +127,7 @@ export function SwipeableCard({
       data-testid="swipeable-card"
       style={{
         position: 'relative',
+        overflow: 'hidden',
         borderRadius: '14px',
         ...style,
       }}
@@ -134,27 +135,18 @@ export function SwipeableCard({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Background hints container with overflow:hidden to clip hints */}
+      {/* Background hints (revealed during swipe) */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          overflow: 'hidden',
-          borderRadius: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 20px',
+          pointerEvents: 'none',
         }}
       >
-        {/* Background hints (revealed during swipe) */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 20px',
-            pointerEvents: 'none',
-          }}
-        >
         {/* Right hint (Follow) - shown when swiping right */}
         <div
           style={{
@@ -260,7 +252,6 @@ export function SwipeableCard({
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </span>
-        </div>
         </div>
       </div>
 
