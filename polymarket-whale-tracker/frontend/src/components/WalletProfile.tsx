@@ -26,6 +26,13 @@ interface WalletProfileProps {
   onDepositsPageChange: (page: number) => void;
   onBack: () => void;
   isMobile: boolean;
+  /** Navigation between whales */
+  currentWhaleIndex?: number;
+  totalWhales?: number;
+  /** Total whales in database (for display, may differ from navigable whales) */
+  totalWhalesInDb?: number;
+  onNavigatePrevWhale?: () => void;
+  onNavigateNextWhale?: () => void;
 }
 
 /**
@@ -141,6 +148,174 @@ function StatCard({
 }
 
 /**
+ * Navigation button for prev/next whale
+ */
+function NavButton({
+  direction,
+  disabled,
+  onClick,
+  isMobile,
+}: {
+  direction: 'prev' | 'next';
+  disabled: boolean;
+  onClick: () => void;
+  isMobile: boolean;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  const isPrev = direction === 'prev';
+  const arrow = isPrev ? '‹' : '›';
+  const label = isPrev ? 'Previous' : 'Next';
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      aria-label={`${label} whale`}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        minWidth: isMobile ? '44px' : '100px',
+        height: isMobile ? '44px' : '40px',
+        padding: isMobile ? '0' : '0 16px',
+        background: disabled
+          ? 'transparent'
+          : isHovered
+          ? tokens.colors.cyan
+          : 'transparent',
+        border: `1px solid ${disabled ? tokens.colors.border : isHovered ? tokens.colors.cyan : tokens.colors.border}`,
+        borderRadius: tokens.radius.md,
+        fontFamily: tokens.fonts.body,
+        fontSize: '14px',
+        fontWeight: 500,
+        color: disabled
+          ? tokens.colors.muted
+          : isHovered
+          ? tokens.colors.void
+          : tokens.colors.textSecondary,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+        transition: `all ${tokens.animation.durationFast} ease`,
+        boxShadow: isHovered && !disabled ? `0 0 20px ${tokens.colors.cyanGlow}` : 'none',
+        transform: isHovered && !disabled
+          ? isPrev
+            ? 'translateX(-2px)'
+            : 'translateX(2px)'
+          : 'translateX(0)',
+      }}
+    >
+      {isPrev && (
+        <span
+          style={{
+            fontSize: '18px',
+            fontWeight: 600,
+            lineHeight: 1,
+          }}
+        >
+          {arrow}
+        </span>
+      )}
+      {!isMobile && <span>{label}</span>}
+      {!isPrev && (
+        <span
+          style={{
+            fontSize: '18px',
+            fontWeight: 600,
+            lineHeight: 1,
+          }}
+        >
+          {arrow}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/**
+ * Whale navigation controls
+ */
+function WhaleNavigation({
+  currentIndex,
+  total,
+  displayTotal,
+  onPrev,
+  onNext,
+  isMobile,
+}: {
+  currentIndex: number;
+  total: number;
+  /** Total to display (may be larger than navigable total) */
+  displayTotal?: number;
+  onPrev: () => void;
+  onNext: () => void;
+  isMobile: boolean;
+}) {
+  const isFirst = currentIndex === 0;
+  const isLast = currentIndex === total - 1;
+  const shownTotal = displayTotal ?? total;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: isMobile ? '12px' : '16px',
+        padding: '16px',
+        background: tokens.colors.surface,
+        border: `1px solid ${tokens.colors.border}`,
+        borderRadius: tokens.radius.lg,
+        marginBottom: '24px',
+      }}
+    >
+      <NavButton
+        direction="prev"
+        disabled={isFirst}
+        onClick={onPrev}
+        isMobile={isMobile}
+      />
+
+      {/* Page indicator */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          padding: isMobile ? '8px 12px' : '8px 16px',
+          background: `${tokens.colors.cyan}10`,
+          borderRadius: tokens.radius.md,
+        }}
+      >
+        <span
+          style={{
+            fontFamily: tokens.fonts.mono,
+            fontSize: isMobile ? '12px' : '13px',
+            color: tokens.colors.textPrimary,
+          }}
+        >
+          <span style={{ color: tokens.colors.cyan, fontWeight: 600 }}>
+            {currentIndex + 1}
+          </span>
+          <span style={{ color: tokens.colors.textMuted, margin: '0 6px' }}>of</span>
+          <span style={{ fontWeight: 500 }}>{shownTotal.toLocaleString()}</span>
+        </span>
+      </div>
+
+      <NavButton
+        direction="next"
+        disabled={isLast}
+        onClick={onNext}
+        isMobile={isMobile}
+      />
+    </div>
+  );
+}
+
+/**
  * Copy button that shows feedback
  */
 function CopyButton({ text }: { text: string }) {
@@ -193,8 +368,19 @@ export function WalletProfile({
   onDepositsPageChange,
   onBack,
   isMobile,
+  currentWhaleIndex,
+  totalWhales,
+  totalWhalesInDb,
+  onNavigatePrevWhale,
+  onNavigateNextWhale,
 }: WalletProfileProps) {
   const totalPages = Math.ceil(depositsTotal / depositsPerPage);
+
+  // Check if navigation is available - show if we have index and total, even for first/last whale
+  const hasNavigation =
+    currentWhaleIndex !== undefined &&
+    totalWhales !== undefined &&
+    totalWhales > 1;
 
   return (
     <div data-testid="wallet-profile">
@@ -206,7 +392,7 @@ export function WalletProfile({
           alignItems: 'center',
           gap: '8px',
           padding: '8px 16px',
-          marginBottom: '24px',
+          marginBottom: '16px',
           background: 'transparent',
           border: `1px solid ${tokens.colors.border}`,
           borderRadius: '8px',
@@ -228,6 +414,18 @@ export function WalletProfile({
         ← Back to Whales
       </button>
 
+      {/* Whale Navigation */}
+      {hasNavigation && (
+        <WhaleNavigation
+          currentIndex={currentWhaleIndex}
+          total={totalWhales}
+          displayTotal={totalWhalesInDb}
+          onPrev={onNavigatePrevWhale ?? (() => {})}
+          onNext={onNavigateNextWhale ?? (() => {})}
+          isMobile={isMobile}
+        />
+      )}
+
       {/* Wallet Header */}
       <div
         style={{
@@ -248,27 +446,18 @@ export function WalletProfile({
           }}
         >
           <div>
-            <div
+            <h1
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
+                fontFamily: tokens.fonts.display,
+                fontSize: isMobile ? '20px' : '24px',
+                fontWeight: 700,
+                color: tokens.colors.textPrimary,
+                margin: 0,
                 marginBottom: '8px',
               }}
             >
-              <span style={{ fontSize: '28px' }}>🐋</span>
-              <h1
-                style={{
-                  fontFamily: tokens.fonts.display,
-                  fontSize: isMobile ? '20px' : '24px',
-                  fontWeight: 700,
-                  color: tokens.colors.textPrimary,
-                  margin: 0,
-                }}
-              >
-                <GlowText>Whale Profile</GlowText>
-              </h1>
-            </div>
+              <GlowText>Whale</GlowText> Profile
+            </h1>
             <div
               style={{
                 fontFamily: tokens.fonts.mono,

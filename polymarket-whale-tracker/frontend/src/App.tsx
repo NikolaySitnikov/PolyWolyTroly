@@ -216,7 +216,11 @@ function App() {
     refetchWhales();
     refetchAlerts();
     refetchTrending();
-  }, [refetch, refetchWhales, refetchAlerts, refetchTrending]);
+    // Also refetch wallet if currently viewing a wallet profile
+    if (selectedWalletAddress) {
+      refetchWallet();
+    }
+  }, [refetch, refetchWhales, refetchAlerts, refetchTrending, selectedWalletAddress, refetchWallet]);
 
   // Pull-to-refresh handler for mobile - wraps refetchAll with async/delay
   const handlePullToRefresh = useCallback(async () => {
@@ -382,6 +386,25 @@ function App() {
     setSelectedWalletAddress(null);
     setCurrentView('whales');
   };
+
+  // Find current whale index for navigation
+  const currentWhaleIndex = selectedWalletAddress
+    ? whales.findIndex((w) => w.address.toLowerCase() === selectedWalletAddress.toLowerCase())
+    : -1;
+
+  const handleNavigatePrevWhale = useCallback(() => {
+    if (currentWhaleIndex > 0) {
+      const prevWhale = whales[currentWhaleIndex - 1];
+      setSelectedWalletAddress(prevWhale.address);
+    }
+  }, [currentWhaleIndex, whales]);
+
+  const handleNavigateNextWhale = useCallback(() => {
+    if (currentWhaleIndex < whales.length - 1) {
+      const nextWhale = whales[currentWhaleIndex + 1];
+      setSelectedWalletAddress(nextWhale.address);
+    }
+  }, [currentWhaleIndex, whales]);
 
   const handleWhaleSortChange = (field: WhaleSortField, direction: SortDirection) => {
     setWhaleSortBy(field);
@@ -669,6 +692,11 @@ function App() {
           onDepositsPageChange={setDepositsPage}
           onBack={handleBackFromWallet}
           isMobile={isMobile}
+          currentWhaleIndex={currentWhaleIndex >= 0 ? currentWhaleIndex : undefined}
+          totalWhales={whales.length > 0 ? whales.length : undefined}
+          totalWhalesInDb={stats?.whaleCount}
+          onNavigatePrevWhale={handleNavigatePrevWhale}
+          onNavigateNextWhale={handleNavigateNextWhale}
         />
       );
     }

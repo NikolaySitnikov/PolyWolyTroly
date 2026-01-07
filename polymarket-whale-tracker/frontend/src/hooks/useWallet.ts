@@ -5,7 +5,7 @@
  * Includes wallet info and paginated deposit history.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWallet, fetchDeposits, type WalletApiResponse, type DepositApiResponse } from '../services/api';
 
 export interface WalletData {
@@ -67,23 +67,41 @@ export function useWallet(address: string | null, depositsPerPage = 10): UseWall
   const [depositsTotal, setDepositsTotal] = useState(0);
   const [depositsPage, setDepositsPage] = useState(1);
 
+  // Track if we have ever loaded a wallet (for seamless navigation)
+  const hasLoadedRef = useRef(false);
+  // Track if we're in an error state (for showing loading on retry)
+  const hasErrorRef = useRef(false);
+
   const loadWallet = useCallback(async () => {
     if (!address) {
       setWallet(null);
       setDeposits([]);
       setError(null);
+      hasLoadedRef.current = false;
+      hasErrorRef.current = false;
       return;
     }
 
-    setLoading(true);
+    // Only show loading state on first load or when recovering from error
+    // This enables seamless transitions when navigating between whales
+    // but ensures proper loading state when retrying after failures
+    if (!hasLoadedRef.current || hasErrorRef.current) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
       const walletData = await fetchWallet(address);
       setWallet(transformWallet(walletData));
+      hasLoadedRef.current = true;
+      hasErrorRef.current = false;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load wallet');
-      setWallet(null);
+      hasErrorRef.current = true;
+      // Only clear wallet on initial load error
+      if (!hasLoadedRef.current) {
+        setWallet(null);
+      }
     } finally {
       setLoading(false);
     }
