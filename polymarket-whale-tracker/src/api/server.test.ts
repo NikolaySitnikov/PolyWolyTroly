@@ -28,10 +28,19 @@ vi.mock("../services/trendingMarkets.js", () => ({
   },
 }));
 
+// Mock the trading cache service
+vi.mock("../services/polymarketTradingCache.js", () => ({
+  tradingCache: {
+    getOrFetchTradingData: vi.fn(),
+  },
+}));
+
 // Import after mocking
 import { createApp } from "./server.js";
 import { db } from "../services/database.js";
 import { trendingMarketsService } from "../services/trendingMarkets.js";
+import { tradingCache } from "../services/polymarketTradingCache.js";
+import type { WalletTradingData } from "../types/polymarket.js";
 
 describe("API Server", () => {
   let app: Express;
@@ -380,6 +389,100 @@ describe("API Server", () => {
       const response = await request(app).get("/api/markets/trending");
       expect(response.status).toBe(500);
       expect(response.body).toHaveProperty("error");
+    });
+  });
+
+  describe("GET /api/wallets/:address/trading", () => {
+    const mockTradingData: WalletTradingData = {
+      address: "0x1234567890123456789012345678901234567890",
+      metrics: {
+        pnl: 5000,
+        pnl7d: 1000,
+        pnl30d: 3000,
+        winRate: 65.5,
+        portfolioValue: 50000,
+        activePositions: 8,
+        totalTrades: 150,
+        lastActivityAt: "2024-01-15T10:30:00Z",
+        isLive: true,
+      },
+      positions: [],
+      activity: [],
+      profile: null,
+      fetchedAt: "2024-01-15T10:35:00Z",
+    };
+
+    beforeEach(() => {
+      vi.mocked(tradingCache.getOrFetchTradingData).mockResolvedValue(mockTradingData);
+    });
+
+    it("should return 200 OK for valid address", async () => {
+      const response = await request(app).get(
+        "/api/wallets/0x1234567890123456789012345678901234567890/trading"
+      );
+      expect(response.status).toBe(200);
+    });
+
+    it("should return trading data with metrics", async () => {
+      const response = await request(app).get(
+        "/api/wallets/0x1234567890123456789012345678901234567890/trading"
+      );
+      expect(response.body).toHaveProperty("metrics");
+      expect(response.body.metrics).toHaveProperty("pnl");
+      expect(response.body.metrics).toHaveProperty("winRate");
+      expect(response.body.metrics).toHaveProperty("isLive");
+    });
+
+    it("should return 400 for invalid address format", async () => {
+      const response = await request(app).get("/api/wallets/invalid-address/trading");
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty("error", "Invalid wallet address format");
+    });
+
+    it("should call tradingCache with address", async () => {
+      await request(app).get(
+        "/api/wallets/0x1234567890123456789012345678901234567890/trading"
+      );
+      expect(tradingCache.getOrFetchTradingData).toHaveBeenCalledWith(
+        "0x1234567890123456789012345678901234567890",
+        false
+      );
+    });
+
+    it("should support force refresh query param", async () => {
+      await request(app).get(
+        "/api/wallets/0x1234567890123456789012345678901234567890/trading?refresh=true"
+      );
+      expect(tradingCache.getOrFetchTradingData).toHaveBeenCalledWith(
+        "0x1234567890123456789012345678901234567890",
+        true
+      );
+    });
+
+    it("should return 500 when cache throws error", async () => {
+      vi.mocked(tradingCache.getOrFetchTradingData).mockRejectedValue(
+        new Error("Cache error")
+      );
+      const response = await request(app).get(
+        "/api/wallets/0x1234567890123456789012345678901234567890/trading"
+      );
+      expect(response.status).toBe(500);
+      expect(response.body).toHaveProperty("error");
+    });
+
+    it("should return address in response", async () => {
+      const response = await request(app).get(
+        "/api/wallets/0x1234567890123456789012345678901234567890/trading"
+      );
+      expect(response.body).toHaveProperty("address");
+      expect(response.body.address).toBe("0x1234567890123456789012345678901234567890");
+    });
+
+    it("should return fetchedAt timestamp", async () => {
+      const response = await request(app).get(
+        "/api/wallets/0x1234567890123456789012345678901234567890/trading"
+      );
+      expect(response.body).toHaveProperty("fetchedAt");
     });
   });
 

@@ -13,6 +13,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { db } from "../services/database.js";
 import { trendingMarketsService } from "../services/trendingMarkets.js";
 import { blockchain } from "../services/blockchain.js";
+import { tradingCache } from "../services/polymarketTradingCache.js";
 
 /**
  * Creates and configures the Express application.
@@ -79,6 +80,29 @@ export function createApp(): Express {
     } catch (error) {
       console.error("Error fetching wallets:", error);
       res.status(500).json({ error: "Failed to fetch wallets" });
+    }
+  });
+
+  // Wallet trading data endpoint - fetches Polymarket trading metrics
+  app.get("/api/wallets/:address/trading", async (req: Request, res: Response) => {
+    try {
+      const { address } = req.params;
+
+      // Validate Ethereum address format
+      const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+      if (!ethAddressRegex.test(address)) {
+        res.status(400).json({
+          error: "Invalid wallet address format",
+        });
+        return;
+      }
+
+      const forceRefresh = req.query.refresh === "true";
+      const tradingData = await tradingCache.getOrFetchTradingData(address, forceRefresh);
+      res.json(tradingData);
+    } catch (error) {
+      console.error("Error fetching trading data:", error);
+      res.status(500).json({ error: "Failed to fetch trading data" });
     }
   });
 
