@@ -434,7 +434,7 @@ export function WalletProfile({
               No deposits found
             </div>
           ) : (
-            deposits.map((deposit, index) => (
+            deposits.map((deposit) => (
               <div
                 key={deposit.id}
                 style={{
@@ -443,7 +443,6 @@ export function WalletProfile({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  animation: `fadeInUp 0.4s ${index * 0.05}s both cubic-bezier(0.16, 1, 0.3, 1)`,
                 }}
               >
                 {/* Icon */}

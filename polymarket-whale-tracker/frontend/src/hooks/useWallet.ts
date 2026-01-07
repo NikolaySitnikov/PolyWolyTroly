@@ -107,18 +107,26 @@ export function useWallet(address: string | null, depositsPerPage = 10): UseWall
     }
   }, [address]);
 
+  // Track if we've loaded deposits before (to avoid showing loading on page change)
+  const hasLoadedDepositsRef = useRef(false);
+
   const loadDeposits = useCallback(async () => {
     if (!address) {
       setDeposits([]);
+      hasLoadedDepositsRef.current = false;
       return;
     }
 
-    setDepositsLoading(true);
+    // Only show loading state on first load - keep old data visible during pagination
+    if (!hasLoadedDepositsRef.current) {
+      setDepositsLoading(true);
+    }
 
     try {
       const result = await fetchDeposits(depositsPage, depositsPerPage, address);
       setDeposits(result.deposits.map(transformDeposit));
       setDepositsTotal(result.total);
+      hasLoadedDepositsRef.current = true;
     } catch (err) {
       console.error('Failed to load deposits:', err);
     } finally {
@@ -130,6 +138,7 @@ export function useWallet(address: string | null, depositsPerPage = 10): UseWall
   useEffect(() => {
     loadWallet();
     setDepositsPage(1); // Reset to first page when address changes
+    hasLoadedDepositsRef.current = false; // Reset deposits loaded state
   }, [loadWallet]);
 
   // Load deposits when address or page changes
