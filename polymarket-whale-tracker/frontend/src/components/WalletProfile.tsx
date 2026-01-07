@@ -230,35 +230,145 @@ export function WalletProfile({
         paddingBottom: isMobile && hasNavigation ? '140px' : '0',
       }}
     >
-      {/* Back button */}
-      <button
-        onClick={onBack}
+      {/* Navigation Bar - Back button + Whale navigation (desktop) */}
+      <div
         style={{
-          display: 'inline-flex',
+          display: 'flex',
           alignItems: 'center',
-          gap: '8px',
-          padding: '8px 16px',
+          justifyContent: 'space-between',
           marginBottom: '16px',
-          background: 'transparent',
-          border: `1px solid ${tokens.colors.border}`,
-          borderRadius: '8px',
-          fontFamily: tokens.fonts.body,
-          fontSize: '14px',
-          color: tokens.colors.textSecondary,
-          cursor: 'pointer',
-          transition: 'all 0.15s ease',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = tokens.colors.cyan;
-          e.currentTarget.style.color = tokens.colors.cyan;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = tokens.colors.border;
-          e.currentTarget.style.color = tokens.colors.textSecondary;
         }}
       >
-        ← Back to Whales
-      </button>
+        {/* Back button */}
+        <button
+          onClick={onBack}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            background: 'transparent',
+            border: `1px solid ${tokens.colors.border}`,
+            borderRadius: '8px',
+            fontFamily: tokens.fonts.body,
+            fontSize: '14px',
+            color: tokens.colors.textSecondary,
+            cursor: 'pointer',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = tokens.colors.cyan;
+            e.currentTarget.style.color = tokens.colors.cyan;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = tokens.colors.border;
+            e.currentTarget.style.color = tokens.colors.textSecondary;
+          }}
+        >
+          ← Back to Whales
+        </button>
+
+        {/* Desktop Whale Navigation - compact prev/next with counter */}
+        {hasNavigation && !isMobile && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '4px',
+              background: tokens.colors.surface,
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: '10px',
+            }}
+          >
+            {/* Previous Button */}
+            <button
+              onClick={() => onWhalePageChange!(currentWhalePage - 1)}
+              disabled={currentWhalePage === 1}
+              aria-label="Previous whale (← arrow key)"
+              title="Previous whale (←)"
+              style={{
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'transparent',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '16px',
+                color: currentWhalePage === 1 ? tokens.colors.muted : tokens.colors.textSecondary,
+                cursor: currentWhalePage === 1 ? 'not-allowed' : 'pointer',
+                opacity: currentWhalePage === 1 ? 0.4 : 1,
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (currentWhalePage !== 1) {
+                  e.currentTarget.style.background = tokens.colors.surfaceHover;
+                  e.currentTarget.style.color = tokens.colors.cyan;
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = currentWhalePage === 1 ? tokens.colors.muted : tokens.colors.textSecondary;
+              }}
+            >
+              ‹
+            </button>
+
+            {/* Whale Counter */}
+            <div
+              style={{
+                padding: '0 12px',
+                fontFamily: tokens.fonts.mono,
+                fontSize: '13px',
+                color: tokens.colors.textSecondary,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span style={{ color: tokens.colors.cyan, fontWeight: 600 }}>
+                {currentWhalePage}
+              </span>
+              <span style={{ color: tokens.colors.textMuted, margin: '0 4px' }}>/</span>
+              <span>{displayTotalWhales.toLocaleString()}</span>
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={() => onWhalePageChange!(currentWhalePage + 1)}
+              disabled={currentWhalePage === whaleNavTotalPages}
+              aria-label="Next whale (→ arrow key)"
+              title="Next whale (→)"
+              style={{
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: currentWhalePage === whaleNavTotalPages ? 'transparent' : tokens.colors.cyan,
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '16px',
+                color: currentWhalePage === whaleNavTotalPages ? tokens.colors.muted : tokens.colors.void,
+                cursor: currentWhalePage === whaleNavTotalPages ? 'not-allowed' : 'pointer',
+                opacity: currentWhalePage === whaleNavTotalPages ? 0.4 : 1,
+                transition: 'all 0.15s ease',
+                boxShadow: currentWhalePage !== whaleNavTotalPages ? `0 0 12px ${tokens.colors.cyanGlow}` : 'none',
+              }}
+              onMouseEnter={(e) => {
+                if (currentWhalePage !== whaleNavTotalPages) {
+                  e.currentTarget.style.boxShadow = `0 0 20px ${tokens.colors.cyanGlow}`;
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = currentWhalePage !== whaleNavTotalPages ? `0 0 12px ${tokens.colors.cyanGlow}` : 'none';
+              }}
+            >
+              ›
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Wallet Header */}
       <div
@@ -643,18 +753,6 @@ export function WalletProfile({
         </div>
       )}
 
-      {/* Whale Navigation - desktop uses Pagination component */}
-      {hasNavigation && !isMobile && (
-        <Pagination
-          currentPage={currentWhalePage}
-          totalPages={whaleNavTotalPages}
-          totalItems={displayTotalWhales}
-          itemsPerPage={1}
-          onPageChange={onWhalePageChange!}
-          entityName="whales"
-          isMobile={isMobile}
-        />
-      )}
     </div>
   );
 }
