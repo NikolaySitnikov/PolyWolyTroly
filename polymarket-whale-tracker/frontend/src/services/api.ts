@@ -83,6 +83,7 @@ export type SortDirection = 'asc' | 'desc';
 
 /**
  * Fetches paginated list of tracked whale wallets.
+ * Market makers are automatically excluded server-side.
  * @param page - Page number (default 1)
  * @param limit - Items per page (default 20)
  * @param sortBy - Field to sort by (default 'total_deposited')

@@ -123,13 +123,13 @@ export const db = {
     alertsToday: number;
     newWhalesToday: number;
   }> {
-    // Get current whale count
-    const whaleCountResult = await pool.query("SELECT COUNT(*) as count FROM wallets");
+    // Get current whale count (excluding market makers)
+    const whaleCountResult = await pool.query("SELECT COUNT(*) as count FROM wallets WHERE is_market_maker = FALSE");
     const whaleCount = parseInt(whaleCountResult.rows[0]?.count || "0", 10);
 
-    // Get whale count from 24 hours ago (for trend)
+    // Get whale count from 24 hours ago (for trend, excluding market makers)
     const whaleCount24hAgoResult = await pool.query(
-      "SELECT COUNT(*) as count FROM wallets WHERE created_at < NOW() - INTERVAL '24 hours'"
+      "SELECT COUNT(*) as count FROM wallets WHERE is_market_maker = FALSE AND created_at < NOW() - INTERVAL '24 hours'"
     );
     const whaleCount24hAgo = parseInt(whaleCount24hAgoResult.rows[0]?.count || "0", 10);
 
@@ -159,9 +159,9 @@ export const db = {
     );
     const alertsToday = parseInt(alertsTodayResult.rows[0]?.count || "0", 10);
 
-    // Get new whales today (last 24 hours)
+    // Get new whales today (last 24 hours, excluding market makers)
     const newWhalesResult = await pool.query(
-      "SELECT COUNT(*) as count FROM wallets WHERE created_at >= NOW() - INTERVAL '24 hours'"
+      "SELECT COUNT(*) as count FROM wallets WHERE is_market_maker = FALSE AND created_at >= NOW() - INTERVAL '24 hours'"
     );
     const newWhalesToday = parseInt(newWhalesResult.rows[0]?.count || "0", 10);
 
@@ -198,11 +198,11 @@ export const db = {
     const safeSortDir = validSortDirs.includes(sortDir) ? sortDir.toUpperCase() : 'DESC';
 
     const walletsResult = await pool.query(
-      `SELECT * FROM wallets ORDER BY ${safeSortBy} ${safeSortDir} LIMIT $1 OFFSET $2`,
+      `SELECT * FROM wallets WHERE is_market_maker = FALSE ORDER BY ${safeSortBy} ${safeSortDir} LIMIT $1 OFFSET $2`,
       [limit, offset]
     );
 
-    const countResult = await pool.query("SELECT COUNT(*) as count FROM wallets");
+    const countResult = await pool.query("SELECT COUNT(*) as count FROM wallets WHERE is_market_maker = FALSE");
     const total = parseInt(countResult.rows[0]?.count || "0", 10);
 
     return {
@@ -269,6 +269,77 @@ export const db = {
       page,
       limit,
     };
+  },
+
+  // Create wallet with full historical deposit data (bulk insert)
+  // Used when a new whale is detected to backfill their complete deposit history
+  async createWalletWithHistory(
+    address: string,
+    deposits: Array<{
+      txHash: string;
+      amount: number;
+      blockNumber: bigint;
+      timestamp: number;
+    }>
+  ): Promise<void> {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      const normalizedAddress = address.toLowerCase();
+
+      // Calculate totals from deposits
+      const totalDeposited = deposits.reduce((sum, d) => sum + d.amount, 0);
+      const depositCount = deposits.length;
+      const firstDeposit = deposits[0] || null;
+      const firstDepositAmount = firstDeposit?.amount || 0;
+      const firstDepositTx = firstDeposit?.txHash || null;
+      const firstSeenAt = firstDeposit
+        ? new Date(firstDeposit.timestamp * 1000)
+        : new Date();
+
+      // Insert wallet with pre-calculated totals
+      await client.query(
+        `INSERT INTO wallets (address, first_deposit_amount, first_deposit_tx, total_deposited, deposit_count, first_seen_at)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (address) DO NOTHING`,
+        [normalizedAddress, firstDepositAmount, firstDepositTx, totalDeposited, depositCount, firstSeenAt]
+      );
+
+      // Bulk insert all deposits if we have any
+      if (deposits.length > 0) {
+        // Build bulk insert query with parameterized values
+        const values: any[] = [];
+        const valuePlaceholders: string[] = [];
+
+        deposits.forEach((deposit, index) => {
+          const offset = index * 4;
+          valuePlaceholders.push(
+            `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4})`
+          );
+          values.push(
+            deposit.txHash,
+            normalizedAddress,
+            deposit.amount,
+            deposit.blockNumber.toString()
+          );
+        });
+
+        await client.query(
+          `INSERT INTO deposits (tx_hash, wallet_address, amount, block_number)
+           VALUES ${valuePlaceholders.join(", ")}
+           ON CONFLICT (tx_hash) DO NOTHING`,
+          values
+        );
+      }
+
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   },
 
   // Get whale of the day (top depositor in last 24 hours)

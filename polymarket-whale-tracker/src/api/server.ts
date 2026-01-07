@@ -56,6 +56,7 @@ export function createApp(): Express {
   });
 
   // Wallets list endpoint with pagination and sorting - connected to database
+  // Market makers are automatically excluded via database query
   app.get("/api/wallets", async (req: Request, res: Response) => {
     try {
       const page = parseInt(req.query.page as string) || 1;

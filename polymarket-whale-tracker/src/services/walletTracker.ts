@@ -1,6 +1,7 @@
 import { db } from "./database.js";
 import { cache } from "./cache.js";
 import { polymarketApi } from "./polymarketApi.js";
+import { historicalDeposits } from "./historicalDeposits.js";
 
 export const walletTracker = {
   /**
@@ -53,7 +54,42 @@ export const walletTracker = {
   },
 
   /**
+   * Ensure a wallet exists in the database with full historical deposit data.
+   * Fetches historical deposits from Polygonscan and bulk inserts them.
+   */
+  async ensureWalletExistsWithHistory(
+    address: string,
+    currentDepositAmount: number,
+    currentTxHash: string
+  ): Promise<void> {
+    const exists = await db.walletExists(address);
+    if (exists) {
+      return;
+    }
+
+    // Fetch historical deposits from blockchain via RPC
+    let deposits: Awaited<ReturnType<typeof historicalDeposits.getHistoricalDeposits>> = [];
+    try {
+      deposits = await historicalDeposits.getHistoricalDeposits(address);
+    } catch (error) {
+      console.error(`Failed to fetch historical deposits for ${address}:`, error);
+      // Fall through to use empty array
+    }
+
+    if (deposits.length > 0) {
+      // Use bulk insert with full history
+      await db.createWalletWithHistory(address, deposits);
+    } else {
+      // Fallback: create wallet with just the current deposit
+      await db.createWallet(address, currentDepositAmount, currentTxHash);
+    }
+
+    await cache.markWalletSeen(address);
+  },
+
+  /**
    * Ensure a wallet exists in the database (create if not)
+   * @deprecated Use ensureWalletExistsWithHistory for new wallets
    */
   async ensureWalletExists(
     address: string,
@@ -68,7 +104,8 @@ export const walletTracker = {
   },
 
   /**
-   * Process a deposit and return whether it's from a new wallet
+   * Process a deposit and return whether it's from a new wallet.
+   * For new wallets, fetches and stores their complete deposit history.
    */
   async processDeposit(
     address: string,
@@ -78,10 +115,11 @@ export const walletTracker = {
   ): Promise<{ isNew: boolean; depositId: number | null }> {
     const isNew = await this.isNewWallet(address);
 
-    // Always ensure wallet exists in DB before recording deposit
-    // (wallet might exist in Polymarket history but not our DB)
-    await this.ensureWalletExists(address, amount, txHash);
+    // Ensure wallet exists in DB with full historical data
+    // This fetches all past deposits from blockchain RPC for new wallets
+    await this.ensureWalletExistsWithHistory(address, amount, txHash);
 
+    // Record the current deposit (will be a no-op if already in historical data)
     const depositId = await db.recordDeposit(txHash, address, amount, blockNumber);
 
     return { isNew, depositId };
