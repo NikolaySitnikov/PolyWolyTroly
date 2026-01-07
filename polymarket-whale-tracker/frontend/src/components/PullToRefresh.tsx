@@ -338,10 +338,13 @@ export function PullToRefresh({
         )}
 
         {/* Content with pull offset */}
+        {/* Note: Using marginTop instead of transform to avoid breaking
+            position:fixed elements inside children (e.g., pagination).
+            Transform creates a new containing block that breaks fixed positioning. */}
         <div
           style={{
-            transform: `translateY(${showIndicator ? indicatorHeight : 0}px)`,
-            transition: state === 'idle' ? 'transform 0.3s ease' : 'none',
+            marginTop: showIndicator ? indicatorHeight : 0,
+            transition: state === 'idle' ? 'margin-top 0.3s ease' : 'none',
           }}
         >
           {children}
