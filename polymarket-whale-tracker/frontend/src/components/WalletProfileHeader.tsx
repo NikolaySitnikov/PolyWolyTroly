@@ -17,6 +17,7 @@ import { GlowText } from './GlowText';
 import {
   getDisplayName,
   hasHumanReadableName,
+  truncateAddress,
   type UserProfile,
 } from '../types/profile';
 
@@ -230,9 +231,7 @@ export function WalletProfileHeader({
                   {profile?.verified && <VerifiedBadge />}
                 </>
               ) : (
-                <>
-                  <GlowText>Whale</GlowText> Profile
-                </>
+                <GlowText>{truncateAddress(address)}</GlowText>
               )}
             </h1>
             <LiveBadge

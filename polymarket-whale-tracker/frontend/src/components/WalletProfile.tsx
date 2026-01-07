@@ -184,7 +184,7 @@ export function WalletProfile({
         paddingBottom: isMobile && hasNavigation ? '140px' : '0',
       }}
     >
-      {/* Navigation Bar - Back button + Whale navigation (desktop) */}
+      {/* Navigation Bar - Back button + Whale Profile title + Whale navigation (desktop) */}
       <div
         style={{
           display: 'flex',
@@ -193,34 +193,50 @@ export function WalletProfile({
           marginBottom: '16px',
         }}
       >
-        {/* Back button */}
-        <button
-          onClick={onBack}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 16px',
-            background: 'transparent',
-            border: `1px solid ${tokens.colors.border}`,
-            borderRadius: '8px',
-            fontFamily: tokens.fonts.body,
-            fontSize: '14px',
-            color: tokens.colors.textSecondary,
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = tokens.colors.cyan;
-            e.currentTarget.style.color = tokens.colors.cyan;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = tokens.colors.border;
-            e.currentTarget.style.color = tokens.colors.textSecondary;
-          }}
-        >
-          ← Back to Whales
-        </button>
+        {/* Left side: Back button + Whale Profile title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {/* Back button */}
+          <button
+            onClick={onBack}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              background: 'transparent',
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: '8px',
+              fontFamily: tokens.fonts.body,
+              fontSize: '14px',
+              color: tokens.colors.textSecondary,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = tokens.colors.cyan;
+              e.currentTarget.style.color = tokens.colors.cyan;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = tokens.colors.border;
+              e.currentTarget.style.color = tokens.colors.textSecondary;
+            }}
+          >
+            ← Back to Whales
+          </button>
+
+          {/* Whale Profile title */}
+          <span
+            style={{
+              fontFamily: tokens.fonts.display,
+              fontSize: isMobile ? '14px' : '16px',
+              fontWeight: 600,
+              color: tokens.colors.textMuted,
+              display: isMobile ? 'none' : 'inline',
+            }}
+          >
+            Whale Profile
+          </span>
+        </div>
 
         {/* Desktop Whale Navigation - compact prev/next with counter */}
         {hasNavigation && !isMobile && (
