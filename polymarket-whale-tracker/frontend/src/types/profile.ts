@@ -101,13 +101,18 @@ export function getAvatarGradient(address: string): AvatarGradient {
  */
 export function getAvatarInitials(username?: string, address?: string): string {
   if (username) {
-    // Split by common separators
-    const words = username.split(/[\s_\-]+/);
+    // Split by common separators and filter out empty strings
+    // (handles usernames ending with separators like "slight-")
+    const words = username.split(/[\s_\-]+/).filter((w) => w.length > 0);
     if (words.length >= 2) {
       return (words[0][0] + words[1][0]).toUpperCase();
     }
     // Single word - take first two chars
-    return username.slice(0, 2).toUpperCase();
+    if (words.length === 1 && words[0].length >= 2) {
+      return words[0].slice(0, 2).toUpperCase();
+    }
+    // Fallback: use original username (handles edge cases like single char)
+    return username.replace(/[\s_\-]/g, '').slice(0, 2).toUpperCase() || '🐋';
   }
 
   if (address) {
