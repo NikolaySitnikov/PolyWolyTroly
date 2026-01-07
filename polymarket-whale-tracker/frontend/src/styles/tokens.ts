@@ -41,6 +41,15 @@ export const tokens = {
     lossGlow: 'rgba(255, 51, 102, 0.2)',
     warning: '#ffaa00',
 
+    // Live status (distinct from profit green)
+    live: '#22c55e',
+    liveGlow: 'rgba(34, 197, 94, 0.3)',
+    livePulse: 'rgba(34, 197, 94, 0.6)',
+
+    // Trading-specific
+    neutral: '#888899',
+    neutralGlow: 'rgba(136, 136, 153, 0.2)',
+
     // Text colors
     textPrimary: '#f0f0f5',
     textSecondary: '#8888aa',

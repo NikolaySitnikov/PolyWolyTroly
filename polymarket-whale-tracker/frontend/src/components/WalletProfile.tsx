@@ -10,10 +10,10 @@
  * @see Design docs/BRAND_GUIDELINES_EXTENDED.md
  */
 
-import { useState, useCallback } from 'react';
 import { tokens } from '../styles/tokens';
-import { GlowText } from './GlowText';
 import { Pagination } from './Pagination';
+import { WalletProfileHeader } from './WalletProfileHeader';
+import { usePolymarketTrading } from '../hooks/usePolymarketTrading';
 import type { WalletData, WalletDeposit } from '../hooks/useWallet';
 
 interface WalletProfileProps {
@@ -148,49 +148,6 @@ function StatCard({
   );
 }
 
-/**
- * Copy button that shows feedback
- */
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      console.error('Failed to copy');
-    }
-  };
-
-  return (
-    <button
-      onClick={handleCopy}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      aria-label="Copy address"
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '6px 12px',
-        background: isHovered ? tokens.colors.surfaceHover : 'transparent',
-        border: `1px solid ${tokens.colors.border}`,
-        borderRadius: '6px',
-        fontFamily: tokens.fonts.mono,
-        fontSize: '12px',
-        color: copied ? tokens.colors.profit : tokens.colors.textSecondary,
-        cursor: 'pointer',
-        transition: 'all 0.15s ease',
-      }}
-    >
-      {copied ? '✓ Copied' : '📋 Copy'}
-    </button>
-  );
-}
-
 export function WalletProfile({
   wallet,
   deposits,
@@ -207,6 +164,9 @@ export function WalletProfile({
   onWhalePageChange,
 }: WalletProfileProps) {
   const totalPages = Math.ceil(depositsTotal / depositsPerPage);
+
+  // Fetch trading data (profile, live status, etc.)
+  const { profile, isLive, metrics } = usePolymarketTrading(wallet.address);
 
   // Check if navigation is available - show if we have index and total, even for first/last whale
   const hasNavigation =
@@ -371,78 +331,14 @@ export function WalletProfile({
       </div>
 
       {/* Wallet Header */}
-      <div
-        style={{
-          background: tokens.colors.surface,
-          border: `1px solid ${tokens.colors.border}`,
-          borderRadius: '12px',
-          padding: isMobile ? '20px' : '24px',
-          marginBottom: '24px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: isMobile ? 'column' : 'row',
-            alignItems: isMobile ? 'flex-start' : 'center',
-            justifyContent: 'space-between',
-            gap: '16px',
-          }}
-        >
-          <div>
-            <h1
-              style={{
-                fontFamily: tokens.fonts.display,
-                fontSize: isMobile ? '20px' : '24px',
-                fontWeight: 700,
-                color: tokens.colors.textPrimary,
-                margin: 0,
-                marginBottom: '8px',
-              }}
-            >
-              <GlowText>Whale</GlowText> Profile
-            </h1>
-            <div
-              style={{
-                fontFamily: tokens.fonts.mono,
-                fontSize: isMobile ? '12px' : '14px',
-                color: tokens.colors.cyan,
-                background: `${tokens.colors.cyan}10`,
-                padding: '8px 12px',
-                borderRadius: '8px',
-                wordBreak: 'break-all',
-              }}
-            >
-              {wallet.address}
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <CopyButton text={wallet.address} />
-            <a
-              href={`https://polygonscan.com/address/${wallet.address}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                background: tokens.colors.cyan,
-                border: 'none',
-                borderRadius: '6px',
-                fontFamily: tokens.fonts.body,
-                fontSize: '12px',
-                fontWeight: 600,
-                color: tokens.colors.void,
-                textDecoration: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              View on Polygonscan ↗
-            </a>
-          </div>
-        </div>
+      <div style={{ marginBottom: '24px' }}>
+        <WalletProfileHeader
+          address={wallet.address}
+          profile={profile}
+          isLive={isLive}
+          lastActivityAt={metrics?.lastActivityAt}
+          isMobile={isMobile}
+        />
       </div>
 
       {/* Stats Grid */}

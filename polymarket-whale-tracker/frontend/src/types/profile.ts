@@ -33,16 +33,38 @@ export const AVATAR_GRADIENTS: AvatarGradient[] = [
 ] as const;
 
 /**
+ * Check if a string looks like an address (starts with 0x and is mostly hex)
+ */
+function looksLikeAddress(str: string): boolean {
+  if (!str) return false;
+  // Check if it starts with 0x or is mostly hexadecimal characters
+  const cleaned = str.toLowerCase().replace(/[-_]/g, '');
+  return cleaned.startsWith('0x') || /^[0-9a-f]{20,}/.test(cleaned);
+}
+
+/**
+ * Check if profile has a real human-readable username
+ */
+export function hasHumanReadableName(profile?: UserProfile | null): boolean {
+  if (!profile) return false;
+  const name = profile.name || profile.pseudonym;
+  if (!name) return false;
+  // Not a real name if it looks like an address
+  return !looksLikeAddress(name);
+}
+
+/**
  * Get display name from profile with fallback to truncated address
  */
 export function getDisplayName(
   profile?: UserProfile | null,
   address?: string
 ): string {
-  if (profile?.name) {
+  // Only use name/pseudonym if it's a real human-readable name
+  if (profile?.name && !looksLikeAddress(profile.name)) {
     return profile.name;
   }
-  if (profile?.pseudonym) {
+  if (profile?.pseudonym && !looksLikeAddress(profile.pseudonym)) {
     return profile.pseudonym;
   }
   if (profile?.address) {
