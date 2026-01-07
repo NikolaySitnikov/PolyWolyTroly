@@ -122,20 +122,36 @@ export function SwipeableCard({
   const isSwipingRight = offsetX > 0;
   const isSwipingLeft = offsetX < 0;
 
+  /**
+   * Handle mouse clicks (for desktop/Playwright testing).
+   * Touch devices use handleTouchEnd instead.
+   */
+  const handleClick = () => {
+    // Only trigger if we haven't been swiping (no touch movement)
+    // This prevents double-triggering on touch devices
+    if (!isSwiping && onClick) {
+      onClick();
+    }
+  };
+
   return (
     <div
       data-testid="swipeable-card"
       style={{
         position: 'relative',
-        overflow: 'hidden',
+        // Use clip-path instead of overflow:hidden to allow hover effects
+        // while still clipping the swipe background hints
+        overflow: 'visible',
         borderRadius: '14px',
+        cursor: onClick ? 'pointer' : undefined,
         ...style,
       }}
+      onClick={handleClick}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Background hints (revealed during swipe) */}
+      {/* Background hints (revealed during swipe) - clipped to card bounds */}
       <div
         style={{
           position: 'absolute',
@@ -145,6 +161,8 @@ export function SwipeableCard({
           justifyContent: 'space-between',
           padding: '0 20px',
           pointerEvents: 'none',
+          overflow: 'hidden',
+          borderRadius: '14px',
         }}
       >
         {/* Right hint (Follow) - shown when swiping right */}

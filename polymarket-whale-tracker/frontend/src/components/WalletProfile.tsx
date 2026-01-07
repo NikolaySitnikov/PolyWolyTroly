@@ -219,9 +219,17 @@ export function WalletProfile({
   const currentWhalePage = currentWhaleIndex !== undefined ? currentWhaleIndex + 1 : 1;
   // Total whales for display (use database total if available, otherwise navigable total)
   const displayTotalWhales = totalWhalesInDb ?? totalWhales ?? 0;
+  // Total pages for whale navigation (based on navigable whales loaded)
+  const whaleNavTotalPages = totalWhales ?? 0;
 
   return (
-    <div data-testid="wallet-profile">
+    <div
+      data-testid="wallet-profile"
+      style={{
+        // Add padding at bottom for sticky pagination on mobile
+        paddingBottom: isMobile && hasNavigation ? '140px' : '0',
+      }}
+    >
       {/* Back button */}
       <button
         onClick={onBack}
@@ -251,29 +259,6 @@ export function WalletProfile({
       >
         ← Back to Whales
       </button>
-
-      {/* Whale Navigation - reuses Pagination component for consistency */}
-      {hasNavigation && (
-        <div
-          style={{
-            background: tokens.colors.surface,
-            border: `1px solid ${tokens.colors.border}`,
-            borderRadius: tokens.radius.lg,
-            marginBottom: '24px',
-            overflow: 'hidden',
-          }}
-        >
-          <Pagination
-            currentPage={currentWhalePage}
-            totalPages={totalWhales!}
-            totalItems={displayTotalWhales}
-            itemsPerPage={1}
-            onPageChange={onWhalePageChange!}
-            entityName="whales"
-            isMobile={isMobile}
-          />
-        </div>
-      )}
 
       {/* Wallet Header */}
       <div
@@ -550,6 +535,126 @@ export function WalletProfile({
           />
         )}
       </div>
+
+      {/* Whale Navigation - sticky mobile pagination matching WhaleTable style */}
+      {hasNavigation && isMobile && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '78px', // Above mobile nav (60px) + spacing
+            left: '16px',
+            right: '16px',
+            zIndex: 100,
+
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '14px 20px',
+
+            // Glass morphism
+            background: `${tokens.colors.surface}e8`,
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+
+            border: `1px solid ${tokens.colors.border}`,
+            borderRadius: '16px',
+
+            boxShadow: `
+              0 -10px 40px ${tokens.colors.void}80,
+              0 0 30px ${tokens.colors.cyanGlow}
+            `,
+          }}
+        >
+          {/* Navigation Row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            {/* Previous Button */}
+            <button
+              onClick={() => onWhalePageChange!(currentWhalePage - 1)}
+              disabled={currentWhalePage === 1}
+              aria-label="Previous whale"
+              style={{
+                width: '48px',
+                height: '48px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: tokens.colors.surface,
+                border: `1px solid ${tokens.colors.border}`,
+                borderRadius: '14px',
+                fontSize: '20px',
+                color: currentWhalePage === 1 ? tokens.colors.muted : tokens.colors.textSecondary,
+                cursor: currentWhalePage === 1 ? 'not-allowed' : 'pointer',
+                opacity: currentWhalePage === 1 ? 0.4 : 1,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              ‹
+            </button>
+
+            {/* Page Info */}
+            <div style={{ textAlign: 'center' }}>
+              <div
+                style={{
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  color: tokens.colors.textPrimary,
+                }}
+              >
+                Whale{' '}
+                <span
+                  style={{
+                    color: tokens.colors.cyan,
+                    textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
+                  }}
+                >
+                  {currentWhalePage}
+                </span>
+                {' '}of {displayTotalWhales.toLocaleString()}
+              </div>
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={() => onWhalePageChange!(currentWhalePage + 1)}
+              disabled={currentWhalePage === whaleNavTotalPages}
+              aria-label="Next whale"
+              style={{
+                width: '48px',
+                height: '48px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: currentWhalePage === whaleNavTotalPages ? tokens.colors.surface : tokens.colors.cyan,
+                border: `1px solid ${currentWhalePage === whaleNavTotalPages ? tokens.colors.border : tokens.colors.cyan}`,
+                borderRadius: '14px',
+                fontSize: '20px',
+                color: currentWhalePage === whaleNavTotalPages ? tokens.colors.muted : tokens.colors.void,
+                cursor: currentWhalePage === whaleNavTotalPages ? 'not-allowed' : 'pointer',
+                opacity: currentWhalePage === whaleNavTotalPages ? 0.4 : 1,
+                transition: 'all 0.15s ease',
+                boxShadow: currentWhalePage !== whaleNavTotalPages ? `0 0 25px ${tokens.colors.cyanGlow}` : 'none',
+              }}
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Whale Navigation - desktop uses Pagination component */}
+      {hasNavigation && !isMobile && (
+        <Pagination
+          currentPage={currentWhalePage}
+          totalPages={whaleNavTotalPages}
+          totalItems={displayTotalWhales}
+          itemsPerPage={1}
+          onPageChange={onWhalePageChange!}
+          entityName="whales"
+          isMobile={isMobile}
+        />
+      )}
     </div>
   );
 }
