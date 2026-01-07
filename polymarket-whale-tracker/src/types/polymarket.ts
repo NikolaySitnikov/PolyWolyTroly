@@ -101,7 +101,10 @@ export interface PolymarketUserProfile {
   address: string;
   name?: string;
   pseudonym?: string;
-  avatarUrl?: string;
+  /** Profile image from Gamma API (use profileImageOptimized for smaller size) */
+  profileImage?: string;
+  /** Optimized/smaller version of profile image */
+  profileImageOptimized?: string;
   verified: boolean;
   twitterHandle?: string;
   bio?: string;

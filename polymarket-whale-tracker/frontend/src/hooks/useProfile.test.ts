@@ -31,7 +31,8 @@ const mockTradingDataWithProfile = {
     address: '0x1234567890abcdef',
     name: 'CryptoWhale',
     pseudonym: 'whale_king',
-    avatarUrl: 'https://example.com/avatar.png',
+    profileImage: 'https://example.com/avatar.png',
+    profileImageOptimized: 'https://example.com/avatar-optimized.png',
     verified: true,
     twitterHandle: 'cryptowhale',
     bio: 'Professional trader',
@@ -111,7 +112,7 @@ describe('useProfile Hook', () => {
     const profile = result.current.profile;
     expect(profile?.name).toBe('CryptoWhale');
     expect(profile?.pseudonym).toBe('whale_king');
-    expect(profile?.avatarUrl).toBe('https://example.com/avatar.png');
+    expect(profile?.profileImage).toBe('https://example.com/avatar.png');
     expect(profile?.verified).toBe(true);
     expect(profile?.twitterHandle).toBe('cryptowhale');
     expect(profile?.bio).toBe('Professional trader');

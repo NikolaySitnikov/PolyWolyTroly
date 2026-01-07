@@ -128,12 +128,12 @@ export function getAvatarInitials(username?: string, address?: string): string {
  * Check if a profile has a custom avatar
  */
 export function hasCustomAvatar(profile?: UserProfile | null): boolean {
-  return !!profile?.avatarUrl;
+  return !!(profile?.profileImage || profile?.profileImageOptimized);
 }
 
 /**
- * Get avatar URL or null
+ * Get avatar URL or null (prefers optimized version for better performance)
  */
 export function getAvatarUrl(profile?: UserProfile | null): string | null {
-  return profile?.avatarUrl || null;
+  return profile?.profileImageOptimized || profile?.profileImage || null;
 }

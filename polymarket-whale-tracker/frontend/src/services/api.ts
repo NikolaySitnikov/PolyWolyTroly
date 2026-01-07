@@ -425,7 +425,8 @@ export interface UserProfileData {
   name?: string;
   pseudonym?: string;
   bio?: string;
-  avatarUrl?: string;
+  profileImage?: string;
+  profileImageOptimized?: string;
   twitterHandle?: string;
   verified: boolean;
 }
