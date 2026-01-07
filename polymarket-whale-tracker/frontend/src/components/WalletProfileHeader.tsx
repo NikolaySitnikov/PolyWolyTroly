@@ -165,6 +165,9 @@ export function WalletProfileHeader({
     wordBreak: 'break-all',
     width: 'fit-content',
     maxWidth: '100%',
+    textDecoration: 'none',
+    cursor: 'pointer',
+    transition: 'all 0.15s ease',
   };
 
   const actionsStyle: CSSProperties = {
@@ -245,8 +248,24 @@ export function WalletProfileHeader({
             <span style={handleStyle}>@{profile.twitterHandle}</span>
           )}
 
-          {/* Address box */}
-          <div style={addressBoxStyle}>{address}</div>
+          {/* Address box - links to Polymarket profile */}
+          <a
+            href={`https://polymarket.com/profile/${address}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={addressBoxStyle}
+            title="View on Polymarket"
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = `${tokens.colors.cyan}20`;
+              e.currentTarget.style.boxShadow = `0 0 10px ${tokens.colors.cyanGlow}`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = `${tokens.colors.cyan}10`;
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            {address}
+          </a>
         </div>
 
         {/* Actions (desktop: right side, mobile: below) */}
