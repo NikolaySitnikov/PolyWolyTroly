@@ -15,6 +15,7 @@ import {
   getAvatarGradient,
   getAvatarInitials,
   getAvatarUrl,
+  hasHumanReadableName,
   type UserProfile,
 } from '../types/profile';
 
@@ -37,7 +38,9 @@ export function GeneratedAvatar({
 }: GeneratedAvatarProps) {
   const avatarUrl = getAvatarUrl(profile);
   const gradient = getAvatarGradient(address);
-  const displayName = username || profile?.name || profile?.pseudonym;
+  // Only use profile name for initials if it's a real human-readable name
+  // (not an address-like string like "0x01..." which would show "01")
+  const displayName = username || (hasHumanReadableName(profile) ? (profile?.name || profile?.pseudonym) : undefined);
   const initials = getAvatarInitials(displayName, address);
 
   const containerStyle: CSSProperties = {
