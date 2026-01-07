@@ -392,19 +392,14 @@ function App() {
     ? whales.findIndex((w) => w.address.toLowerCase() === selectedWalletAddress.toLowerCase())
     : -1;
 
-  const handleNavigatePrevWhale = useCallback(() => {
-    if (currentWhaleIndex > 0) {
-      const prevWhale = whales[currentWhaleIndex - 1];
-      setSelectedWalletAddress(prevWhale.address);
+  // Handle whale page change from Pagination component (1-indexed page number)
+  const handleWhalePageChange = useCallback((page: number) => {
+    // Convert 1-indexed page to 0-indexed array index
+    const index = page - 1;
+    if (index >= 0 && index < whales.length) {
+      setSelectedWalletAddress(whales[index].address);
     }
-  }, [currentWhaleIndex, whales]);
-
-  const handleNavigateNextWhale = useCallback(() => {
-    if (currentWhaleIndex < whales.length - 1) {
-      const nextWhale = whales[currentWhaleIndex + 1];
-      setSelectedWalletAddress(nextWhale.address);
-    }
-  }, [currentWhaleIndex, whales]);
+  }, [whales]);
 
   const handleWhaleSortChange = (field: WhaleSortField, direction: SortDirection) => {
     setWhaleSortBy(field);
@@ -695,8 +690,7 @@ function App() {
           currentWhaleIndex={currentWhaleIndex >= 0 ? currentWhaleIndex : undefined}
           totalWhales={whales.length > 0 ? whales.length : undefined}
           totalWhalesInDb={stats?.whaleCount}
-          onNavigatePrevWhale={handleNavigatePrevWhale}
-          onNavigateNextWhale={handleNavigateNextWhale}
+          onWhalePageChange={handleWhalePageChange}
         />
       );
     }

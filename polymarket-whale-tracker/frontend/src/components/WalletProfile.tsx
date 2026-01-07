@@ -10,7 +10,7 @@
  * @see Design docs/BRAND_GUIDELINES_EXTENDED.md
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { tokens } from '../styles/tokens';
 import { GlowText } from './GlowText';
 import { Pagination } from './Pagination';
@@ -26,13 +26,14 @@ interface WalletProfileProps {
   onDepositsPageChange: (page: number) => void;
   onBack: () => void;
   isMobile: boolean;
-  /** Navigation between whales */
+  /** Navigation between whales (0-indexed) */
   currentWhaleIndex?: number;
+  /** Number of navigable whales in current page */
   totalWhales?: number;
-  /** Total whales in database (for display, may differ from navigable whales) */
+  /** Total whales in database (for display) */
   totalWhalesInDb?: number;
-  onNavigatePrevWhale?: () => void;
-  onNavigateNextWhale?: () => void;
+  /** Callback when whale page changes (1-indexed page number) */
+  onWhalePageChange?: (page: number) => void;
 }
 
 /**
@@ -148,174 +149,6 @@ function StatCard({
 }
 
 /**
- * Navigation button for prev/next whale
- */
-function NavButton({
-  direction,
-  disabled,
-  onClick,
-  isMobile,
-}: {
-  direction: 'prev' | 'next';
-  disabled: boolean;
-  onClick: () => void;
-  isMobile: boolean;
-}) {
-  const [isHovered, setIsHovered] = useState(false);
-
-  const isPrev = direction === 'prev';
-  const arrow = isPrev ? '‹' : '›';
-  const label = isPrev ? 'Previous' : 'Next';
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      aria-label={`${label} whale`}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '8px',
-        minWidth: isMobile ? '44px' : '100px',
-        height: isMobile ? '44px' : '40px',
-        padding: isMobile ? '0' : '0 16px',
-        background: disabled
-          ? 'transparent'
-          : isHovered
-          ? tokens.colors.cyan
-          : 'transparent',
-        border: `1px solid ${disabled ? tokens.colors.border : isHovered ? tokens.colors.cyan : tokens.colors.border}`,
-        borderRadius: tokens.radius.md,
-        fontFamily: tokens.fonts.body,
-        fontSize: '14px',
-        fontWeight: 500,
-        color: disabled
-          ? tokens.colors.muted
-          : isHovered
-          ? tokens.colors.void
-          : tokens.colors.textSecondary,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
-        transition: `all ${tokens.animation.durationFast} ease`,
-        boxShadow: isHovered && !disabled ? `0 0 20px ${tokens.colors.cyanGlow}` : 'none',
-        transform: isHovered && !disabled
-          ? isPrev
-            ? 'translateX(-2px)'
-            : 'translateX(2px)'
-          : 'translateX(0)',
-      }}
-    >
-      {isPrev && (
-        <span
-          style={{
-            fontSize: '18px',
-            fontWeight: 600,
-            lineHeight: 1,
-          }}
-        >
-          {arrow}
-        </span>
-      )}
-      {!isMobile && <span>{label}</span>}
-      {!isPrev && (
-        <span
-          style={{
-            fontSize: '18px',
-            fontWeight: 600,
-            lineHeight: 1,
-          }}
-        >
-          {arrow}
-        </span>
-      )}
-    </button>
-  );
-}
-
-/**
- * Whale navigation controls
- */
-function WhaleNavigation({
-  currentIndex,
-  total,
-  displayTotal,
-  onPrev,
-  onNext,
-  isMobile,
-}: {
-  currentIndex: number;
-  total: number;
-  /** Total to display (may be larger than navigable total) */
-  displayTotal?: number;
-  onPrev: () => void;
-  onNext: () => void;
-  isMobile: boolean;
-}) {
-  const isFirst = currentIndex === 0;
-  const isLast = currentIndex === total - 1;
-  const shownTotal = displayTotal ?? total;
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: isMobile ? '12px' : '16px',
-        padding: '16px',
-        background: tokens.colors.surface,
-        border: `1px solid ${tokens.colors.border}`,
-        borderRadius: tokens.radius.lg,
-        marginBottom: '24px',
-      }}
-    >
-      <NavButton
-        direction="prev"
-        disabled={isFirst}
-        onClick={onPrev}
-        isMobile={isMobile}
-      />
-
-      {/* Page indicator */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: isMobile ? '8px 12px' : '8px 16px',
-          background: `${tokens.colors.cyan}10`,
-          borderRadius: tokens.radius.md,
-        }}
-      >
-        <span
-          style={{
-            fontFamily: tokens.fonts.mono,
-            fontSize: isMobile ? '12px' : '13px',
-            color: tokens.colors.textPrimary,
-          }}
-        >
-          <span style={{ color: tokens.colors.cyan, fontWeight: 600 }}>
-            {currentIndex + 1}
-          </span>
-          <span style={{ color: tokens.colors.textMuted, margin: '0 6px' }}>of</span>
-          <span style={{ fontWeight: 500 }}>{shownTotal.toLocaleString()}</span>
-        </span>
-      </div>
-
-      <NavButton
-        direction="next"
-        disabled={isLast}
-        onClick={onNext}
-        isMobile={isMobile}
-      />
-    </div>
-  );
-}
-
-/**
  * Copy button that shows feedback
  */
 function CopyButton({ text }: { text: string }) {
@@ -371,8 +204,7 @@ export function WalletProfile({
   currentWhaleIndex,
   totalWhales,
   totalWhalesInDb,
-  onNavigatePrevWhale,
-  onNavigateNextWhale,
+  onWhalePageChange,
 }: WalletProfileProps) {
   const totalPages = Math.ceil(depositsTotal / depositsPerPage);
 
@@ -380,7 +212,13 @@ export function WalletProfile({
   const hasNavigation =
     currentWhaleIndex !== undefined &&
     totalWhales !== undefined &&
-    totalWhales > 1;
+    totalWhales > 1 &&
+    onWhalePageChange !== undefined;
+
+  // Convert 0-indexed whale index to 1-indexed page for Pagination component
+  const currentWhalePage = currentWhaleIndex !== undefined ? currentWhaleIndex + 1 : 1;
+  // Total whales for display (use database total if available, otherwise navigable total)
+  const displayTotalWhales = totalWhalesInDb ?? totalWhales ?? 0;
 
   return (
     <div data-testid="wallet-profile">
@@ -414,16 +252,27 @@ export function WalletProfile({
         ← Back to Whales
       </button>
 
-      {/* Whale Navigation */}
+      {/* Whale Navigation - reuses Pagination component for consistency */}
       {hasNavigation && (
-        <WhaleNavigation
-          currentIndex={currentWhaleIndex}
-          total={totalWhales}
-          displayTotal={totalWhalesInDb}
-          onPrev={onNavigatePrevWhale ?? (() => {})}
-          onNext={onNavigateNextWhale ?? (() => {})}
-          isMobile={isMobile}
-        />
+        <div
+          style={{
+            background: tokens.colors.surface,
+            border: `1px solid ${tokens.colors.border}`,
+            borderRadius: tokens.radius.lg,
+            marginBottom: '24px',
+            overflow: 'hidden',
+          }}
+        >
+          <Pagination
+            currentPage={currentWhalePage}
+            totalPages={totalWhales!}
+            totalItems={displayTotalWhales}
+            itemsPerPage={1}
+            onPageChange={onWhalePageChange!}
+            entityName="whales"
+            isMobile={isMobile}
+          />
+        </div>
       )}
 
       {/* Wallet Header */}
