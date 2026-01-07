@@ -323,6 +323,84 @@ export interface WhaleOfTheDayResponse {
 }
 
 /**
+ * Trading metrics from Polymarket Data API
+ */
+export interface TradingMetrics {
+  pnl: number;
+  pnl7d: number;
+  pnl30d: number;
+  winRate: number;
+  portfolioValue: number;
+  activePositions: number;
+  totalTrades: number;
+  lastActivityAt: string | null;
+  isLive: boolean;
+}
+
+/**
+ * Position data from Polymarket
+ */
+export interface PositionData {
+  conditionId: string;
+  asset: string;
+  outcomeIndex: number;
+  outcome: string;
+  title: string;
+  slug: string;
+  eventSlug: string;
+  size: number;
+  avgPrice: number;
+  currentPrice: number;
+  initialValue: number;
+  currentValue: number;
+  pnl: number;
+  pnlPercent: number;
+  isActive: boolean;
+  category?: string;
+  endDate?: string;
+}
+
+/**
+ * Activity data from Polymarket
+ */
+export interface ActivityData {
+  id: string;
+  type: string;
+  timestamp: string;
+  market: string;
+  marketSlug: string;
+  outcome: string;
+  amount: number;
+  price?: number;
+  shares?: number;
+}
+
+/**
+ * User profile from Polymarket Gamma API
+ */
+export interface UserProfileData {
+  address: string;
+  name?: string;
+  pseudonym?: string;
+  bio?: string;
+  avatarUrl?: string;
+  twitterHandle?: string;
+  verified: boolean;
+}
+
+/**
+ * Complete trading data response from backend
+ */
+export interface TradingDataResponse {
+  address: string;
+  metrics: TradingMetrics;
+  positions: PositionData[];
+  activity: ActivityData[];
+  profile: UserProfileData | null;
+  fetchedAt: string;
+}
+
+/**
  * Fetches whale of the day (top depositor in last 24 hours).
  * @returns Promise resolving to whale data, or null if no deposits today
  */
@@ -331,6 +409,27 @@ export async function fetchWhaleOfTheDay(): Promise<WhaleOfTheDayResponse | null
 
   if (!response.ok) {
     throw new Error(`Failed to fetch whale of the day: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetches trading data for a wallet from Polymarket APIs.
+ * Includes positions, activity, metrics, and user profile.
+ *
+ * @param address - Ethereum wallet address
+ * @returns Promise resolving to complete trading data
+ * @throws Error if the request fails
+ */
+export async function fetchTradingData(address: string): Promise<TradingDataResponse> {
+  // Normalize address to lowercase for consistency
+  const normalizedAddress = address.toLowerCase();
+
+  const response = await fetch(`${api.baseUrl}/api/wallets/${normalizedAddress}/trading`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch trading data: ${response.status}`);
   }
 
   return response.json();
