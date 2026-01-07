@@ -237,8 +237,9 @@ export function PullToRefresh({
         data-testid="pull-to-refresh"
         style={{
           position: 'relative',
-          overflowY: 'auto',
-          WebkitOverflowScrolling: 'touch',
+          // Note: overflow must be visible to allow box-shadow glow effects
+          // from child cards to extend beyond container bounds.
+          // Scroll detection uses window.scrollY, not container overflow.
           ...style,
         }}
         onTouchStart={handleTouchStart}
