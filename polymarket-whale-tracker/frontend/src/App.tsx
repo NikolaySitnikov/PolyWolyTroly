@@ -50,7 +50,7 @@ import { useToast } from './contexts/ToastContext';
 import type { ViewId } from './types/navigation';
 import type { Alert } from './types/alert';
 import type { WhaleSortField, SortDirection } from './types/whale';
-import type { WhaleSortField as ApiSortField, DepositSortField } from './services/api';
+import { fetchWhaleAtIndex, type WhaleSortField as ApiSortField, type DepositSortField } from './services/api';
 import type { AlertSortField } from './components/AlertFeed';
 
 /**
@@ -387,19 +387,69 @@ function App() {
     setCurrentView('whales');
   };
 
-  // Find current whale index for navigation
-  const currentWhaleIndex = selectedWalletAddress
+  // Track the current whale's position in the full sorted list (1-indexed)
+  // This is separate from the local array index because we can navigate beyond loaded whales
+  const [currentWhalePosition, setCurrentWhalePosition] = useState<number | null>(null);
+
+  // Find current whale index in loaded array (for initial navigation from WhaleTable)
+  const localWhaleIndex = selectedWalletAddress
     ? whales.findIndex((w) => w.address.toLowerCase() === selectedWalletAddress.toLowerCase())
     : -1;
 
-  // Handle whale page change from Pagination component (1-indexed page number)
-  const handleWhalePageChange = useCallback((page: number) => {
-    // Convert 1-indexed page to 0-indexed array index
-    const index = page - 1;
-    if (index >= 0 && index < whales.length) {
-      setSelectedWalletAddress(whales[index].address);
+  // Update position when whale is found in local array (clicked from table)
+  // Calculate: (current page - 1) * items per page + local index + 1
+  useEffect(() => {
+    if (localWhaleIndex >= 0) {
+      const globalPosition = (whalesPage - 1) * WHALES_PER_PAGE + localWhaleIndex + 1;
+      setCurrentWhalePosition(globalPosition);
     }
-  }, [whales]);
+  }, [localWhaleIndex, whalesPage]);
+
+  // Handle whale navigation (1-indexed position in full sorted list)
+  // Fetches whale at position if not in current loaded whales array
+  const handleWhalePageChange = useCallback(async (targetPosition: number) => {
+    const totalWhaleCount = stats?.whaleCount ?? totalWhales;
+
+    // Validate bounds
+    if (targetPosition < 1 || targetPosition > totalWhaleCount) {
+      return;
+    }
+
+    // Convert 1-indexed position to 0-indexed
+    const index = targetPosition - 1;
+
+    // Check if whale might be in currently loaded array
+    // Calculate what page this index would be on
+    const targetPage = Math.floor(index / WHALES_PER_PAGE) + 1;
+
+    if (targetPage === whalesPage && index % WHALES_PER_PAGE < whales.length) {
+      // Whale is in current page's loaded data
+      const localIndex = index % WHALES_PER_PAGE;
+      setSelectedWalletAddress(whales[localIndex].address);
+      setCurrentWhalePosition(targetPosition);
+      return;
+    }
+
+    // Whale is on a different page - fetch it directly by index
+    try {
+      const whale = await fetchWhaleAtIndex(
+        index,
+        mapSortFieldToApi(whaleSortBy),
+        whaleSortDir
+      );
+      if (whale) {
+        setSelectedWalletAddress(whale.address);
+        setCurrentWhalePosition(targetPosition);
+      }
+    } catch (err) {
+      console.error('Failed to fetch whale at index:', err);
+      addToast({
+        variant: 'error',
+        title: 'Navigation Failed',
+        message: 'Could not load whale data',
+      });
+    }
+  }, [whales, whalesPage, stats?.whaleCount, totalWhales, whaleSortBy, whaleSortDir, addToast]);
 
   const handleWhaleSortChange = (field: WhaleSortField, direction: SortDirection) => {
     setWhaleSortBy(field);
@@ -676,6 +726,7 @@ function App() {
     }
 
     if (walletData) {
+      const totalWhaleCount = stats?.whaleCount ?? totalWhales;
       return (
         <WalletProfile
           wallet={walletData}
@@ -687,10 +738,9 @@ function App() {
           onDepositsPageChange={setDepositsPage}
           onBack={handleBackFromWallet}
           isMobile={isMobile}
-          currentWhaleIndex={currentWhaleIndex >= 0 ? currentWhaleIndex : undefined}
-          totalWhales={whales.length > 0 ? whales.length : undefined}
-          totalWhalesInDb={stats?.whaleCount}
-          onWhalePageChange={handleWhalePageChange}
+          currentWhalePosition={currentWhalePosition ?? undefined}
+          totalWhalesCount={totalWhaleCount > 0 ? totalWhaleCount : undefined}
+          onWhaleNavigate={handleWhalePageChange}
         />
       );
     }

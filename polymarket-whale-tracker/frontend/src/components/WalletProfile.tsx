@@ -26,14 +26,12 @@ interface WalletProfileProps {
   onDepositsPageChange: (page: number) => void;
   onBack: () => void;
   isMobile: boolean;
-  /** Navigation between whales (0-indexed) */
-  currentWhaleIndex?: number;
-  /** Number of navigable whales in current page */
-  totalWhales?: number;
-  /** Total whales in database (for display) */
-  totalWhalesInDb?: number;
-  /** Callback when whale page changes (1-indexed page number) */
-  onWhalePageChange?: (page: number) => void;
+  /** Current whale's position in the full sorted list (1-indexed) */
+  currentWhalePosition?: number;
+  /** Total number of whales in the database */
+  totalWhalesCount?: number;
+  /** Callback when navigating to a whale (1-indexed position) */
+  onWhaleNavigate?: (position: number) => void;
 }
 
 /**
@@ -158,29 +156,25 @@ export function WalletProfile({
   onDepositsPageChange,
   onBack,
   isMobile,
-  currentWhaleIndex,
-  totalWhales,
-  totalWhalesInDb,
-  onWhalePageChange,
+  currentWhalePosition,
+  totalWhalesCount,
+  onWhaleNavigate,
 }: WalletProfileProps) {
   const totalPages = Math.ceil(depositsTotal / depositsPerPage);
 
   // Fetch trading data (profile, live status, etc.)
   const { profile, isLive, metrics } = usePolymarketTrading(wallet.address);
 
-  // Check if navigation is available - show if we have index and total, even for first/last whale
+  // Check if navigation is available
   const hasNavigation =
-    currentWhaleIndex !== undefined &&
-    totalWhales !== undefined &&
-    totalWhales > 1 &&
-    onWhalePageChange !== undefined;
+    currentWhalePosition !== undefined &&
+    totalWhalesCount !== undefined &&
+    totalWhalesCount > 1 &&
+    onWhaleNavigate !== undefined;
 
-  // Convert 0-indexed whale index to 1-indexed page for Pagination component
-  const currentWhalePage = currentWhaleIndex !== undefined ? currentWhaleIndex + 1 : 1;
-  // Total whales for display (use database total if available, otherwise navigable total)
-  const displayTotalWhales = totalWhalesInDb ?? totalWhales ?? 0;
-  // Total pages for whale navigation (based on navigable whales loaded)
-  const whaleNavTotalPages = totalWhales ?? 0;
+  // Navigation uses 1-indexed positions
+  const canGoPrev = currentWhalePosition !== undefined && currentWhalePosition > 1;
+  const canGoNext = currentWhalePosition !== undefined && totalWhalesCount !== undefined && currentWhalePosition < totalWhalesCount;
 
   return (
     <div
@@ -243,8 +237,8 @@ export function WalletProfile({
           >
             {/* Previous Button */}
             <button
-              onClick={() => onWhalePageChange!(currentWhalePage - 1)}
-              disabled={currentWhalePage === 1}
+              onClick={() => onWhaleNavigate!(currentWhalePosition! - 1)}
+              disabled={!canGoPrev}
               aria-label="Previous whale (← arrow key)"
               title="Previous whale (←)"
               style={{
@@ -257,20 +251,20 @@ export function WalletProfile({
                 border: 'none',
                 borderRadius: '6px',
                 fontSize: '16px',
-                color: currentWhalePage === 1 ? tokens.colors.muted : tokens.colors.textSecondary,
-                cursor: currentWhalePage === 1 ? 'not-allowed' : 'pointer',
-                opacity: currentWhalePage === 1 ? 0.4 : 1,
+                color: !canGoPrev ? tokens.colors.muted : tokens.colors.textSecondary,
+                cursor: !canGoPrev ? 'not-allowed' : 'pointer',
+                opacity: !canGoPrev ? 0.4 : 1,
                 transition: 'all 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                if (currentWhalePage !== 1) {
+                if (canGoPrev) {
                   e.currentTarget.style.background = tokens.colors.surfaceHover;
                   e.currentTarget.style.color = tokens.colors.cyan;
                 }
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = currentWhalePage === 1 ? tokens.colors.muted : tokens.colors.textSecondary;
+                e.currentTarget.style.color = !canGoPrev ? tokens.colors.muted : tokens.colors.textSecondary;
               }}
             >
               ‹
@@ -287,16 +281,16 @@ export function WalletProfile({
               }}
             >
               <span style={{ color: tokens.colors.cyan, fontWeight: 600 }}>
-                {currentWhalePage}
+                {currentWhalePosition}
               </span>
               <span style={{ color: tokens.colors.textMuted, margin: '0 4px' }}>/</span>
-              <span>{displayTotalWhales.toLocaleString()}</span>
+              <span>{totalWhalesCount?.toLocaleString()}</span>
             </div>
 
             {/* Next Button */}
             <button
-              onClick={() => onWhalePageChange!(currentWhalePage + 1)}
-              disabled={currentWhalePage === whaleNavTotalPages}
+              onClick={() => onWhaleNavigate!(currentWhalePosition! + 1)}
+              disabled={!canGoNext}
               aria-label="Next whale (→ arrow key)"
               title="Next whale (→)"
               style={{
@@ -305,23 +299,23 @@ export function WalletProfile({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: currentWhalePage === whaleNavTotalPages ? 'transparent' : tokens.colors.cyan,
+                background: !canGoNext ? 'transparent' : tokens.colors.cyan,
                 border: 'none',
                 borderRadius: '6px',
                 fontSize: '16px',
-                color: currentWhalePage === whaleNavTotalPages ? tokens.colors.muted : tokens.colors.void,
-                cursor: currentWhalePage === whaleNavTotalPages ? 'not-allowed' : 'pointer',
-                opacity: currentWhalePage === whaleNavTotalPages ? 0.4 : 1,
+                color: !canGoNext ? tokens.colors.muted : tokens.colors.void,
+                cursor: !canGoNext ? 'not-allowed' : 'pointer',
+                opacity: !canGoNext ? 0.4 : 1,
                 transition: 'all 0.15s ease',
-                boxShadow: currentWhalePage !== whaleNavTotalPages ? `0 0 12px ${tokens.colors.cyanGlow}` : 'none',
+                boxShadow: canGoNext ? `0 0 12px ${tokens.colors.cyanGlow}` : 'none',
               }}
               onMouseEnter={(e) => {
-                if (currentWhalePage !== whaleNavTotalPages) {
+                if (canGoNext) {
                   e.currentTarget.style.boxShadow = `0 0 20px ${tokens.colors.cyanGlow}`;
                 }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = currentWhalePage !== whaleNavTotalPages ? `0 0 12px ${tokens.colors.cyanGlow}` : 'none';
+                e.currentTarget.style.boxShadow = canGoNext ? `0 0 12px ${tokens.colors.cyanGlow}` : 'none';
               }}
             >
               ›
@@ -576,8 +570,8 @@ export function WalletProfile({
           <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
             {/* Previous Button */}
             <button
-              onClick={() => onWhalePageChange!(currentWhalePage - 1)}
-              disabled={currentWhalePage === 1}
+              onClick={() => onWhaleNavigate!(currentWhalePosition! - 1)}
+              disabled={!canGoPrev}
               aria-label="Previous whale"
               style={{
                 width: '48px',
@@ -589,9 +583,9 @@ export function WalletProfile({
                 border: `1px solid ${tokens.colors.border}`,
                 borderRadius: '14px',
                 fontSize: '20px',
-                color: currentWhalePage === 1 ? tokens.colors.muted : tokens.colors.textSecondary,
-                cursor: currentWhalePage === 1 ? 'not-allowed' : 'pointer',
-                opacity: currentWhalePage === 1 ? 0.4 : 1,
+                color: !canGoPrev ? tokens.colors.muted : tokens.colors.textSecondary,
+                cursor: !canGoPrev ? 'not-allowed' : 'pointer',
+                opacity: !canGoPrev ? 0.4 : 1,
                 transition: 'all 0.15s ease',
               }}
             >
@@ -615,16 +609,16 @@ export function WalletProfile({
                     textShadow: `0 0 10px ${tokens.colors.cyanGlow}`,
                   }}
                 >
-                  {currentWhalePage}
+                  {currentWhalePosition}
                 </span>
-                {' '}of {displayTotalWhales.toLocaleString()}
+                {' '}of {totalWhalesCount?.toLocaleString()}
               </div>
             </div>
 
             {/* Next Button */}
             <button
-              onClick={() => onWhalePageChange!(currentWhalePage + 1)}
-              disabled={currentWhalePage === whaleNavTotalPages}
+              onClick={() => onWhaleNavigate!(currentWhalePosition! + 1)}
+              disabled={!canGoNext}
               aria-label="Next whale"
               style={{
                 width: '48px',
@@ -632,15 +626,15 @@ export function WalletProfile({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: currentWhalePage === whaleNavTotalPages ? tokens.colors.surface : tokens.colors.cyan,
-                border: `1px solid ${currentWhalePage === whaleNavTotalPages ? tokens.colors.border : tokens.colors.cyan}`,
+                background: !canGoNext ? tokens.colors.surface : tokens.colors.cyan,
+                border: `1px solid ${!canGoNext ? tokens.colors.border : tokens.colors.cyan}`,
                 borderRadius: '14px',
                 fontSize: '20px',
-                color: currentWhalePage === whaleNavTotalPages ? tokens.colors.muted : tokens.colors.void,
-                cursor: currentWhalePage === whaleNavTotalPages ? 'not-allowed' : 'pointer',
-                opacity: currentWhalePage === whaleNavTotalPages ? 0.4 : 1,
+                color: !canGoNext ? tokens.colors.muted : tokens.colors.void,
+                cursor: !canGoNext ? 'not-allowed' : 'pointer',
+                opacity: !canGoNext ? 0.4 : 1,
                 transition: 'all 0.15s ease',
-                boxShadow: currentWhalePage !== whaleNavTotalPages ? `0 0 25px ${tokens.colors.cyanGlow}` : 'none',
+                boxShadow: canGoNext ? `0 0 25px ${tokens.colors.cyanGlow}` : 'none',
               }}
             >
               ›

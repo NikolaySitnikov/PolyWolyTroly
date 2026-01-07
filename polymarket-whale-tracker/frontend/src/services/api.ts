@@ -203,6 +203,47 @@ export async function fetchWallet(address: string): Promise<WalletApiResponse> {
 }
 
 /**
+ * Fetches a single whale at a specific index (0-indexed) in the sorted list.
+ * Uses offset/limit to efficiently fetch just that one whale.
+ *
+ * @param index - 0-indexed position in the sorted whale list
+ * @param sortBy - Field to sort by (must match the current sort)
+ * @param sortDir - Sort direction (must match the current sort)
+ * @returns Promise resolving to the whale at that index, or null if out of bounds
+ */
+export async function fetchWhaleAtIndex(
+  index: number,
+  sortBy: WhaleSortField = 'total_deposited',
+  sortDir: SortDirection = 'desc'
+): Promise<WalletApiResponse | null> {
+  // Use page/limit to get just the one whale at that position
+  // Page is 1-indexed, so page = index + 1 with limit = 1
+  const page = index + 1;
+
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: '1',
+    sortBy,
+    sortDir,
+  });
+
+  const response = await fetch(`${api.baseUrl}/api/wallets?${params.toString()}`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch whale: ${response.status}`);
+  }
+
+  const data: WalletsResponse = await response.json();
+
+  // Return the whale if found
+  if (data.wallets.length > 0) {
+    return data.wallets[0];
+  }
+
+  return null;
+}
+
+/**
  * Trending market data from API
  */
 export interface TrendingMarketResponse {

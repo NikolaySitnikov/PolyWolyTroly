@@ -65,6 +65,7 @@ export function usePolymarketTrading(
     if (!address || !enabled) {
       setData(null);
       setError(null);
+      setLoading(false);
       return;
     }
 
@@ -75,10 +76,8 @@ export function usePolymarketTrading(
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // Only show loading on initial fetch
-    if (!data) {
-      setLoading(true);
-    }
+    // Show loading state (but keep old data visible to prevent flicker)
+    setLoading(true);
     setError(null);
 
     try {
@@ -95,13 +94,11 @@ export function usePolymarketTrading(
       setError(err instanceof Error ? err.message : 'Failed to fetch trading data');
       setLoading(false);
     }
-  }, [address, enabled, data]);
+  }, [address, enabled]);
 
   // Fetch on mount and when address changes
+  // NOTE: We do NOT reset data to null to prevent flickering - old data stays visible until new arrives
   useEffect(() => {
-    if (address !== fetchedAddressRef.current) {
-      setData(null);
-    }
     fetchData();
 
     return () => {
@@ -109,7 +106,7 @@ export function usePolymarketTrading(
         abortControllerRef.current.abort();
       }
     };
-  }, [fetchData, address]);
+  }, [fetchData]);
 
   // Set up refetch interval
   useEffect(() => {

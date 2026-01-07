@@ -163,6 +163,7 @@ export function WalletProfileHeader({
     padding: '8px 12px',
     borderRadius: '8px',
     wordBreak: 'break-all',
+    width: 'fit-content',
     maxWidth: '100%',
   };
 
