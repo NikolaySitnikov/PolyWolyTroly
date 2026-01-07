@@ -137,7 +137,7 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
     fontSize: sizeConfig.fontSize,
     boxShadow: `0 0 12px ${config.glowColor}`,
     transition: `all ${tokens.animation.durationFast} ease`,
-    cursor: showTooltip ? 'help' : 'default',
+    cursor: 'pointer',
   };
 
   const rankStyle: CSSProperties = {
