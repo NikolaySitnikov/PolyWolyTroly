@@ -24,6 +24,15 @@ export const db = {
     return result.rows.length > 0;
   },
 
+  // Check if wallet is flagged as a market maker
+  async isMarketMaker(address: string): Promise<boolean> {
+    const result = await pool.query(
+      "SELECT is_market_maker FROM wallets WHERE address = $1",
+      [address.toLowerCase()]
+    );
+    return result.rows[0]?.is_market_maker === true;
+  },
+
   // Create new wallet record
   async createWallet(
     address: string,

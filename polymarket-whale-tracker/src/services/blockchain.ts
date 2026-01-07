@@ -11,6 +11,7 @@ import { CONTRACTS, USDC_DECIMALS, ERC20_TRANSFER_ABI } from "../utils/constants
 import { walletTracker } from "./walletTracker.js";
 import { notifications } from "./notifications.js";
 import { cache } from "./cache.js";
+import { db } from "./database.js";
 import pino from "pino";
 
 // Dynamic import to avoid circular dependency in tests
@@ -135,8 +136,16 @@ export const blockchain = {
         log.blockNumber
       );
 
-      // Send notification for all deposits >= threshold
+      // Send notification for all deposits >= threshold (skip market makers)
       if (depositId) {
+        // Check if this wallet is a market maker - skip alerts if so
+        const isMarketMaker = await db.isMarketMaker(from);
+        if (isMarketMaker) {
+          console.log(`⏭️ Skipping alert for market maker wallet: ${from}`);
+          await cache.markTransactionProcessed(log.transactionHash);
+          return;
+        }
+
         console.log(`🚨 Sending alert for $${amount.toLocaleString()} deposit!`);
 
         // Broadcast to WebSocket clients instantly (if available)
