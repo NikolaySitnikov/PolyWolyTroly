@@ -255,7 +255,6 @@ export function WalletProfileHeader({
                 isLive={isLive}
                 lastActivityAt={lastActivityAt}
                 size="md"
-                showLabel
               />
             </div>
 
@@ -344,8 +343,7 @@ export function WalletProfileHeader({
             <LiveBadge
               isLive={isLive}
               lastActivityAt={lastActivityAt}
-              size="lg"
-              showLabel
+              size="md"
             />
           </div>
 
