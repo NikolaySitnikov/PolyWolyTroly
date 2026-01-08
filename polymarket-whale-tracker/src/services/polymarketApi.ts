@@ -1184,11 +1184,10 @@ export const polymarketApi = {
       value,
       profile,
       timeWindowedPnl,
-      positionCount,
       predictionsCount,
     ] = await Promise.all([
-      // Single page of positions for display (fast)
-      this.withTimeout(this.getPositions(address, 100), FAST_TIMEOUT, []),
+      // ALL positions for display (paginated fetch)
+      this.withTimeout(this.getAllPositions(address, 500), PAGINATION_TIMEOUT, []),
       // Single page of activity for display (fast)
       this.withTimeout(this.getActivity(address, 100), FAST_TIMEOUT, []),
       // Portfolio value (fast - single API call)
@@ -1197,8 +1196,6 @@ export const polymarketApi = {
       this.withTimeout(this.getProfile(address), FAST_TIMEOUT, null),
       // P&L history from user-pnl API (fast - pre-aggregated)
       this.withTimeout(this.getAllTimeWindowedPnl(address), FAST_TIMEOUT, { pnl7d: 0, pnl30d: 0, pnlAll: 0 }),
-      // ACCURATE position count (paginates all positions) - needs time for active whales
-      this.withTimeout(this.getPositionCount(address), PAGINATION_TIMEOUT, 0),
       // ACCURATE predictions count (paginates all trades, counts unique markets) - needs time for active whales
       this.withTimeout(this.getTotalPredictionsCount(address), PAGINATION_TIMEOUT, 0),
     ]);
@@ -1213,12 +1210,12 @@ export const polymarketApi = {
       timeWindowedPnl
     );
 
-    // Override with ACCURATE counts
-    metrics.activePositions = positionCount;
+    // Use actual positions count from fetched data (already accurate from getAllPositions)
+    metrics.activePositions = positions.length;
     metrics.totalTrades = predictionsCount;
 
     // Enrich positions with market metadata (sportsMarketType, seriesSlug) for sport emoji detection
-    const enrichedPositions = await this.enrichPositionsWithMetadata(positions.slice(0, 20));
+    const enrichedPositions = await this.enrichPositionsWithMetadata(positions);
 
     return {
       address,
