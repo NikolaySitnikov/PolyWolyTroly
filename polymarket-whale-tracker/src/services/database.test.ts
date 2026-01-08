@@ -523,3 +523,143 @@ describe("Wallet interface", () => {
     expect(wallet).toBeDefined();
   });
 });
+
+describe("createWalletWithHistory", () => {
+  beforeEach(async () => {
+    vi.resetModules();
+    mockQuery.mockReset();
+    mockClientQuery.mockReset();
+    mockClientRelease.mockReset();
+    mockConnect.mockClear();
+  });
+
+  it("should create wallet and bulk insert historical deposits in a transaction", async () => {
+    mockClientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // INSERT wallet
+      .mockResolvedValueOnce({ rows: [] }) // INSERT deposits (bulk)
+      .mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+    const { db } = await import("./database.js");
+
+    const deposits = [
+      { txHash: "0xfirst", amount: 10000, blockNumber: 100n, timestamp: 1700000000 },
+      { txHash: "0xsecond", amount: 5000, blockNumber: 200n, timestamp: 1700001000 },
+      { txHash: "0xthird", amount: 2500, blockNumber: 300n, timestamp: 1700002000 },
+    ];
+
+    await db.createWalletWithHistory(
+      "0xWalletAddress",
+      deposits
+    );
+
+    expect(mockConnect).toHaveBeenCalled();
+    expect(mockClientQuery).toHaveBeenCalledTimes(4);
+
+    // Verify BEGIN
+    expect(mockClientQuery).toHaveBeenNthCalledWith(1, "BEGIN");
+
+    // Verify wallet INSERT with correct totals
+    expect(mockClientQuery).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("INSERT INTO wallets"),
+      [
+        "0xwalletaddress", // address (lowercased)
+        10000,            // first_deposit_amount
+        "0xfirst",        // first_deposit_tx
+        17500,            // total_deposited (sum of all)
+        3,                // deposit_count
+        expect.any(Date), // first_seen_at (from first deposit timestamp)
+      ]
+    );
+
+    // Verify deposits bulk INSERT
+    const depositsCall = mockClientQuery.mock.calls[2];
+    expect(depositsCall[0]).toContain("INSERT INTO deposits");
+    expect(depositsCall[0]).toContain("ON CONFLICT (tx_hash) DO NOTHING");
+
+    // Verify COMMIT
+    expect(mockClientQuery).toHaveBeenNthCalledWith(4, "COMMIT");
+
+    expect(mockClientRelease).toHaveBeenCalled();
+  });
+
+  it("should rollback on error", async () => {
+    const error = new Error("Database error");
+    mockClientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockRejectedValueOnce(error); // INSERT wallet fails
+
+    const { db } = await import("./database.js");
+
+    await expect(
+      db.createWalletWithHistory("0xWallet", [
+        { txHash: "0x1", amount: 1000, blockNumber: 1n, timestamp: 1700000000 },
+      ])
+    ).rejects.toThrow("Database error");
+
+    expect(mockClientQuery).toHaveBeenCalledWith("ROLLBACK");
+    expect(mockClientRelease).toHaveBeenCalled();
+  });
+
+  it("should handle empty deposits array gracefully", async () => {
+    mockClientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // INSERT wallet (with zeros)
+      .mockResolvedValueOnce({ rows: [] }); // COMMIT (no deposits to insert)
+
+    const { db } = await import("./database.js");
+
+    await db.createWalletWithHistory("0xWallet", []);
+
+    // Should still create wallet with zero totals
+    expect(mockClientQuery).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("INSERT INTO wallets"),
+      expect.arrayContaining(["0xwallet", 0, null, 0, 0])
+    );
+  });
+
+  it("should lowercase wallet address", async () => {
+    mockClientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // INSERT wallet
+      .mockResolvedValueOnce({ rows: [] }) // INSERT deposits
+      .mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+    const { db } = await import("./database.js");
+
+    await db.createWalletWithHistory("0xABCDEF1234", [
+      { txHash: "0x1", amount: 1000, blockNumber: 1n, timestamp: 1700000000 },
+    ]);
+
+    expect(mockClientQuery).toHaveBeenNthCalledWith(
+      2,
+      expect.any(String),
+      expect.arrayContaining(["0xabcdef1234"])
+    );
+  });
+
+  it("should use first deposit timestamp as first_seen_at", async () => {
+    mockClientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // INSERT wallet
+      .mockResolvedValueOnce({ rows: [] }) // INSERT deposits
+      .mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+    const { db } = await import("./database.js");
+
+    // Deposits should be sorted by timestamp (oldest first)
+    const deposits = [
+      { txHash: "0xfirst", amount: 5000, blockNumber: 1n, timestamp: 1700000000 },
+      { txHash: "0xsecond", amount: 3000, blockNumber: 2n, timestamp: 1700001000 },
+    ];
+
+    await db.createWalletWithHistory("0xWallet", deposits);
+
+    // first_seen_at should be based on first deposit's timestamp
+    const walletInsertCall = mockClientQuery.mock.calls[1];
+    const firstSeenAt = walletInsertCall[1][5] as Date;
+    expect(firstSeenAt.getTime()).toBe(1700000000 * 1000);
+  });
+});

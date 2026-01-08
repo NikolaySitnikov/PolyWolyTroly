@@ -123,6 +123,7 @@ function PageButton({
 
 /**
  * Previous/Next navigation button
+ * Both buttons are unlit by default and light up on hover
  */
 function NavButton({
   direction,
@@ -151,7 +152,7 @@ function NavButton({
           : isHovered
             ? tokens.colors.cyan
             : tokens.colors.surface,
-        border: `1px solid ${disabled ? tokens.colors.border : isHovered ? tokens.colors.cyan : tokens.colors.border}`,
+        border: `1px solid ${isHovered && !disabled ? tokens.colors.cyan : tokens.colors.border}`,
         borderRadius: '8px',
         fontSize: '14px',
         color: disabled
