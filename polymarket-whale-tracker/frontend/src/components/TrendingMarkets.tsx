@@ -126,8 +126,10 @@ function MarketCard({
     ? 'sports'
     : (mapApiCategory(market.category) || inferCategory(market.question));
 
-  // Get sport-specific emoji if it's a sports market
-  const sportEmoji = isSportsMarket ? getSportEmoji(market.seriesSlug) : undefined;
+  // Get sport-specific emoji if it's a sports market (either via API or inference)
+  const sportEmoji = (isSportsMarket || category === 'sports')
+    ? getSportEmoji(market.seriesSlug, market.question)
+    : undefined;
 
   return (
     <a
@@ -308,7 +310,10 @@ function MobileMarketCard({
   const category = isSportsMarket
     ? 'sports'
     : (mapApiCategory(market.category) || inferCategory(market.question));
-  const sportEmoji = isSportsMarket ? getSportEmoji(market.seriesSlug) : undefined;
+  // Get sport-specific emoji if it's a sports market (either via API or inference)
+  const sportEmoji = (isSportsMarket || category === 'sports')
+    ? getSportEmoji(market.seriesSlug, market.question)
+    : undefined;
 
   return (
     <a

@@ -151,24 +151,27 @@ const CATEGORY_CONFIG: Record<MarketCategory, { icon: string; label: string; col
 };
 
 /**
- * Get sport-specific emoji based on series slug from Polymarket API.
+ * Get sport-specific emoji based on series slug or question text.
  * Maps league/series prefixes to appropriate sport emojis.
  * Returns default sports emoji (⚽) if no match found.
  *
  * @param seriesSlug - Series slug from Polymarket (e.g., "nba-2026", "premier-league-2025")
+ * @param question - Optional market question text as fallback for keyword matching
  * @returns Sport-specific emoji
  */
-export function getSportEmoji(seriesSlug: string | null | undefined): string {
-  if (!seriesSlug) return '⚽'; // Default sports emoji
-
-  const slug = seriesSlug.toLowerCase();
+export function getSportEmoji(seriesSlug: string | null | undefined, question?: string): string {
+  // Build slug from seriesSlug or question for matching
+  const slug = seriesSlug?.toLowerCase() || question?.toLowerCase() || '';
 
   // Basketball
   if (slug.startsWith('nba') || slug.includes('basketball') || slug.includes('ncaa-basketball') || slug.includes('wnba')) {
     return '🏀';
   }
   // American Football
-  if (slug.startsWith('nfl') || slug.includes('ncaa-football') || slug.includes('college-football') || slug.includes('super-bowl')) {
+  if (slug.startsWith('nfl') || slug.includes('ncaa-football') || slug.includes('college-football') ||
+      slug.includes('super-bowl') || slug.includes('super bowl') || slug.includes('panthers') ||
+      slug.includes('cowboys') || slug.includes('patriots') || slug.includes('chiefs') ||
+      slug.includes('eagles') || slug.includes('49ers') || slug.includes('packers')) {
     return '🏈';
   }
   // Soccer/Football
