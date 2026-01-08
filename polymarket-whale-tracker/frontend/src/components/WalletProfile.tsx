@@ -91,6 +91,70 @@ function formatTxHash(hash: string): string {
 }
 
 /**
+ * Total Deposited SVG icon (stacked coins)
+ * Uses profit green per brand guidelines (deposits = green)
+ */
+function TotalDepositedIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: tokens.colors.profit }}>
+      <ellipse cx="12" cy="7" rx="8" ry="3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M4 10.5c0 1.93 3.58 3.5 8 3.5s8-1.57 8-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M4 15.5c0 1.93 3.58 3.5 8 3.5s8-1.57 8-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+/**
+ * Deposit Count SVG icon (horizontal lines)
+ * Uses cyan per brand guidelines (data highlights)
+ */
+function DepositCountIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: tokens.colors.cyan }}>
+      <line x1="5" y1="7" x2="19" y2="7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <line x1="5" y1="17" x2="19" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+/**
+ * Average Deposit SVG icon (coin with average/equals sign)
+ * Uses purple per brand guidelines (tertiary accent)
+ */
+function AvgDepositIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: tokens.colors.purple }}>
+      {/* Outer coin circle */}
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5"/>
+      {/* Equals sign representing average */}
+      <line x1="8" y1="10" x2="16" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="8" y1="14" x2="16" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+/**
+ * First Seen SVG icon (calendar with pin)
+ * Uses magenta per brand guidelines (secondary accent)
+ */
+function FirstSeenIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: tokens.colors.magenta }}>
+      {/* Calendar body */}
+      <rect x="3" y="6" width="18" height="15" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+      {/* Calendar hooks */}
+      <line x1="8" y1="3" x2="8" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <line x1="16" y1="3" x2="16" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      {/* Header line */}
+      <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="1.5"/>
+      {/* Pin/marker dot for "first" */}
+      <circle cx="12" cy="15" r="2" fill="currentColor"/>
+    </svg>
+  );
+}
+
+/**
  * Stats card component
  */
 function StatCard({
@@ -100,7 +164,7 @@ function StatCard({
 }: {
   label: string;
   value: string;
-  icon: string;
+  icon: string | React.ReactNode;
 }) {
   return (
     <div
@@ -119,7 +183,7 @@ function StatCard({
           marginBottom: '8px',
         }}
       >
-        <span style={{ fontSize: '16px' }}>{icon}</span>
+        <span style={{ fontSize: '16px', display: 'flex', alignItems: 'center', color: tokens.colors.textMuted }}>{icon}</span>
         <span
           style={{
             fontFamily: tokens.fonts.mono,
@@ -367,14 +431,14 @@ export function WalletProfile({
           marginBottom: '24px',
         }}
       >
-        <StatCard label="Total Deposited" value={formatUSD(wallet.totalDeposited)} icon="💰" />
-        <StatCard label="Deposit Count" value={depositsTotal.toString()} icon="📊" />
+        <StatCard label="Total Deposited" value={formatUSD(wallet.totalDeposited)} icon={<TotalDepositedIcon />} />
+        <StatCard label="Deposit Count" value={depositsTotal.toString()} icon={<DepositCountIcon />} />
         <StatCard
           label="Avg. Deposit"
           value={formatUSD(depositsTotal > 0 ? wallet.totalDeposited / depositsTotal : 0)}
-          icon="📈"
+          icon={<AvgDepositIcon />}
         />
-        <StatCard label="First Seen" value={formatDate(wallet.firstSeenAt)} icon="📅" />
+        <StatCard label="First Seen" value={formatDate(wallet.firstSeenAt)} icon={<FirstSeenIcon />} />
       </div>
 
       {/* Deposit History */}
