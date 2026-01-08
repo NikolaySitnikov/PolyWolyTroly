@@ -66,6 +66,8 @@ React + TypeScript + Vite dashboard with cyberpunk terminal aesthetic:
 - **Whale Table**: Searchable, sortable list with pagination
 - **Alert Feed**: Live deposit notifications
 - **Wallet Profiles**: Individual wallet details, transaction history, and trading performance
+  - **Position Search**: Filter positions by market name with real-time search (ProfileTabs component)
+  - **Trading Metrics**: P&L, win rate, portfolio value with time window toggles (7D/30D/ALL)
 - **Trending Markets**: Top markets by whale activity
 - **Settings**: User preferences, theme, notifications
 - **780+ tests** with Vitest + React Testing Library
@@ -85,6 +87,14 @@ Integration of Polymarket trading data (P&L, positions, activity) for each whale
 - `useActivity.ts` - Fetch activity with pagination, type filtering, load-more
 - `useProfile.ts` - Fetch Gamma API profile
 - `usePolymarketTrading.ts` - Combined hook for all trading data
+
+**Frontend Components** (src/components/):
+- `ProfileTabs.tsx` - Tab navigation (Positions/Activity/Deposits) with integrated search
+  - Desktop: search input inline with tabs on right side
+  - Mobile: search bar in separate row below tabs
+  - Uses React state for focus management to ensure proper blur behavior
+- `PositionsTable.tsx` - Desktop table view for positions with sortable columns
+- `PositionCard.tsx` - Mobile card view for individual positions
 
 ### Key Services
 
