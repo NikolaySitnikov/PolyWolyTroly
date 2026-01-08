@@ -184,7 +184,7 @@ export function WalletProfile({
         paddingBottom: isMobile && hasNavigation ? '140px' : '0',
       }}
     >
-      {/* Navigation Bar - Back button + Whale Profile title + Whale navigation (desktop) */}
+      {/* Navigation Bar - Back button + Whale navigation (desktop) */}
       <div
         style={{
           display: 'flex',
@@ -224,17 +224,23 @@ export function WalletProfile({
             ← Back to Whales
           </button>
 
-          {/* Whale Profile title */}
+          {/* Whale Profile title - always show next to Back button */}
           <span
             style={{
               fontFamily: tokens.fonts.display,
-              fontSize: isMobile ? '14px' : '16px',
-              fontWeight: 600,
-              color: tokens.colors.textMuted,
-              display: isMobile ? 'none' : 'inline',
+              fontSize: isMobile ? '16px' : '20px',
+              fontWeight: 700,
             }}
           >
-            Whale Profile
+            <span
+              style={{
+                color: tokens.colors.cyan,
+                textShadow: `0 0 20px ${tokens.colors.cyan}40, 0 0 40px ${tokens.colors.cyan}20`,
+              }}
+            >
+              Whale
+            </span>{' '}
+            <span style={{ color: tokens.colors.textPrimary }}>Profile</span>
           </span>
         </div>
 

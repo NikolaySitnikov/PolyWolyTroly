@@ -13,7 +13,6 @@ import { useState, type CSSProperties } from 'react';
 import { tokens } from '../styles/tokens';
 import { GeneratedAvatar } from './GeneratedAvatar';
 import { LiveBadge } from './LiveBadge';
-import { GlowText } from './GlowText';
 import {
   getDisplayName,
   hasHumanReadableName,
@@ -231,7 +230,7 @@ export function WalletProfileHeader({
                   {profile?.verified && <VerifiedBadge />}
                 </>
               ) : (
-                <GlowText>{truncateAddress(address)}</GlowText>
+                truncateAddress(address)
               )}
             </h1>
             <LiveBadge
