@@ -10,6 +10,7 @@
 import { useState, useMemo, type CSSProperties } from 'react';
 import { tokens } from '../styles/tokens';
 import { Pagination } from './Pagination';
+import { Tooltip } from './Tooltip';
 import { CategoryTag, inferCategory, getSportEmoji, type MarketCategory } from './CategoryTag';
 import type { Position, PositionSortField } from '../types/position';
 import { sortPositions } from '../types/position';
@@ -99,26 +100,28 @@ function OutcomeBadge({ outcome }: { outcome: 'YES' | 'NO' }) {
  */
 function StatusDot({ status }: { status: 'active' | 'resolved' | 'expired' }) {
   const config = {
-    active: { color: tokens.colors.live, title: 'Active' },
-    resolved: { color: tokens.colors.purple, title: 'Resolved' },
-    expired: { color: tokens.colors.textMuted, title: 'Expired' },
+    active: { color: tokens.colors.live, label: 'Active' },
+    resolved: { color: tokens.colors.purple, label: 'Resolved' },
+    expired: { color: tokens.colors.textMuted, label: 'Expired' },
   };
 
-  const { color, title } = config[status];
+  const { color, label } = config[status];
 
   return (
-    <span
-      title={title}
-      style={{
-        display: 'inline-block',
-        width: '6px',
-        height: '6px',
-        borderRadius: '50%',
-        background: color,
-        boxShadow: status === 'active' ? `0 0 6px ${color}` : 'none',
-        marginLeft: '8px',
-      }}
-    />
+    <Tooltip content={label} placement="top">
+      <span
+        style={{
+          display: 'inline-block',
+          width: '6px',
+          height: '6px',
+          borderRadius: '50%',
+          background: color,
+          boxShadow: status === 'active' ? `0 0 6px ${color}` : 'none',
+          marginLeft: '8px',
+          cursor: 'help',
+        }}
+      />
+    </Tooltip>
   );
 }
 
