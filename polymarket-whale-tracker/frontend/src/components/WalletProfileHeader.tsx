@@ -110,7 +110,7 @@ export function WalletProfileHeader({
 }: WalletProfileHeaderProps) {
   const displayName = getDisplayName(profile, address);
   const hasUsername = hasHumanReadableName(profile);
-  const avatarSize = isMobile ? 48 : 64;
+  const avatarSize = isMobile ? 64 : 64;
 
   const containerStyle: CSSProperties = {
     background: tokens.colors.surface,
@@ -288,8 +288,8 @@ export function WalletProfileHeader({
           </div>
         </div>
 
-        {/* Actions row */}
-        <div style={actionsStyle}>
+        {/* Actions row - right aligned on mobile */}
+        <div style={{ ...actionsStyle, justifyContent: 'flex-end' }}>
           <CopyButton text={address} />
           <a
             href={`https://polygonscan.com/address/${address}`}
