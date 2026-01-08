@@ -12,7 +12,7 @@
  * @see Design docs/TRADING_FEATURES_DESIGN_GUIDE.md
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { tokens } from '../styles/tokens';
 import { Pagination } from './Pagination';
 import { WalletProfileHeader } from './WalletProfileHeader';
@@ -110,8 +110,25 @@ export function WalletProfile({
   // Active tab state
   const [activeTab, setActiveTab] = useState<ProfileTabId>('positions');
 
+  // Position search filter
+  const [positionSearchFilter, setPositionSearchFilter] = useState('');
+
+  // Clear search when switching wallets
+  // Note: This effect would need useEffect, but for simplicity we rely on component remount
+
   // Fetch trading data (profile, live status, positions, etc.)
   const { profile, isLive, metrics, positions, getPnl, loading: tradingLoading, error: tradingError, refetch: refetchTrading, totalPositionsCount } = usePolymarketTrading(wallet.address);
+
+  // Filter positions by search term (matches market title)
+  const filteredPositions = useMemo(() => {
+    if (!positionSearchFilter.trim()) {
+      return positions;
+    }
+    const searchLower = positionSearchFilter.toLowerCase().trim();
+    return positions.filter((position) =>
+      position.title.toLowerCase().includes(searchLower)
+    );
+  }, [positions, positionSearchFilter]);
 
   // Determine if trading metrics are in a loading state (no data yet)
   const isMetricsLoading = tradingLoading && metrics === null;
@@ -407,6 +424,10 @@ export function WalletProfile({
             deposits: depositsTotal,
           }}
           isMobile={isMobile}
+          searchFilter={positionSearchFilter}
+          onSearchChange={setPositionSearchFilter}
+          searchPlaceholder="Search positions..."
+          searchVisibleOnTabs={['positions']}
         />
 
         {/* Tab Content */}
@@ -457,9 +478,30 @@ export function WalletProfile({
                       </div>
                       <p style={{ margin: 0 }}>This whale hasn't opened any positions yet</p>
                     </div>
+                  ) : filteredPositions.length === 0 && positionSearchFilter ? (
+                    <div
+                      style={{
+                        padding: '48px 20px',
+                        textAlign: 'center',
+                        color: tokens.colors.textMuted,
+                      }}
+                    >
+                      <div style={{ fontSize: '32px', marginBottom: '16px' }}>🔍</div>
+                      <div
+                        style={{
+                          fontFamily: tokens.fonts.display,
+                          fontSize: '18px',
+                          color: tokens.colors.textPrimary,
+                          marginBottom: '8px',
+                        }}
+                      >
+                        No matching positions
+                      </div>
+                      <p style={{ margin: 0 }}>No positions match "{positionSearchFilter}"</p>
+                    </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {positions.map((position) => (
+                      {filteredPositions.map((position) => (
                         <PositionCard
                           key={position.conditionId}
                           position={position}
@@ -475,7 +517,7 @@ export function WalletProfile({
                 /* Desktop: Table */
                 <div style={{ padding: '0' }}>
                   <PositionsTable
-                    positions={positions}
+                    positions={filteredPositions}
                     loading={tradingLoading && positions.length === 0}
                     onPositionClick={(position) => {
                       window.open(`https://polymarket.com/event/${position.eventSlug}`, '_blank');

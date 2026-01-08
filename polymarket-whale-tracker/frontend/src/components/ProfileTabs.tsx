@@ -43,6 +43,14 @@ interface ProfileTabsProps {
   counts?: Partial<Record<ProfileTabId, number>>;
   /** Mobile layout */
   isMobile?: boolean;
+  /** Optional search filter value */
+  searchFilter?: string;
+  /** Callback when search filter changes */
+  onSearchChange?: (value: string) => void;
+  /** Placeholder text for search input */
+  searchPlaceholder?: string;
+  /** Show search only on specific tabs */
+  searchVisibleOnTabs?: ProfileTabId[];
 }
 
 /**
@@ -132,7 +140,110 @@ export function ProfileTabs({
   onChange,
   counts,
   isMobile = false,
+  searchFilter = '',
+  onSearchChange,
+  searchPlaceholder = 'Search...',
+  searchVisibleOnTabs = ['positions'],
 }: ProfileTabsProps) {
+  const showSearch = onSearchChange && searchVisibleOnTabs.includes(activeTab);
+
+  // Mobile layout: tabs row, then search row below
+  if (isMobile) {
+    return (
+      <div data-testid="profile-tabs-container">
+        {/* Tabs row */}
+        <div
+          role="tablist"
+          aria-label="Profile sections"
+          data-testid="profile-tabs"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0',
+            borderBottom: showSearch ? 'none' : `1px solid ${tokens.colors.border}`,
+            background: tokens.colors.surface,
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          {PROFILE_TABS.map((tab) => (
+            <TabButton
+              key={tab.id}
+              tab={tab}
+              isActive={activeTab === tab.id}
+              count={counts?.[tab.id]}
+              onClick={() => onChange(tab.id)}
+              isMobile={isMobile}
+            />
+          ))}
+        </div>
+        {/* Mobile search bar below tabs */}
+        {showSearch && (
+          <div
+            style={{
+              padding: '12px 16px',
+              borderBottom: `1px solid ${tokens.colors.border}`,
+              background: tokens.colors.surface,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 14px',
+                background: tokens.colors.void,
+                border: `1px solid ${tokens.colors.border}`,
+                borderRadius: '10px',
+                transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+              }}
+            >
+              <span style={{ color: tokens.colors.textMuted, fontSize: '14px' }}>🔍</span>
+              <input
+                type="text"
+                placeholder={searchPlaceholder}
+                value={searchFilter}
+                onChange={(e) => onSearchChange(e.target.value)}
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  fontFamily: tokens.fonts.body,
+                  fontSize: '14px',
+                  color: tokens.colors.textPrimary,
+                }}
+              />
+              {searchFilter && (
+                <button
+                  onClick={() => onSearchChange('')}
+                  aria-label="Clear search"
+                  style={{
+                    width: '26px',
+                    height: '26px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: tokens.colors.surfaceHover,
+                    border: 'none',
+                    borderRadius: '6px',
+                    color: tokens.colors.textMuted,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Desktop layout: tabs on left, search on right in same row
   return (
     <div
       role="tablist"
@@ -160,6 +271,78 @@ export function ProfileTabs({
           isMobile={isMobile}
         />
       ))}
+
+      {/* Spacer */}
+      <div style={{ flex: 1 }} />
+
+      {/* Desktop search input */}
+      {showSearch && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '6px 12px',
+            marginRight: '16px',
+            background: tokens.colors.void,
+            border: `1px solid ${tokens.colors.border}`,
+            borderRadius: '8px',
+            transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = tokens.colors.cyan;
+            e.currentTarget.style.boxShadow = `0 0 0 2px ${tokens.colors.cyanGlow}`;
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = tokens.colors.border;
+            e.currentTarget.style.boxShadow = 'none';
+          }}
+        >
+          <span style={{ color: tokens.colors.textMuted, fontSize: '13px' }}>🔍</span>
+          <input
+            type="text"
+            placeholder={searchPlaceholder}
+            value={searchFilter}
+            onChange={(e) => onSearchChange(e.target.value)}
+            style={{
+              flex: 1,
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              fontFamily: tokens.fonts.body,
+              fontSize: '13px',
+              color: tokens.colors.textPrimary,
+              minWidth: '140px',
+              maxWidth: '200px',
+            }}
+          />
+          {searchFilter && (
+            <button
+              onClick={() => onSearchChange('')}
+              aria-label="Clear search"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                padding: '2px 6px',
+                cursor: 'pointer',
+                color: tokens.colors.textMuted,
+                fontSize: '14px',
+                lineHeight: 1,
+                borderRadius: '4px',
+                transition: 'color 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = tokens.colors.textPrimary;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = tokens.colors.textMuted;
+              }}
+            >
+              ×
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
