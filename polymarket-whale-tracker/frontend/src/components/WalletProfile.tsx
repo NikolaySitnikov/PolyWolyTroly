@@ -4,17 +4,24 @@
  * Displays detailed information about a single whale wallet.
  * Layout per BRAND_GUIDELINES_EXTENDED.md:
  * - Header with wallet address and actions
- * - Stats grid (4 columns on desktop)
+ * - Trading metrics grid (6 columns on desktop, 2x3 on mobile)
+ * - P&L time window toggle
  * - Deposit history with pagination
  *
  * @see Design docs/BRAND_GUIDELINES_EXTENDED.md
+ * @see Design docs/TRADING_FEATURES_DESIGN_GUIDE.md
  */
 
+import { useState } from 'react';
 import { tokens } from '../styles/tokens';
 import { Pagination } from './Pagination';
 import { WalletProfileHeader } from './WalletProfileHeader';
+import { TradingMetricsGrid } from './TradingMetricsGrid';
+import { TradingMetricsGridSkeleton } from './TradingMetricsGridSkeleton';
+import { PnlToggle } from './PnlToggle';
 import { usePolymarketTrading } from '../hooks/usePolymarketTrading';
 import type { WalletData, WalletDeposit } from '../hooks/useWallet';
+import type { PnlTimeWindow } from '../types/polymarket';
 
 interface WalletProfileProps {
   wallet: WalletData;
@@ -72,142 +79,10 @@ function formatRelativeTime(timestamp: string): string {
 }
 
 /**
- * Format date as readable string
- */
-function formatDate(timestamp: string): string {
-  const date = new Date(timestamp);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-/**
  * Truncate transaction hash
  */
 function formatTxHash(hash: string): string {
   return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
-}
-
-/**
- * Total Deposited SVG icon (stacked coins)
- * Uses profit green per brand guidelines (deposits = green)
- */
-function TotalDepositedIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: tokens.colors.profit }}>
-      <ellipse cx="12" cy="7" rx="8" ry="3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M4 10.5c0 1.93 3.58 3.5 8 3.5s8-1.57 8-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M4 15.5c0 1.93 3.58 3.5 8 3.5s8-1.57 8-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
-
-/**
- * Deposit Count SVG icon (horizontal lines)
- * Uses cyan per brand guidelines (data highlights)
- */
-function DepositCountIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: tokens.colors.cyan }}>
-      <line x1="5" y1="7" x2="19" y2="7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-      <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-      <line x1="5" y1="17" x2="19" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
-/**
- * Average Deposit SVG icon (coin with average/equals sign)
- * Uses purple per brand guidelines (tertiary accent)
- */
-function AvgDepositIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: tokens.colors.purple }}>
-      {/* Outer coin circle */}
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5"/>
-      {/* Equals sign representing average */}
-      <line x1="8" y1="10" x2="16" y2="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      <line x1="8" y1="14" x2="16" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    </svg>
-  );
-}
-
-/**
- * First Seen SVG icon (calendar with pin)
- * Uses magenta per brand guidelines (secondary accent)
- */
-function FirstSeenIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: tokens.colors.magenta }}>
-      {/* Calendar body */}
-      <rect x="3" y="6" width="18" height="15" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-      {/* Calendar hooks */}
-      <line x1="8" y1="3" x2="8" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      <line x1="16" y1="3" x2="16" y2="7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      {/* Header line */}
-      <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="1.5"/>
-      {/* Pin/marker dot for "first" */}
-      <circle cx="12" cy="15" r="2" fill="currentColor"/>
-    </svg>
-  );
-}
-
-/**
- * Stats card component
- */
-function StatCard({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: string;
-  icon: string | React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        background: tokens.colors.surface,
-        border: `1px solid ${tokens.colors.border}`,
-        borderRadius: '12px',
-        padding: '20px',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginBottom: '8px',
-        }}
-      >
-        <span style={{ fontSize: '16px', display: 'flex', alignItems: 'center', color: tokens.colors.textMuted }}>{icon}</span>
-        <span
-          style={{
-            fontFamily: tokens.fonts.mono,
-            fontSize: '11px',
-            color: tokens.colors.textMuted,
-            textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-          }}
-        >
-          {label}
-        </span>
-      </div>
-      <div
-        style={{
-          fontFamily: tokens.fonts.mono,
-          fontSize: '24px',
-          fontWeight: 600,
-          color: tokens.colors.textPrimary,
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
 }
 
 export function WalletProfile({
@@ -226,8 +101,14 @@ export function WalletProfile({
 }: WalletProfileProps) {
   const totalPages = Math.ceil(depositsTotal / depositsPerPage);
 
+  // P&L time window state
+  const [pnlTimeWindow, setPnlTimeWindow] = useState<PnlTimeWindow>('7d');
+
   // Fetch trading data (profile, live status, etc.)
-  const { profile, isLive, metrics } = usePolymarketTrading(wallet.address);
+  const { profile, isLive, metrics, getPnl, loading: tradingLoading } = usePolymarketTrading(wallet.address);
+
+  // Determine if trading metrics are in a loading state (no data yet)
+  const isMetricsLoading = tradingLoading && metrics === null;
 
   // Check if navigation is available
   const hasNavigation =
@@ -413,23 +294,39 @@ export function WalletProfile({
         />
       </div>
 
-      {/* Stats Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
-          gap: '16px',
-          marginBottom: '24px',
-        }}
-      >
-        <StatCard label="Total Deposited" value={formatUSD(wallet.totalDeposited)} icon={<TotalDepositedIcon />} />
-        <StatCard label="Deposit Count" value={depositsTotal.toString()} icon={<DepositCountIcon />} />
-        <StatCard
-          label="Avg. Deposit"
-          value={formatUSD(depositsTotal > 0 ? wallet.totalDeposited / depositsTotal : 0)}
-          icon={<AvgDepositIcon />}
-        />
-        <StatCard label="First Seen" value={formatDate(wallet.firstSeenAt)} icon={<FirstSeenIcon />} />
+      {/* Trading Metrics Grid */}
+      <div style={{ marginBottom: '24px' }}>
+        {/* P&L Time Window Toggle */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: isMobile ? 'flex-start' : 'flex-end',
+            marginBottom: '12px',
+          }}
+        >
+          <PnlToggle
+            value={pnlTimeWindow}
+            onChange={setPnlTimeWindow}
+            size={isMobile ? 'sm' : 'md'}
+          />
+        </div>
+
+        {/* Metrics Grid - Show skeleton while loading */}
+        {isMetricsLoading ? (
+          <TradingMetricsGridSkeleton isMobile={isMobile} />
+        ) : (
+          <TradingMetricsGrid
+            totalDeposited={wallet.totalDeposited}
+            pnl={getPnl(pnlTimeWindow)}
+            winRate={metrics?.winRate ?? null}
+            portfolioValue={metrics?.portfolioValue ?? null}
+            activePositions={metrics?.activePositions ?? null}
+            totalTrades={metrics?.totalTrades ?? null}
+            pnlTimeWindow={pnlTimeWindow}
+            isMobile={isMobile}
+          />
+        )}
       </div>
 
       {/* Deposit History */}
