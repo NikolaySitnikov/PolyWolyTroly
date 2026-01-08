@@ -767,6 +767,18 @@ export function AlertFeed({
                   opacity: currentPage === 1 ? 0.4 : 1,
                   transition: 'all 0.15s ease',
                 }}
+                onMouseEnter={(e) => {
+                  if (currentPage > 1) {
+                    e.currentTarget.style.background = tokens.colors.surfaceHover;
+                    e.currentTarget.style.borderColor = tokens.colors.cyan;
+                    e.currentTarget.style.color = tokens.colors.cyan;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = tokens.colors.surface;
+                  e.currentTarget.style.borderColor = tokens.colors.border;
+                  e.currentTarget.style.color = currentPage === 1 ? tokens.colors.muted : tokens.colors.textSecondary;
+                }}
               >
                 ‹
               </button>
@@ -824,6 +836,18 @@ export function AlertFeed({
                   cursor: currentPage === actualTotalPages ? 'not-allowed' : 'pointer',
                   opacity: currentPage === actualTotalPages ? 0.4 : 1,
                   transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (currentPage < actualTotalPages) {
+                    e.currentTarget.style.background = tokens.colors.surfaceHover;
+                    e.currentTarget.style.borderColor = tokens.colors.cyan;
+                    e.currentTarget.style.color = tokens.colors.cyan;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = tokens.colors.surface;
+                  e.currentTarget.style.borderColor = tokens.colors.border;
+                  e.currentTarget.style.color = currentPage === actualTotalPages ? tokens.colors.muted : tokens.colors.textSecondary;
                 }}
               >
                 ›

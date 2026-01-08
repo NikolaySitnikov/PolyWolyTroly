@@ -321,23 +321,24 @@ export function WalletProfile({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: !canGoNext ? 'transparent' : tokens.colors.cyan,
+                background: 'transparent',
                 border: 'none',
                 borderRadius: '6px',
                 fontSize: '16px',
-                color: !canGoNext ? tokens.colors.muted : tokens.colors.void,
+                color: !canGoNext ? tokens.colors.muted : tokens.colors.textSecondary,
                 cursor: !canGoNext ? 'not-allowed' : 'pointer',
                 opacity: !canGoNext ? 0.4 : 1,
                 transition: 'all 0.15s ease',
-                boxShadow: canGoNext ? `0 0 12px ${tokens.colors.cyanGlow}` : 'none',
               }}
               onMouseEnter={(e) => {
                 if (canGoNext) {
-                  e.currentTarget.style.boxShadow = `0 0 20px ${tokens.colors.cyanGlow}`;
+                  e.currentTarget.style.background = tokens.colors.surfaceHover;
+                  e.currentTarget.style.color = tokens.colors.cyan;
                 }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = canGoNext ? `0 0 12px ${tokens.colors.cyanGlow}` : 'none';
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = !canGoNext ? tokens.colors.muted : tokens.colors.textSecondary;
               }}
             >
               ›
@@ -609,6 +610,18 @@ export function WalletProfile({
                 opacity: !canGoPrev ? 0.4 : 1,
                 transition: 'all 0.15s ease',
               }}
+              onMouseEnter={(e) => {
+                if (canGoPrev) {
+                  e.currentTarget.style.background = tokens.colors.surfaceHover;
+                  e.currentTarget.style.borderColor = tokens.colors.cyan;
+                  e.currentTarget.style.color = tokens.colors.cyan;
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = tokens.colors.surface;
+                e.currentTarget.style.borderColor = tokens.colors.border;
+                e.currentTarget.style.color = !canGoPrev ? tokens.colors.muted : tokens.colors.textSecondary;
+              }}
             >
               ‹
             </button>
@@ -647,15 +660,26 @@ export function WalletProfile({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: !canGoNext ? tokens.colors.surface : tokens.colors.cyan,
-                border: `1px solid ${!canGoNext ? tokens.colors.border : tokens.colors.cyan}`,
+                background: tokens.colors.surface,
+                border: `1px solid ${tokens.colors.border}`,
                 borderRadius: '14px',
                 fontSize: '20px',
-                color: !canGoNext ? tokens.colors.muted : tokens.colors.void,
+                color: !canGoNext ? tokens.colors.muted : tokens.colors.textSecondary,
                 cursor: !canGoNext ? 'not-allowed' : 'pointer',
                 opacity: !canGoNext ? 0.4 : 1,
                 transition: 'all 0.15s ease',
-                boxShadow: canGoNext ? `0 0 25px ${tokens.colors.cyanGlow}` : 'none',
+              }}
+              onMouseEnter={(e) => {
+                if (canGoNext) {
+                  e.currentTarget.style.background = tokens.colors.surfaceHover;
+                  e.currentTarget.style.borderColor = tokens.colors.cyan;
+                  e.currentTarget.style.color = tokens.colors.cyan;
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = tokens.colors.surface;
+                e.currentTarget.style.borderColor = tokens.colors.border;
+                e.currentTarget.style.color = !canGoNext ? tokens.colors.muted : tokens.colors.textSecondary;
               }}
             >
               ›
