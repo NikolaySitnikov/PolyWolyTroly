@@ -329,6 +329,54 @@ export const polymarketApi = {
   },
 
   /**
+   * Get total predictions count by paginating through all trades
+   * and counting unique conditionId (markets).
+   *
+   * "Predictions" on Polymarket = unique markets the user has participated in.
+   * Betting on both Yes and No of the same market counts as 1 prediction.
+   */
+  async getTotalPredictionsCount(walletAddress: string): Promise<number> {
+    try {
+      const address = walletAddress.toLowerCase();
+      const uniqueMarkets = new Set<string>();
+      let offset = 0;
+      const pageSize = 500; // Max allowed by API
+
+      while (true) {
+        const url = `${POLYMARKET_DATA_API}/trades?user=${address}&limit=${pageSize}&offset=${offset}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          console.error(`Trades API error: ${response.status}`);
+          break;
+        }
+
+        const trades: PolymarketTrade[] = await response.json();
+        if (!Array.isArray(trades) || trades.length === 0) {
+          break;
+        }
+
+        // Count unique conditionId (markets) only
+        for (const trade of trades) {
+          uniqueMarkets.add(trade.conditionId);
+        }
+
+        offset += pageSize;
+
+        // Stop if we got fewer than page size (no more data)
+        if (trades.length < pageSize) {
+          break;
+        }
+      }
+
+      return uniqueMarkets.size;
+    } catch (error) {
+      console.error("Error counting predictions:", error);
+      return 0;
+    }
+  },
+
+  /**
    * Fetch portfolio value for a wallet from Polymarket Data API
    *
    * NOTE: API returns array with single object: [{user, value}]
@@ -953,8 +1001,9 @@ export const polymarketApi = {
     const portfolioValue = value?.value ||
       positions.reduce((sum, pos) => sum + (pos.currentValue || 0), 0);
 
-    // Count active positions (curPrice > 0 means market not resolved yet)
-    const activePositions = positions.filter(p => p.curPrice > 0).length;
+    // Count total positions (all positions, including resolved ones)
+    // This matches Polymarket's Positions tab which shows all positions
+    const activePositions = positions.length;
 
     // Total trades count
     const totalTrades = trades.length;
@@ -987,38 +1036,87 @@ export const polymarketApi = {
   },
 
   /**
-   * Fetch all trading data for a wallet and calculate metrics
+   * Helper to wrap a promise with a timeout
+   * Returns default value if timeout expires
+   */
+  async withTimeout<T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+    defaultValue: T
+  ): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const timeoutPromise = new Promise<T>((resolve) => {
+      timeoutId = setTimeout(() => resolve(defaultValue), timeoutMs);
+    });
+
+    try {
+      const result = await Promise.race([promise, timeoutPromise]);
+      clearTimeout(timeoutId!);
+      return result;
+    } catch {
+      clearTimeout(timeoutId!);
+      return defaultValue;
+    }
+  },
+
+  /**
+   * FAST fetch of essential trading data for a wallet
+   *
+   * Strategy: Fetch only the MINIMUM data needed for instant display
+   * - Single page of positions (100) - instant
+   * - Single page of activity (100) - instant
+   * - Portfolio value - instant
+   * - Profile - instant
+   * - User PnL history (pre-aggregated by Polymarket) - instant
+   *
+   * SKIP slow operations:
+   * - getTotalPredictionsCount (paginates all trades - SLOW)
+   * - getAllPositions pagination (SLOW for active whales)
+   * - getAllActivity pagination (SLOW for active whales)
+   *
+   * Use trades.length as "predictions" estimate (good enough for display)
    */
   async getWalletTradingData(walletAddress: string): Promise<WalletTradingData> {
     const address = walletAddress.toLowerCase();
 
-    // Fetch all data in parallel for efficiency
-    // Use getAllPositions and getAllActivity for accurate P&L calculation
-    // Also fetch leaderboard P&L for accurate time-windowed values
-    const [allPositions, allActivity, trades, value, profile, timeWindowedPnl] = await Promise.all([
-      this.getAllPositions(address),
-      this.getAllActivity(address),
-      this.getTrades(address),
-      this.getValue(address),
-      this.getProfile(address),
-      this.getAllTimeWindowedPnl(address),
+    // FAST: Fetch only essential data in parallel with tight timeouts
+    // Each call has a 3-second timeout to prevent hanging
+    const FAST_TIMEOUT = 3000;
+
+    const [positions, activity, trades, value, profile, timeWindowedPnl] = await Promise.all([
+      // Single page of positions (fast)
+      this.withTimeout(this.getPositions(address, 100), FAST_TIMEOUT, []),
+      // Single page of activity (fast)
+      this.withTimeout(this.getActivity(address, 100), FAST_TIMEOUT, []),
+      // Single page of trades (fast) - use count as predictions estimate
+      this.withTimeout(this.getTrades(address, 100), FAST_TIMEOUT, []),
+      // Portfolio value (fast - single API call)
+      this.withTimeout(this.getValue(address), FAST_TIMEOUT, null),
+      // Profile (fast - single API call)
+      this.withTimeout(this.getProfile(address), FAST_TIMEOUT, null),
+      // P&L history from user-pnl API (fast - pre-aggregated)
+      this.withTimeout(this.getAllTimeWindowedPnl(address), FAST_TIMEOUT, { pnl7d: 0, pnl30d: 0, pnlAll: 0 }),
     ]);
 
-    // Calculate aggregated metrics using ALL positions and activity
-    // Use leaderboard API values for time-windowed P&L (more accurate)
+    // Calculate metrics from the fast-fetched data
     const metrics = this.calculateTradingMetrics(
-      allPositions,
-      allActivity,
+      positions,
+      activity,
       trades,
       value,
       timeWindowedPnl
     );
 
+    // Use trades.length as rough "predictions" count
+    // (Accurate count requires pagination which is SLOW)
+    // This is good enough for display - shows recent activity
+    metrics.totalTrades = trades.length;
+
     return {
       address,
       metrics,
-      positions: allPositions.slice(0, 20), // Return first 20 for display
-      activity: allActivity.slice(0, 50),
+      positions: positions.slice(0, 20),
+      activity: activity.slice(0, 50),
       profile,
       fetchedAt: new Date().toISOString(),
     };

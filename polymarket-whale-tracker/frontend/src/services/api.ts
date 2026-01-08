@@ -473,12 +473,15 @@ export async function fetchWhaleOfTheDay(): Promise<WhaleOfTheDayResponse | null
  * Fetches trading data for a wallet from Polymarket APIs.
  * Includes positions, activity, metrics, and user profile.
  *
+ * Backend is optimized for FAST responses (3s timeout per API call).
+ * Frontend timeout is set to 5s for blazing fast UX.
+ *
  * @param address - Ethereum wallet address
- * @param timeoutMs - Request timeout in milliseconds (default: 10000ms)
+ * @param timeoutMs - Request timeout in milliseconds (default: 5000ms)
  * @returns Promise resolving to complete trading data
  * @throws Error if the request fails or times out
  */
-export async function fetchTradingData(address: string, timeoutMs = 10000): Promise<TradingDataResponse> {
+export async function fetchTradingData(address: string, timeoutMs = 5000): Promise<TradingDataResponse> {
   // Normalize address to lowercase for consistency
   const normalizedAddress = address.toLowerCase();
 
