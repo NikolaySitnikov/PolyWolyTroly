@@ -265,11 +265,10 @@ export function PositionsTable({
     setCurrentPage(page);
   };
 
-  // Table styles
+  // Table styles - no border radius since it's inside tab panel
   const containerStyle: CSSProperties = {
     background: tokens.colors.surface,
     border: `1px solid ${tokens.colors.border}`,
-    borderRadius: '12px',
     overflow: 'hidden',
   };
 
@@ -341,7 +340,7 @@ export function PositionsTable({
       <div style={{ overflowX: 'auto' }}>
         <table style={tableStyle}>
           <thead>
-            <tr style={{ borderBottom: `1px solid ${tokens.colors.border}` }}>
+            <tr style={{ borderBottom: `1px solid ${tokens.colors.border}`, background: tokens.colors.void }}>
               <th
                 style={{
                   padding: '12px 16px',
