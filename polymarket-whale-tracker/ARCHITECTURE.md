@@ -712,4 +712,57 @@ The 6 trading KPIs use a semantically meaningful color scheme:
     • Colored icon matching the value color
     • Colored value with semantic meaning
     • Subtle glow effect (25% opacity) for "hacker terminal" aesthetic
+
+    Skeleton Loading States:
+    ┌────────────────────────────────────────────────────────────────────┐
+    │  TradingMetricsGridSkeleton Component                              │
+    │                                                                     │
+    │    • Shows while trading data is loading                           │
+    │    • Each KPI card has shimmer animation in its semantic color     │
+    │    • P&L skeleton uses green (optimistic - most whales profit)     │
+    │    • Whale-themed message: "Diving for trading data..."            │
+    │    • Respects mobile/desktop grid layouts                          │
+    └────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## API Request Resilience
+
+Trading data requests have built-in resilience:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         API REQUEST RESILIENCE                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    Request Timeout:
+    ┌────────────────────────────────────────────────────────────────────┐
+    │  fetchTradingData() - 10 second timeout                            │
+    │                                                                     │
+    │    • AbortController automatically cancels slow requests           │
+    │    • Prevents infinite loading states                              │
+    │    • Throws "Trading data request timed out" on timeout            │
+    │    • Cleanup ensures no memory leaks                               │
+    └────────────────────────────────────────────────────────────────────┘
+
+    Error Handling UI:
+    ┌────────────────────────────────────────────────────────────────────┐
+    │  WalletProfile Error State                                         │
+    │                                                                     │
+    │    When trading data fails to load:                                │
+    │    1. Error message displayed to user                              │
+    │    2. "Retry" button allows manual refetch                         │
+    │    3. No endless loading - graceful degradation                    │
+    │    4. Deposit history still shows (separate data source)           │
+    └────────────────────────────────────────────────────────────────────┘
+
+    State Flow:
+    ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+    │   Loading   │ ──► │   Success   │     │    Error    │
+    │  (skeleton) │     │   (data)    │     │  (retry UI) │
+    └─────────────┘     └─────────────┘     └─────────────┘
+          │                                       ▲
+          │         timeout/error                 │
+          └───────────────────────────────────────┘
 ```

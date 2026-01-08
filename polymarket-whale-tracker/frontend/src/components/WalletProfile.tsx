@@ -105,10 +105,12 @@ export function WalletProfile({
   const [pnlTimeWindow, setPnlTimeWindow] = useState<PnlTimeWindow>('7d');
 
   // Fetch trading data (profile, live status, etc.)
-  const { profile, isLive, metrics, getPnl, loading: tradingLoading } = usePolymarketTrading(wallet.address);
+  const { profile, isLive, metrics, getPnl, loading: tradingLoading, error: tradingError, refetch: refetchTrading } = usePolymarketTrading(wallet.address);
 
   // Determine if trading metrics are in a loading state (no data yet)
   const isMetricsLoading = tradingLoading && metrics === null;
+  // Determine if there was an error fetching metrics
+  const hasMetricsError = tradingError !== null && metrics === null;
 
   // Check if navigation is available
   const hasNavigation =
@@ -312,9 +314,61 @@ export function WalletProfile({
           />
         </div>
 
-        {/* Metrics Grid - Show skeleton while loading */}
+        {/* Metrics Grid - Show skeleton while loading, error with retry, or data */}
         {isMetricsLoading ? (
           <TradingMetricsGridSkeleton isMobile={isMobile} />
+        ) : hasMetricsError ? (
+          <div
+            style={{
+              background: tokens.colors.surface,
+              border: `1px solid ${tokens.colors.loss}40`,
+              borderRadius: '12px',
+              padding: '32px 24px',
+              textAlign: 'center',
+            }}
+          >
+            <div
+              style={{
+                fontFamily: tokens.fonts.mono,
+                fontSize: '24px',
+                marginBottom: '12px',
+              }}
+            >
+              ⚠️
+            </div>
+            <div
+              style={{
+                fontFamily: tokens.fonts.body,
+                fontSize: '14px',
+                color: tokens.colors.textSecondary,
+                marginBottom: '16px',
+              }}
+            >
+              {tradingError || 'Failed to load trading metrics'}
+            </div>
+            <button
+              onClick={refetchTrading}
+              disabled={tradingLoading}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 20px',
+                background: tokens.colors.cyan,
+                border: 'none',
+                borderRadius: '8px',
+                fontFamily: tokens.fonts.body,
+                fontSize: '14px',
+                fontWeight: 600,
+                color: tokens.colors.void,
+                cursor: tradingLoading ? 'wait' : 'pointer',
+                opacity: tradingLoading ? 0.7 : 1,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              {tradingLoading ? 'Retrying...' : '↻ Retry'}
+            </button>
+          </div>
         ) : (
           <TradingMetricsGrid
             totalDeposited={wallet.totalDeposited}

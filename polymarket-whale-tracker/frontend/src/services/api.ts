@@ -474,18 +474,34 @@ export async function fetchWhaleOfTheDay(): Promise<WhaleOfTheDayResponse | null
  * Includes positions, activity, metrics, and user profile.
  *
  * @param address - Ethereum wallet address
+ * @param timeoutMs - Request timeout in milliseconds (default: 10000ms)
  * @returns Promise resolving to complete trading data
- * @throws Error if the request fails
+ * @throws Error if the request fails or times out
  */
-export async function fetchTradingData(address: string): Promise<TradingDataResponse> {
+export async function fetchTradingData(address: string, timeoutMs = 10000): Promise<TradingDataResponse> {
   // Normalize address to lowercase for consistency
   const normalizedAddress = address.toLowerCase();
 
-  const response = await fetch(`${api.baseUrl}/api/wallets/${normalizedAddress}/trading`);
+  // Create abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch trading data: ${response.status}`);
+  try {
+    const response = await fetch(`${api.baseUrl}/api/wallets/${normalizedAddress}/trading`, {
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch trading data: ${response.status}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Trading data request timed out');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return response.json();
 }

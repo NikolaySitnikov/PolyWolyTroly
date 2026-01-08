@@ -22,10 +22,11 @@ interface TradingMetricsGridSkeletonProps {
 
 /**
  * KPI colors for skeleton loading bars
+ * P&L uses green (profit) as the optimistic default
  */
 const KPI_COLORS = [
   tokens.colors.gold,    // Total Deposited
-  tokens.colors.cyan,    // P&L (default cyan since we don't know +/-)
+  tokens.colors.profit,  // P&L - green (optimistic, most whales are profitable)
   tokens.colors.cyan,    // Win Rate
   tokens.colors.violet,  // Portfolio
   tokens.colors.blue,    // Positions

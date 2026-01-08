@@ -63,44 +63,40 @@ export function usePolymarketTrading(
   const [error, setError] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
-  const fetchedAddressRef = useRef<string | null>(null);
+  const lastFetchedAddressRef = useRef<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Clear stale data when address changes (don't show previous whale's data)
-  useEffect(() => {
-    if (address && fetchedAddressRef.current && address !== fetchedAddressRef.current) {
-      // Address changed - clear old data immediately
-      setData(null);
-      fetchedAddressRef.current = null;
-    }
-  }, [address]);
-
-  const fetchData = useCallback(async () => {
-    if (!address || !enabled) {
+  const fetchData = useCallback(async (forAddress: string, clearFirst: boolean = false) => {
+    if (!forAddress || !enabled) {
       setData(null);
       setError(null);
       setLoading(false);
       return;
     }
 
-    // Cancel previous request
+    // Cancel any in-flight request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // Show loading state (but keep old data visible to prevent flicker)
+    // Clear stale data immediately if address changed (prevents showing wrong whale's data)
+    if (clearFirst) {
+      setData(null);
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetchTradingData(address);
+      const response = await fetchTradingData(forAddress);
 
+      // Don't update if this request was aborted or address changed during fetch
       if (controller.signal.aborted) return;
 
       setData(response);
-      fetchedAddressRef.current = address;
+      lastFetchedAddressRef.current = forAddress;
       setLoading(false);
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;
@@ -108,24 +104,36 @@ export function usePolymarketTrading(
       setError(err instanceof Error ? err.message : 'Failed to fetch trading data');
       setLoading(false);
     }
-  }, [address, enabled]);
+  }, [enabled]);
 
   // Fetch on mount and when address changes
-  // NOTE: Data is cleared by the useEffect above when address changes (to prevent showing stale data)
   useEffect(() => {
-    fetchData();
+    if (!address) {
+      setData(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    // Detect if address changed - clear stale data to show skeleton
+    const addressChanged = lastFetchedAddressRef.current !== null &&
+                           lastFetchedAddressRef.current !== address;
+
+    fetchData(address, addressChanged);
 
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [fetchData]);
+  }, [address, fetchData]);
 
-  // Set up refetch interval
+  // Set up refetch interval for background polling (no data clear needed)
   useEffect(() => {
     if (refetchInterval > 0 && enabled && address) {
-      intervalRef.current = setInterval(fetchData, refetchInterval);
+      intervalRef.current = setInterval(() => {
+        fetchData(address, false);
+      }, refetchInterval);
       return () => {
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
@@ -195,6 +203,13 @@ export function usePolymarketTrading(
     [positions]
   );
 
+  // Manual refetch function (doesn't clear data)
+  const refetch = useCallback(() => {
+    if (address) {
+      fetchData(address, false);
+    }
+  }, [address, fetchData]);
+
   return {
     metrics: data?.metrics ?? null,
     positions,
@@ -202,7 +217,7 @@ export function usePolymarketTrading(
     profile: data?.profile ?? null,
     loading,
     error,
-    refetch: fetchData,
+    refetch,
     fetchedAt: data?.fetchedAt ?? null,
     isLive: data?.metrics?.isLive ?? false,
     getPnl,
