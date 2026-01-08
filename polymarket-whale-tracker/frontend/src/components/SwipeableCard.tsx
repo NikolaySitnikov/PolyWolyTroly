@@ -18,7 +18,7 @@
  * @see ../styles/tokens.ts - Design tokens
  */
 
-import { useState, useRef, type ReactNode, type CSSProperties } from 'react';
+import { useState, useRef, useEffect, useCallback, type ReactNode, type CSSProperties } from 'react';
 import { tokens } from '../styles/tokens';
 
 interface SwipeableCardProps {
@@ -52,11 +52,13 @@ export function SwipeableCard({
   const [offsetX, setOffsetX] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
 
+  const containerRef = useRef<HTMLDivElement>(null);
   const startXRef = useRef(0);
   const startYRef = useRef(0);
   const currentXRef = useRef(0);
   const isHorizontalSwipeRef = useRef<boolean | null>(null);
   const hasMoved = useRef(false);
+  const isSwipingRef = useRef(false); // Mirror of isSwiping for event listener
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const touch = e.touches[0];
@@ -65,11 +67,13 @@ export function SwipeableCard({
     currentXRef.current = touch.clientX;
     isHorizontalSwipeRef.current = null;
     hasMoved.current = false;
+    isSwipingRef.current = true;
     setIsSwiping(true);
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isSwiping) return;
+  // Use native event handler to allow non-passive listener (needed for preventDefault)
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!isSwipingRef.current) return;
 
     const touch = e.touches[0];
     const deltaX = touch.clientX - startXRef.current;
@@ -90,13 +94,29 @@ export function SwipeableCard({
 
     // Only handle horizontal swipes (update visual position)
     if (isHorizontalSwipeRef.current === true) {
+      // Prevent browser's native horizontal scroll/swipe gestures
+      // This stops "pull to refresh", "back navigation", and page scrolling
+      e.preventDefault();
       currentXRef.current = touch.clientX;
       setOffsetX(deltaX);
     }
-  };
+  }, []);
+
+  // Attach non-passive touchmove listener to allow preventDefault()
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+
+    // Must use { passive: false } to allow preventDefault() on touch events
+    element.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+    return () => {
+      element.removeEventListener('touchmove', handleTouchMove);
+    };
+  }, [handleTouchMove]);
 
   const handleTouchEnd = () => {
-    if (!isSwiping) return;
+    if (!isSwipingRef.current) return;
 
     const finalOffset = currentXRef.current - startXRef.current;
 
@@ -112,6 +132,7 @@ export function SwipeableCard({
 
     // Reset state
     setOffsetX(0);
+    isSwipingRef.current = false;
     setIsSwiping(false);
     isHorizontalSwipeRef.current = null;
     hasMoved.current = false;
@@ -136,6 +157,7 @@ export function SwipeableCard({
 
   return (
     <div
+      ref={containerRef}
       data-testid="swipeable-card"
       style={{
         position: 'relative',
@@ -144,11 +166,11 @@ export function SwipeableCard({
         overflow: 'visible',
         borderRadius: '14px',
         cursor: onClick ? 'pointer' : undefined,
+        touchAction: 'pan-y', // Allow vertical scroll, capture horizontal gestures
         ...style,
       }}
       onClick={handleClick}
       onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       {/* Background hints (revealed during swipe) - clipped to card bounds */}
