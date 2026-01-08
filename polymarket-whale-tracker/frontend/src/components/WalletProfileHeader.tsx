@@ -372,8 +372,8 @@ export function WalletProfileHeader({
           </a>
         </div>
 
-        {/* Actions (desktop: right side) */}
-        <div style={actionsStyle}>
+        {/* Actions (desktop: bottom-right) */}
+        <div style={{ ...actionsStyle, alignSelf: 'flex-end' }}>
           <CopyButton text={address} />
           <a
             href={`https://polygonscan.com/address/${address}`}
