@@ -1,7 +1,7 @@
 /**
  * New Whale Icon Component
  *
- * Whale silhouette with a "plus" indicator for new tracking.
+ * Classic whale fluke (tail) silhouette with sparkle for "new".
  * Used in: KPI cards (24px)
  */
 
@@ -10,48 +10,34 @@ import { IconWrapper, type IconProps } from './Icon';
 export function NewWhaleIcon(props: IconProps) {
     return (
         <IconWrapper {...props} viewBox="0 0 24 24">
-            {/* 
-        Mini surfacing ASCII Whale 
-          .
-        /   \
-       |  +  |
-       */}
-
-            {/* Spout (.) */}
-            <circle cx="12" cy="5" r="1" fill="currentColor" />
-
-            {/* Surfacing Body (/ \) */}
+            {/*
+             * Classic whale fluke shape - the iconic "W" tail
+             * Looks like: \_    _/
+             *               \__/
+             */}
             <path
-                d="M7,12 L12,7 L17,12"
+                d="M3 8 C5 6, 7 7, 9 10 C10 12, 11 14, 12 15 C13 14, 14 12, 15 10 C17 7, 19 6, 21 8"
                 stroke="currentColor"
                 strokeWidth="1.5"
-                strokeLinecap="square"
+                strokeLinecap="round"
                 fill="none"
             />
 
-            {/* Base (|___|) */}
+            {/* Water surface line */}
             <path
-                d="M7,12 V17 H17 V12"
+                d="M2 18 Q6 16, 12 18 Q18 20, 22 18"
                 stroke="currentColor"
                 strokeWidth="1.5"
-                strokeLinecap="square"
+                strokeLinecap="round"
                 fill="none"
             />
 
-            {/* Tail (v) */}
+            {/* Sparkle for "new" */}
             <path
-                d="M12,17 L12,20 M10,20 L12,20 L14,20"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="square"
-            />
-
-            {/* "New" Badge (+) - drawn as ASCII plus inside */}
-            <path
-                d="M12,10 V14 M10,12 H14"
+                d="M19 3 L19 5 M18 4 L20 4"
                 stroke="var(--cyan)"
                 strokeWidth="1.5"
-                strokeLinecap="square"
+                strokeLinecap="round"
             />
         </IconWrapper>
     );
