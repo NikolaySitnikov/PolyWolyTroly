@@ -11,27 +11,41 @@
 
 /**
  * Position data from Polymarket Data API
+ *
+ * Field names match actual API response (verified against live API 2026-01-07)
  */
 export interface PolymarketPosition {
-  conditionId: string;
+  proxyWallet: string;
   asset: string;
-  outcomeIndex: number;
-  outcome: string;
-  title: string;
-  slug: string;
-  eventSlug: string;
+  conditionId: string;
   size: number;
   avgPrice: number;
-  currentPrice: number;
   initialValue: number;
   currentValue: number;
-  pnl: number;
-  pnlPercent: number;
-  isActive: boolean;
-  endDate?: string;
-  category?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  /** Unrealized P&L - use this for total P&L calculation */
+  cashPnl: number;
+  /** Percent P&L */
+  percentPnl: number;
+  totalBought: number;
+  /** Realized P&L from closed/redeemed portions */
+  realizedPnl: number;
+  percentRealizedPnl: number;
+  /** Current price (0 = market resolved) */
+  curPrice: number;
+  /** Whether position can be redeemed (market resolved) */
+  redeemable: boolean;
+  mergeable: boolean;
+  title: string;
+  slug: string;
+  icon: string;
+  eventId: string;
+  eventSlug: string;
+  outcome: string;
+  outcomeIndex: number;
+  oppositeOutcome: string;
+  oppositeAsset: string;
+  endDate: string;
+  negativeRisk: boolean;
 }
 
 /**
@@ -73,16 +87,12 @@ export interface PolymarketTrade {
 
 /**
  * Portfolio value from Polymarket Data API
+ *
+ * NOTE: API returns ARRAY with single object: [{user, value}]
  */
 export interface PolymarketValue {
-  portfolioValue: number;
-  positionsValue: number;
-  cashBalance: number;
-  realizedPnl: number;
-  unrealizedPnl: number;
-  totalPnl: number;
-  activePositions: number;
-  timestamp: number;
+  user: string;
+  value: number;
 }
 
 // ============================================================================
@@ -91,23 +101,26 @@ export interface PolymarketValue {
 
 /**
  * User profile from Gamma API
+ *
+ * Field names match actual API response (verified against live API 2026-01-07)
  */
 export interface PolymarketUserProfile {
-  address: string;
-  name?: string;
-  pseudonym?: string;
-  /** Profile image from Gamma API (use profileImageOptimized for smaller size) */
+  createdAt: string;
+  proxyWallet: string;
+  displayUsernamePublic: boolean;
+  pseudonym: string;
+  name: string;
+  users: Array<{
+    id: string;
+    creator: boolean;
+    mod: boolean;
+  }>;
+  verifiedBadge: boolean;
+  /** Optional profile image URL */
   profileImage?: string;
   /** Optimized/smaller version of profile image */
   profileImageOptimized?: string;
-  verified: boolean;
-  twitterHandle?: string;
   bio?: string;
-  createdAt?: string;
-  followers?: number;
-  following?: number;
-  totalVolume?: number;
-  totalProfit?: number;
 }
 
 // ============================================================================
