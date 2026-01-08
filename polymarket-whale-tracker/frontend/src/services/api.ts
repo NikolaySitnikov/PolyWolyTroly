@@ -35,6 +35,18 @@ export const api = {
 };
 
 /**
+ * Get WebSocket URL derived from API base URL
+ */
+export function getWebSocketUrl(): string {
+  const baseUrl = api.baseUrl;
+  // Convert HTTP URL to WebSocket URL
+  if (baseUrl.startsWith('https://')) {
+    return baseUrl.replace('https://', 'wss://');
+  }
+  return baseUrl.replace('http://', 'ws://');
+}
+
+/**
  * Fetches dashboard statistics from the API.
  * @returns Promise resolving to stats data
  * @throws Error if the request fails

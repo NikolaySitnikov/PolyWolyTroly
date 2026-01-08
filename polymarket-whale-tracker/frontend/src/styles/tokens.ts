@@ -50,6 +50,16 @@ export const tokens = {
     neutral: '#888899',
     neutralGlow: 'rgba(136, 136, 153, 0.2)',
 
+    // KPI-specific accent colors (semantically meaningful)
+    gold: '#f59e0b',              // Total Deposited - wealth, capital inflow
+    goldGlow: 'rgba(245, 158, 11, 0.25)',
+    violet: '#8b5cf6',            // Portfolio - holdings, value stored
+    violetGlow: 'rgba(139, 92, 246, 0.25)',
+    blue: '#3b82f6',              // Positions - active engagement
+    blueGlow: 'rgba(59, 130, 246, 0.25)',
+    pink: '#ec4899',              // Predictions - forecasting, insight
+    pinkGlow: 'rgba(236, 72, 153, 0.25)',
+
     // Text colors
     textPrimary: '#f0f0f5',
     textSecondary: '#8888aa',

@@ -29,6 +29,21 @@ export interface DepositEvent {
   depositId: number;
 }
 
+export interface TradingUpdateEvent {
+  walletAddress: string;
+  metrics: {
+    pnl: number;
+    pnl7d: number;
+    pnl30d: number;
+    winRate: number;
+    portfolioValue: number;
+    activePositions: number;
+    totalTrades: number;
+    lastActivityAt: string | null;
+    isLive: boolean;
+  };
+}
+
 /**
  * Initialize WebSocket server attached to HTTP server
  */
@@ -146,6 +161,19 @@ export async function broadcastDeposit(event: DepositEvent): Promise<void> {
   } catch (error) {
     console.error('Error broadcasting stats:', error);
   }
+}
+
+/**
+ * Broadcast trading data update for a wallet
+ * Called when trading metrics are refreshed
+ */
+export function broadcastTradingUpdate(event: TradingUpdateEvent): void {
+  console.log(`[WebSocket] Broadcasting trading update to ${clients.size} clients for ${event.walletAddress}`);
+
+  broadcast({
+    type: 'trading_update',
+    data: event
+  });
 }
 
 /**

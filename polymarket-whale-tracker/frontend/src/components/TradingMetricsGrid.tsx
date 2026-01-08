@@ -5,13 +5,13 @@
  * Desktop: 6 columns in a row
  * Mobile: 2 columns, 3 rows (2x3 grid)
  *
- * Stats displayed:
- * 1. Total Deposited (profit green)
- * 2. P&L (profit/loss/neutral colors with glow)
- * 3. Win Rate (cyan)
- * 4. Portfolio Value (standard)
- * 5. Active Positions (muted)
- * 6. Total Trades (muted)
+ * Color scheme (semantically meaningful):
+ * 1. Total Deposited → Gold (#f59e0b) - wealth, capital inflow
+ * 2. P&L → Dynamic (green/red) - profit/loss indicator
+ * 3. Win Rate → Cyan (#00fff0) - success, achievement
+ * 4. Portfolio → Violet (#8b5cf6) - holdings, stored value
+ * 5. Positions → Blue (#3b82f6) - active engagement
+ * 6. Predictions → Pink (#ec4899) - forecasting, insight
  *
  * Per TRADING_FEATURES_DESIGN_GUIDE.md Section 4 & 12.
  */
@@ -115,7 +115,7 @@ function getPnlLabel(window: PnlTimeWindow): string {
  */
 function TotalDepositedIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: tokens.colors.profit }}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ color: tokens.colors.gold }}>
       <ellipse cx="12" cy="7" rx="8" ry="3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       <path d="M4 10.5c0 1.93 3.58 3.5 8 3.5s8-1.57 8-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       <path d="M4 15.5c0 1.93 3.58 3.5 8 3.5s8-1.57 8-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -205,16 +205,16 @@ export function TradingMetricsGrid({
 
   return (
     <div style={gridStyle}>
-      {/* 1. Total Deposited */}
+      {/* 1. Total Deposited → Gold (wealth, capital inflow) */}
       <MetricCard
         label="Total Deposited"
         value={formatUSD(totalDeposited)}
         icon={<TotalDepositedIcon />}
-        valueColor={tokens.colors.profit}
-        valueGlow={tokens.colors.profitGlow}
+        valueColor={tokens.colors.gold}
+        valueGlow={tokens.colors.goldGlow}
       />
 
-      {/* 2. P&L */}
+      {/* 2. P&L → Dynamic green/red (profit/loss indicator) */}
       <MetricCard
         label={getPnlLabel(pnlTimeWindow)}
         value={formatPnl(pnl)}
@@ -223,33 +223,40 @@ export function TradingMetricsGrid({
         valueGlow={pnlStyle.glow}
       />
 
-      {/* 3. Win Rate */}
+      {/* 3. Win Rate → Cyan (success, achievement) */}
       <MetricCard
         label="Win Rate"
         value={formatWinRate(winRate)}
         icon={<WinRateIcon size={16} color={tokens.colors.cyan} />}
         valueColor={tokens.colors.cyan}
+        valueGlow={tokens.colors.cyanGlow}
       />
 
-      {/* 4. Portfolio Value */}
+      {/* 4. Portfolio → Violet (holdings, stored value) */}
       <MetricCard
         label="Portfolio"
         value={portfolioValue !== null ? formatUSD(portfolioValue) : 'N/A'}
-        icon={<PortfolioIcon size={16} color={tokens.colors.textMuted} />}
+        icon={<PortfolioIcon size={16} color={tokens.colors.violet} />}
+        valueColor={tokens.colors.violet}
+        valueGlow={tokens.colors.violetGlow}
       />
 
-      {/* 5. Active Positions */}
+      {/* 5. Positions → Blue (active engagement) */}
       <MetricCard
         label="Positions"
         value={formatCount(activePositions)}
-        icon={<PositionsIcon size={16} color={tokens.colors.textMuted} />}
+        icon={<PositionsIcon size={16} color={tokens.colors.blue} />}
+        valueColor={tokens.colors.blue}
+        valueGlow={tokens.colors.blueGlow}
       />
 
-      {/* 6. Total Trades */}
+      {/* 6. Predictions → Pink (forecasting, insight) */}
       <MetricCard
-        label="Total Trades"
+        label="Predictions"
         value={formatCount(totalTrades)}
-        icon={<TradesIcon size={16} color={tokens.colors.textMuted} />}
+        icon={<TradesIcon size={16} color={tokens.colors.pink} />}
+        valueColor={tokens.colors.pink}
+        valueGlow={tokens.colors.pinkGlow}
       />
     </div>
   );

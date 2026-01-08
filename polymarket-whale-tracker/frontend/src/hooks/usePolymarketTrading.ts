@@ -12,11 +12,13 @@ import { toPosition, type Position } from '../types/position';
 import { toActivity, type Activity } from '../types/activity';
 import type { UserProfile } from '../types/profile';
 import type { TradingMetrics, PnlTimeWindow } from '../types/polymarket';
+import { useWebSocket, type TradingUpdateEvent } from './useWebSocket';
+import { getWebSocketUrl } from '../services/api';
 
 interface UsePolymarketTradingOptions {
   /** Auto-fetch on mount */
   enabled?: boolean;
-  /** Refetch interval in ms (0 = disabled) */
+  /** Refetch interval in ms (0 = disabled). Default: 5000ms for live updates */
   refetchInterval?: number;
 }
 
@@ -47,11 +49,14 @@ interface UsePolymarketTradingResult {
   totalPositionsCount: number;
 }
 
+// Default polling interval: 5 seconds for live updates
+const DEFAULT_REFETCH_INTERVAL = 5000;
+
 export function usePolymarketTrading(
   address: string | undefined,
   options: UsePolymarketTradingOptions = {}
 ): UsePolymarketTradingResult {
-  const { enabled = true, refetchInterval = 0 } = options;
+  const { enabled = true, refetchInterval = DEFAULT_REFETCH_INTERVAL } = options;
 
   const [data, setData] = useState<TradingDataResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,6 +65,15 @@ export function usePolymarketTrading(
   const abortControllerRef = useRef<AbortController | null>(null);
   const fetchedAddressRef = useRef<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Clear stale data when address changes (don't show previous whale's data)
+  useEffect(() => {
+    if (address && fetchedAddressRef.current && address !== fetchedAddressRef.current) {
+      // Address changed - clear old data immediately
+      setData(null);
+      fetchedAddressRef.current = null;
+    }
+  }, [address]);
 
   const fetchData = useCallback(async () => {
     if (!address || !enabled) {
@@ -97,7 +111,7 @@ export function usePolymarketTrading(
   }, [address, enabled]);
 
   // Fetch on mount and when address changes
-  // NOTE: We do NOT reset data to null to prevent flickering - old data stays visible until new arrives
+  // NOTE: Data is cleared by the useEffect above when address changes (to prevent showing stale data)
   useEffect(() => {
     fetchData();
 
@@ -119,6 +133,32 @@ export function usePolymarketTrading(
       };
     }
   }, [refetchInterval, enabled, address, fetchData]);
+
+  // Handle WebSocket trading updates for instant metrics refresh
+  const handleTradingUpdate = useCallback(
+    (update: TradingUpdateEvent) => {
+      // Only process updates for the current wallet address
+      if (!address || update.walletAddress.toLowerCase() !== address.toLowerCase()) {
+        return;
+      }
+
+      // Update metrics instantly from WebSocket
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          metrics: update.metrics,
+          fetchedAt: new Date().toISOString(),
+        };
+      });
+    },
+    [address]
+  );
+
+  // Subscribe to WebSocket for instant trading updates
+  useWebSocket(getWebSocketUrl(), {
+    onTradingUpdate: handleTradingUpdate,
+  });
 
   // Transform positions
   const positions = useMemo(() => {

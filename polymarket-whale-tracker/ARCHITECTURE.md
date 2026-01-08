@@ -623,3 +623,93 @@ frontend/src/
 │  Frontend WebSocket drops          │  Auto-reconnect, resume live updates   │
 └────────────────────────────────────┴────────────────────────────────────────┘
 ```
+
+---
+
+## Live Trading Data Updates
+
+The whale profile trading metrics update in real-time using a dual strategy:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         LIVE DATA UPDATE STRATEGY                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────┐
+    │  STRATEGY 1: Polling (5-second intervals)                          │
+    │                                                                     │
+    │    • Default refetch interval: 5000ms                              │
+    │    • Ensures data freshness even without WebSocket                 │
+    │    • Graceful fallback for network issues                          │
+    │    • Automatic cleanup on component unmount                        │
+    └────────────────────────────────────────────────────────────────────┘
+                                │
+                                │ Combined with
+                                ▼
+    ┌────────────────────────────────────────────────────────────────────┐
+    │  STRATEGY 2: WebSocket Push (instant updates)                      │
+    │                                                                     │
+    │    Message Type: 'trading_update'                                  │
+    │                                                                     │
+    │    Payload: {                                                       │
+    │      walletAddress: string,                                        │
+    │      metrics: {                                                     │
+    │        pnl, pnl7d, pnl30d, winRate, portfolioValue,               │
+    │        activePositions, totalTrades, lastActivityAt, isLive       │
+    │      }                                                              │
+    │    }                                                                │
+    │                                                                     │
+    │    • Instant metric updates without page reload                    │
+    │    • Address filtering (only updates for viewed wallet)            │
+    │    • Module-level singleton connection (React StrictMode safe)     │
+    └────────────────────────────────────────────────────────────────────┘
+
+    Profile Navigation Fix:
+    ┌────────────────────────────────────────────────────────────────────┐
+    │  When navigating between whale profiles (prev/next):               │
+    │                                                                     │
+    │    1. Address change detected                                       │
+    │    2. Previous data cleared immediately (prevents stale data)      │
+    │    3. New data fetched for correct wallet                          │
+    │    4. UI shows fresh data (not cached from previous whale)         │
+    └────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Trading Metrics KPI Color Scheme
+
+The 6 trading KPIs use a semantically meaningful color scheme:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         KPI COLOR SCHEME                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────┬──────────────┬─────────────────────────────────────────┐
+    │  KPI           │  Color       │  Semantic Meaning                       │
+    ├────────────────┼──────────────┼─────────────────────────────────────────┤
+    │ Total Deposited│  Gold        │  Wealth, capital inflow                 │
+    │                │  #f59e0b     │  "Money flowing in"                     │
+    ├────────────────┼──────────────┼─────────────────────────────────────────┤
+    │ P&L            │  Dynamic     │  Profit/loss indicator                  │
+    │                │  Green/Red   │  Green #00ff88 / Red #ff3366            │
+    ├────────────────┼──────────────┼─────────────────────────────────────────┤
+    │ Win Rate       │  Cyan        │  Success, achievement                   │
+    │                │  #00fff0     │  "Winning trades"                       │
+    ├────────────────┼──────────────┼─────────────────────────────────────────┤
+    │ Portfolio      │  Violet      │  Holdings, stored value                 │
+    │                │  #8b5cf6     │  "Assets under management"              │
+    ├────────────────┼──────────────┼─────────────────────────────────────────┤
+    │ Positions      │  Blue        │  Active engagement                      │
+    │                │  #3b82f6     │  "Open positions in play"               │
+    ├────────────────┼──────────────┼─────────────────────────────────────────┤
+    │ Predictions    │  Pink        │  Forecasting, insight                   │
+    │                │  #ec4899     │  "Total predictions made"               │
+    └────────────────┴──────────────┴─────────────────────────────────────────┘
+
+    Each KPI has:
+    • Colored icon matching the value color
+    • Colored value with semantic meaning
+    • Subtle glow effect (25% opacity) for "hacker terminal" aesthetic
+```

@@ -19,14 +19,30 @@ export interface DepositEvent {
   isNewWallet: boolean;
 }
 
+export interface TradingUpdateEvent {
+  walletAddress: string;
+  metrics: {
+    pnl: number;
+    pnl7d: number;
+    pnl30d: number;
+    winRate: number;
+    portfolioValue: number;
+    activePositions: number;
+    totalTrades: number;
+    lastActivityAt: string | null;
+    isLive: boolean;
+  };
+}
+
 interface WebSocketMessage {
-  type: 'stats_update' | 'new_deposit';
-  data: StatsResponse | DepositEvent;
+  type: 'stats_update' | 'new_deposit' | 'trading_update';
+  data: StatsResponse | DepositEvent | TradingUpdateEvent;
 }
 
 interface UseWebSocketOptions {
   onStats?: (stats: StatsResponse) => void;
   onDeposit?: (deposit: DepositEvent) => void;
+  onTradingUpdate?: (update: TradingUpdateEvent) => void;
 }
 
 interface UseWebSocketResult {
@@ -49,6 +65,7 @@ let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 // Callbacks registry - allows multiple components to subscribe
 const statsCallbacks = new Set<(stats: StatsResponse) => void>();
 const depositCallbacks = new Set<(deposit: DepositEvent) => void>();
+const tradingUpdateCallbacks = new Set<(update: TradingUpdateEvent) => void>();
 const connectionCallbacks = new Set<(connected: boolean) => void>();
 
 function notifyConnection(connected: boolean) {
@@ -83,6 +100,9 @@ function connect(url: string) {
           break;
         case 'new_deposit':
           depositCallbacks.forEach((cb) => cb(message.data as DepositEvent));
+          break;
+        case 'trading_update':
+          tradingUpdateCallbacks.forEach((cb) => cb(message.data as TradingUpdateEvent));
           break;
       }
     } catch (e) {
@@ -133,14 +153,16 @@ export function useWebSocket(
   const callbacksRef = useRef<{
     onStats: ((stats: StatsResponse) => void) | null;
     onDeposit: ((deposit: DepositEvent) => void) | null;
+    onTradingUpdate: ((update: TradingUpdateEvent) => void) | null;
     onConnection: ((connected: boolean) => void) | null;
-  }>({ onStats: null, onDeposit: null, onConnection: null });
+  }>({ onStats: null, onDeposit: null, onTradingUpdate: null, onConnection: null });
 
   useEffect(() => {
     // Create callbacks if not already created (first mount)
     if (!callbacksRef.current.onStats) {
       callbacksRef.current.onStats = (stats: StatsResponse) => optionsRef.current.onStats?.(stats);
       callbacksRef.current.onDeposit = (deposit: DepositEvent) => optionsRef.current.onDeposit?.(deposit);
+      callbacksRef.current.onTradingUpdate = (update: TradingUpdateEvent) => optionsRef.current.onTradingUpdate?.(update);
       callbacksRef.current.onConnection = (isConnected: boolean) => setConnected(isConnected);
     }
 
@@ -148,6 +170,7 @@ export function useWebSocket(
     // This handles both initial mount and StrictMode remount
     statsCallbacks.add(callbacksRef.current.onStats);
     depositCallbacks.add(callbacksRef.current.onDeposit);
+    tradingUpdateCallbacks.add(callbacksRef.current.onTradingUpdate);
     connectionCallbacks.add(callbacksRef.current.onConnection);
 
     subscriberCount++;
@@ -161,11 +184,12 @@ export function useWebSocket(
       // Remove callbacks from sets
       statsCallbacks.delete(callbacksRef.current.onStats!);
       depositCallbacks.delete(callbacksRef.current.onDeposit!);
+      tradingUpdateCallbacks.delete(callbacksRef.current.onTradingUpdate!);
       connectionCallbacks.delete(callbacksRef.current.onConnection!);
 
       // Disconnect and reset ref only when truly unmounted
       if (subscriberCount === 0) {
-        callbacksRef.current = { onStats: null, onDeposit: null, onConnection: null };
+        callbacksRef.current = { onStats: null, onDeposit: null, onTradingUpdate: null, onConnection: null };
         disconnect();
       }
     };
