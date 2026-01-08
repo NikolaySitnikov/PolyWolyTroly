@@ -405,6 +405,23 @@ function App() {
     }
   }, [localWhaleIndex, whalesPage]);
 
+  // Fallback: When page loads from URL hash with a wallet address but whale is not in local array,
+  // set position to 1 so navigation is available. User can still navigate with arrows.
+  // This handles the case where user refreshes the page while viewing a whale profile.
+  useEffect(() => {
+    const totalWhaleCount = stats?.whaleCount ?? totalWhales;
+    if (
+      selectedWalletAddress &&
+      currentWhalePosition === null &&
+      localWhaleIndex === -1 &&
+      totalWhaleCount > 0
+    ) {
+      // Set a fallback position of 1 - navigation will still work
+      // When user navigates, handleWhalePageChange will fetch the correct whale
+      setCurrentWhalePosition(1);
+    }
+  }, [selectedWalletAddress, currentWhalePosition, localWhaleIndex, stats?.whaleCount, totalWhales]);
+
   // Handle whale navigation (1-indexed position in full sorted list)
   // Fetches whale at position if not in current loaded whales array
   const handleWhalePageChange = useCallback(async (targetPosition: number) => {
