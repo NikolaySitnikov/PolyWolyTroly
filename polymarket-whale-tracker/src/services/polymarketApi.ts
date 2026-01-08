@@ -192,17 +192,16 @@ export const polymarketApi = {
    * Fetch ALL positions for a wallet (paginated)
    * Used for accurate P&L calculation
    */
-  async getAllPositions(
-    walletAddress: string,
-    maxPositions: number = MAX_POSITIONS_FOR_PNL
-  ): Promise<PolymarketPosition[]> {
+  async getAllPositions(walletAddress: string): Promise<PolymarketPosition[]> {
     try {
       const address = walletAddress.toLowerCase();
       const allPositions: PolymarketPosition[] = [];
       let offset = 0;
       const pageSize = 100;
 
-      while (allPositions.length < maxPositions) {
+      // Fetch ALL positions - no arbitrary limit
+      // Loop until we get fewer than pageSize (meaning no more data)
+      while (true) {
         const url = `${POLYMARKET_DATA_API}/positions?user=${address}&limit=${pageSize}&offset=${offset}`;
         const response = await fetch(url);
 
@@ -1186,8 +1185,8 @@ export const polymarketApi = {
       timeWindowedPnl,
       predictionsCount,
     ] = await Promise.all([
-      // ALL positions for display (paginated fetch)
-      this.withTimeout(this.getAllPositions(address, 500), PAGINATION_TIMEOUT, []),
+      // ALL positions for display (paginated fetch - no limit)
+      this.withTimeout(this.getAllPositions(address), PAGINATION_TIMEOUT, []),
       // Single page of activity for display (fast)
       this.withTimeout(this.getActivity(address, 100), FAST_TIMEOUT, []),
       // Portfolio value (fast - single API call)

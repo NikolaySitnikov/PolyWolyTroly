@@ -215,6 +215,8 @@ PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymar
 │  Endpoints:                                                                  │
 │  • /activity?user={address}   - Trading activity history                    │
 │  • /positions?user={address}  - Current & historical positions              │
+│    └── Supports pagination: &limit=100&offset=0                             │
+│    └── getAllPositions() fetches ALL positions (no arbitrary limit)         │
 │  • /value?user={address}      - Portfolio value & P&L metrics               │
 │  • /traded?user={address}     - Total unique markets traded (predictions)   │
 │                                  Returns: { user: string, traded: number }  │
@@ -223,6 +225,12 @@ PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymar
 │                                                                              │
 │  Purpose: Trading data for whale profiles (P&L, positions, win rate)        │
 │  NOTE: Also used as SOURCE OF TRUTH for "is this wallet new?"               │
+│                                                                              │
+│  POSITIONS FETCHING:                                                         │
+│  The getAllPositions() method paginates through all positions until the     │
+│  API returns fewer results than requested (indicating end of data).          │
+│  This ensures accurate position counts regardless of portfolio size          │
+│  (whether 3 positions or 5,000+).                                            │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
