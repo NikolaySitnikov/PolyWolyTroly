@@ -6,15 +6,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { usePolymarketTrading } from './usePolymarketTrading';
 import * as api from '../services/api';
+import { mockTradingDataResponse, mockPolymarketPosition, mockPolymarketActivity, mockPolymarketProfile, mockTradingMetrics } from '../test/mockFactories';
 
 // Mock the API module
 vi.mock('../services/api', () => ({
   fetchTradingData: vi.fn(),
+  getWebSocketUrl: vi.fn(() => 'ws://localhost:3002'),
 }));
 
-const mockTradingData = {
+const mockTradingData = mockTradingDataResponse({
   address: '0x1234567890abcdef',
-  metrics: {
+  metrics: mockTradingMetrics({
     pnl: 1000,
     pnl7d: 500,
     pnl30d: 750,
@@ -22,73 +24,45 @@ const mockTradingData = {
     portfolioValue: 50000,
     activePositions: 5,
     totalTrades: 100,
-    lastActivityAt: new Date().toISOString(),
     isLive: true,
-  },
+  }),
   positions: [
-    {
+    mockPolymarketPosition({
       conditionId: '0xabc1',
-      asset: 'token1',
-      outcomeIndex: 0,
-      outcome: 'YES',
       title: 'Will BTC hit $100k?',
       slug: 'btc-100k',
       eventSlug: 'btc-100k-event',
-      size: 1000,
-      avgPrice: 0.45,
-      currentPrice: 0.55,
-      initialValue: 450,
-      currentValue: 550,
-      pnl: 100,
-      pnlPercent: 22.2,
-      isActive: true,
-      category: 'crypto',
-    },
-    {
+      outcome: 'Yes',
+      cashPnl: 100,
+      percentPnl: 22.2,
+    }),
+    mockPolymarketPosition({
       conditionId: '0xabc2',
-      asset: 'token2',
-      outcomeIndex: 1,
-      outcome: 'NO',
       title: 'Resolved market',
       slug: 'resolved',
       eventSlug: 'resolved-event',
-      size: 500,
-      avgPrice: 0.30,
-      currentPrice: 1.0,
-      initialValue: 150,
-      currentValue: 500,
-      pnl: 350,
-      pnlPercent: 233,
-      isActive: false,
-      category: 'politics',
-    },
+      outcome: 'No',
+      cashPnl: 350,
+      percentPnl: 233,
+      curPrice: 1.0,
+      redeemable: true,
+    }),
   ],
   activity: [
-    {
-      proxyWallet: '0x1234',
-      timestamp: Date.now() - 1000 * 60 * 5,
+    mockPolymarketActivity({
       type: 'trade_buy',
       conditionId: '0xabc1',
       title: 'Will BTC hit $100k?',
       slug: 'btc-100k',
-      side: 'buy',
-      outcome: 'YES',
-      size: 100,
-      usdcSize: 45,
-      price: 0.45,
-    },
+    }),
   ],
-  profile: {
-    address: '0x1234567890abcdef',
+  profile: mockPolymarketProfile({
     name: 'CryptoWhale',
     pseudonym: 'whale_king',
-    profileImage: 'https://example.com/avatar.png',
-    profileImageOptimized: 'https://example.com/avatar-optimized.png',
-    verified: true,
     twitterHandle: 'cryptowhale',
-  },
-  fetchedAt: new Date().toISOString(),
-};
+    verifiedBadge: true,
+  }),
+});
 
 describe('usePolymarketTrading Hook', () => {
   beforeEach(() => {
@@ -252,7 +226,7 @@ describe('usePolymarketTrading Hook', () => {
   });
 
   it('should support refetch interval', async () => {
-    const { result } = renderHook(() =>
+    renderHook(() =>
       usePolymarketTrading('0x1234', { refetchInterval: 5000 })
     );
 

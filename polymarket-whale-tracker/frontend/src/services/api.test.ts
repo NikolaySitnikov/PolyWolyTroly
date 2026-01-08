@@ -10,7 +10,9 @@ import { api, fetchStats, fetchTradingData, type StatsResponse, type TradingData
 describe('API Service', () => {
   const mockStats: StatsResponse = {
     whaleCount: 42,
+    whaleCountTrend: 5,
     totalVolume: 15750000,
+    totalVolumeTrend: 1250000,
     alertsToday: 12,
     newWhalesToday: 5,
   };
@@ -106,7 +108,11 @@ describe('API Service', () => {
 
       await fetchTradingData(address);
 
-      expect(fetch).toHaveBeenCalledWith(`${api.baseUrl}/api/wallets/${address}/trading`);
+      // Check that fetch was called with the correct URL (signal is internal detail)
+      expect(fetch).toHaveBeenCalledWith(
+        `${api.baseUrl}/api/wallets/${address}/trading`,
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
     });
 
     it('should return trading data on success', async () => {
@@ -150,7 +156,8 @@ describe('API Service', () => {
       await fetchTradingData(address);
 
       expect(fetch).toHaveBeenCalledWith(
-        `${api.baseUrl}/api/wallets/${address.toLowerCase()}/trading`
+        `${api.baseUrl}/api/wallets/${address.toLowerCase()}/trading`,
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       );
     });
   });

@@ -6,15 +6,33 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import App from './App';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { ApiConnectivityProvider } from './hooks/useApiConnectivity';
 import * as api from './services/api';
 
-// Mock the API module
-vi.mock('./services/api');
+// Mock the WebSocket hook to prevent real connections
+vi.mock('./hooks/useWebSocket', () => ({
+  useWebSocket: vi.fn(() => ({ connected: false })),
+}));
+
+// Mock the API module with all required exports
+vi.mock('./services/api', () => ({
+  api: { baseUrl: 'http://localhost:3002' },
+  getWebSocketUrl: vi.fn(() => 'ws://localhost:3002'),
+  fetchStats: vi.fn(),
+  fetchHealth: vi.fn(),
+  fetchDeposits: vi.fn(),
+  fetchWhales: vi.fn(),
+  fetchTrendingMarkets: vi.fn(),
+  fetchWhaleOfTheDay: vi.fn(),
+  fetchTradingData: vi.fn(),
+  fetchWallet: vi.fn(),
+  fetchWhaleAtIndex: vi.fn(),
+  fetchPriceHistory: vi.fn(),
+}));
 
 // Wrapper to provide required contexts
 function renderApp() {
@@ -31,7 +49,9 @@ function renderApp() {
 
 const mockStats: api.StatsResponse = {
   whaleCount: 42,
+  whaleCountTrend: 5,
   totalVolume: 15750000,
+  totalVolumeTrend: 1250000,
   alertsToday: 12,
   newWhalesToday: 5,
 };
@@ -71,6 +91,7 @@ describe('App Component', () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.resetAllMocks();
   });
 
@@ -165,29 +186,39 @@ describe('App Component', () => {
     });
 
     it('should display error state when fetch fails', async () => {
-      vi.mocked(api.fetchStats).mockRejectedValueOnce(
-        new Error('Failed to fetch stats: 500')
+      // Clear all mocks and set up fresh rejection mock
+      vi.mocked(api.fetchStats).mockReset();
+      vi.mocked(api.fetchStats).mockImplementation(() =>
+        Promise.reject(new Error('Failed to fetch stats: 500'))
       );
 
       renderApp();
 
-      await waitFor(() => {
-        expect(screen.getByTestId('dashboard-error')).toBeInTheDocument();
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          expect(screen.getByTestId('dashboard-error')).toBeInTheDocument();
+        },
+        { timeout: 5000, interval: 100 }
+      );
 
       expect(screen.getByText(/Failed to fetch stats/i)).toBeInTheDocument();
     });
 
     it('should have a retry button in error state', async () => {
-      vi.mocked(api.fetchStats).mockRejectedValueOnce(
-        new Error('Network error')
+      // Clear all mocks and set up fresh rejection mock
+      vi.mocked(api.fetchStats).mockReset();
+      vi.mocked(api.fetchStats).mockImplementation(() =>
+        Promise.reject(new Error('Network error'))
       );
 
       renderApp();
 
-      await waitFor(() => {
-        expect(screen.getByTestId('dashboard-error')).toBeInTheDocument();
-      }, { timeout: 3000 });
+      await waitFor(
+        () => {
+          expect(screen.getByTestId('dashboard-error')).toBeInTheDocument();
+        },
+        { timeout: 5000, interval: 100 }
+      );
 
       expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
     });

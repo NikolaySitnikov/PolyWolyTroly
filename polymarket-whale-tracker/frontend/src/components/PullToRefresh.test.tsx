@@ -56,9 +56,7 @@ describe('PullToRefresh', () => {
   });
 
   it('calls onRefresh when pulled past threshold', async () => {
-    let refreshCalled = false;
     const onRefresh = vi.fn().mockImplementation(() => {
-      refreshCalled = true;
       return Promise.resolve();
     });
 

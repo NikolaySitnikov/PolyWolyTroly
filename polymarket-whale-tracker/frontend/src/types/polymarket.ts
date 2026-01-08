@@ -108,6 +108,7 @@ export interface PolymarketValue {
  * User profile from Gamma API
  *
  * Field names match actual API response (verified against live API 2026-01-07)
+ * Some fields are optional as they may not be present for all profiles.
  */
 export interface PolymarketUserProfile {
   createdAt: string;
@@ -120,12 +121,17 @@ export interface PolymarketUserProfile {
     creator: boolean;
     mod: boolean;
   }>;
+  /** Whether user has a verified badge */
   verifiedBadge: boolean;
+  /** Alias for verifiedBadge for backwards compatibility */
+  verified?: boolean;
   /** Optional profile image URL */
   profileImage?: string;
   /** Optimized/smaller version of profile image */
   profileImageOptimized?: string;
   bio?: string;
+  /** Optional Twitter/X handle */
+  twitterHandle?: string;
 }
 
 // ============================================================================

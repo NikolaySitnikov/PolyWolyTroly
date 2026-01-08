@@ -6,15 +6,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { usePositions } from './usePositions';
 import * as api from '../services/api';
+import { mockTradingDataResponse, mockPolymarketPosition, mockTradingMetrics } from '../test/mockFactories';
 
 // Mock the API module
 vi.mock('../services/api', () => ({
   fetchTradingData: vi.fn(),
 }));
 
-const mockTradingData = {
+const mockTradingData = mockTradingDataResponse({
   address: '0x1234567890abcdef',
-  metrics: {
+  metrics: mockTradingMetrics({
     pnl: 1000,
     pnl7d: 500,
     pnl30d: 750,
@@ -24,9 +25,9 @@ const mockTradingData = {
     totalTrades: 100,
     lastActivityAt: new Date().toISOString(),
     isLive: true,
-  },
+  }),
   positions: [
-    {
+    mockPolymarketPosition({
       conditionId: '0xabc1',
       asset: 'token1',
       outcomeIndex: 0,
@@ -36,15 +37,13 @@ const mockTradingData = {
       eventSlug: 'btc-100k-event',
       size: 1000,
       avgPrice: 0.45,
-      currentPrice: 0.55,
+      curPrice: 0.55,
       initialValue: 450,
       currentValue: 550,
-      pnl: 100,
-      pnlPercent: 22.2,
-      isActive: true,
-      category: 'crypto',
-    },
-    {
+      cashPnl: 100,
+      percentPnl: 22.2,
+    }),
+    mockPolymarketPosition({
       conditionId: '0xabc2',
       asset: 'token2',
       outcomeIndex: 1,
@@ -54,15 +53,13 @@ const mockTradingData = {
       eventSlug: 'eth-flip-btc-event',
       size: 500,
       avgPrice: 0.30,
-      currentPrice: 0.25,
+      curPrice: 0.25,
       initialValue: 150,
       currentValue: 125,
-      pnl: -25,
-      pnlPercent: -16.7,
-      isActive: true,
-      category: 'crypto',
-    },
-    {
+      cashPnl: -25,
+      percentPnl: -16.7,
+    }),
+    mockPolymarketPosition({
       conditionId: '0xabc3',
       asset: 'token3',
       outcomeIndex: 0,
@@ -72,19 +69,17 @@ const mockTradingData = {
       eventSlug: 'resolved-market-event',
       size: 200,
       avgPrice: 0.50,
-      currentPrice: 1.00,
+      curPrice: 1.00,
       initialValue: 100,
       currentValue: 200,
-      pnl: 100,
-      pnlPercent: 100,
-      isActive: false,
-      category: 'politics',
-    },
+      cashPnl: 100,
+      percentPnl: 100,
+      redeemable: true,
+    }),
   ],
   activity: [],
   profile: null,
-  fetchedAt: new Date().toISOString(),
-};
+});
 
 describe('usePositions Hook', () => {
   beforeEach(() => {

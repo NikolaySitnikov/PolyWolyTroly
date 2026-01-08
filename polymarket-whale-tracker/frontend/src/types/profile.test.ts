@@ -13,31 +13,42 @@ import {
   type UserProfile,
 } from './profile';
 
+/**
+ * Create a mock UserProfile with required fields
+ */
+function mockProfile(overrides: Partial<UserProfile> = {}): UserProfile {
+  return {
+    createdAt: '2024-01-01T00:00:00Z',
+    proxyWallet: '0x1234567890abcdef1234567890abcdef12345678',
+    displayUsernamePublic: true,
+    pseudonym: '',
+    name: '',
+    users: [],
+    verifiedBadge: false,
+    ...overrides,
+  };
+}
+
 describe('Profile Types', () => {
   describe('getDisplayName', () => {
     it('should return name if present', () => {
-      const profile: UserProfile = {
-        address: '0x1234567890abcdef1234567890abcdef12345678',
+      const profile = mockProfile({
         name: 'CryptoWhale',
-        verified: false,
-      };
+      });
       expect(getDisplayName(profile)).toBe('CryptoWhale');
     });
 
     it('should return pseudonym if name is not present', () => {
-      const profile: UserProfile = {
-        address: '0x1234567890abcdef1234567890abcdef12345678',
+      const profile = mockProfile({
         pseudonym: 'whale_master',
-        verified: false,
-      };
+      });
       expect(getDisplayName(profile)).toBe('whale_master');
     });
 
     it('should return truncated address if no name or pseudonym', () => {
-      const profile: UserProfile = {
-        address: '0x1234567890abcdef1234567890abcdef12345678',
-        verified: false,
-      };
+      const profile = mockProfile({
+        proxyWallet: '0x1234567890abcdef1234567890abcdef12345678',
+      });
       expect(getDisplayName(profile)).toBe('0x1234...5678');
     });
 
@@ -82,8 +93,11 @@ describe('Profile Types', () => {
     it('should return different gradients for different addresses', () => {
       const gradient1 = getAvatarGradient('0x1234567890abcdef1234567890abcdef12345678');
       const gradient2 = getAvatarGradient('0xabcdef1234567890abcdef1234567890abcdef12');
-      // They could be the same by chance, but very unlikely
-      // This test is probabilistic
+      // Verify both return valid gradient objects with from/to properties
+      expect(gradient1).toHaveProperty('from');
+      expect(gradient1).toHaveProperty('to');
+      expect(gradient2).toHaveProperty('from');
+      expect(gradient2).toHaveProperty('to');
     });
 
     it('should handle lowercase and uppercase addresses', () => {

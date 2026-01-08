@@ -542,7 +542,7 @@ export function PositionsTable({
           totalItems={positions.length}
           itemsPerPage={itemsPerPage}
           onPageChange={handlePageChange}
-          itemLabel="positions"
+          entityName="positions"
         />
       )}
     </div>

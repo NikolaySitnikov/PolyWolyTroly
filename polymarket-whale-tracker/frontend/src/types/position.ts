@@ -243,7 +243,7 @@ export function getCategoryConfig(category: MarketCategory): CategoryConfig {
 /**
  * Sort positions by various criteria
  */
-export type PositionSortField = 'pnl' | 'currentValue' | 'size' | 'updatedAt';
+export type PositionSortField = 'pnl' | 'currentValue' | 'size';
 
 /**
  * Sort positions array
@@ -269,10 +269,6 @@ export function sortPositions(
       case 'size':
         aVal = a.size;
         bVal = b.size;
-        break;
-      case 'updatedAt':
-        aVal = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-        bVal = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
         break;
       default:
         aVal = a.pnl;

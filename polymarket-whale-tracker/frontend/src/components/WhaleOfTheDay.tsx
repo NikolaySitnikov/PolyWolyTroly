@@ -231,7 +231,9 @@ export function WhaleOfTheDay({ isMobile, onViewProfile }: WhaleOfTheDayProps) {
           data-testid="whale-of-the-day"
           style={expandedCardStyle}
           role="dialog"
+          aria-expanded={true}
           aria-label="Whale of the Day details"
+          onClick={handleToggleExpand}
         >
           {/* Header with gold gradient */}
           <div
@@ -445,7 +447,7 @@ export function WhaleOfTheDay({ isMobile, onViewProfile }: WhaleOfTheDayProps) {
           e.currentTarget.style.transform = isHovered ? 'translateY(-2px)' : 'translateY(0)';
         }}
         style={microBadgeStyle}
-        aria-expanded={false}
+        aria-expanded={isExpanded}
         aria-label={`Whale of the Day: ${formatUSD(topWhale.totalToday)}. Click to expand.`}
       >
         {/* Crown with sparkles */}

@@ -7,7 +7,7 @@
  * @see ../../../DESIGN_IMPLEMENTATION_ROADMAP.md - Group 5, Task 11
  */
 
-import { useRef, useEffect, useState, useCallback, type CSSProperties } from 'react';
+import { useRef, useEffect, useState, type CSSProperties } from 'react';
 import { tokens } from '../styles/tokens';
 import { LAYOUT } from '../constants/layout';
 import type { Alert } from '../types/alert';

@@ -111,7 +111,7 @@ export function WalletProfile({
   const [activeTab, setActiveTab] = useState<ProfileTabId>('positions');
 
   // Fetch trading data (profile, live status, positions, etc.)
-  const { profile, isLive, metrics, positions, getPnl, loading: tradingLoading, error: tradingError, refetch: refetchTrading, activePositionsCount, totalPositionsCount } = usePolymarketTrading(wallet.address);
+  const { profile, isLive, metrics, positions, getPnl, loading: tradingLoading, error: tradingError, refetch: refetchTrading, totalPositionsCount } = usePolymarketTrading(wallet.address);
 
   // Determine if trading metrics are in a loading state (no data yet)
   const isMetricsLoading = tradingLoading && metrics === null;

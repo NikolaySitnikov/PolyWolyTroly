@@ -6,15 +6,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useProfile } from './useProfile';
 import * as api from '../services/api';
+import { mockTradingDataResponse, mockPolymarketProfile, mockTradingMetrics } from '../test/mockFactories';
 
 // Mock the API module
 vi.mock('../services/api', () => ({
   fetchTradingData: vi.fn(),
 }));
 
-const mockTradingDataWithProfile = {
+const mockTradingDataWithProfile = mockTradingDataResponse({
   address: '0x1234567890abcdef',
-  metrics: {
+  metrics: mockTradingMetrics({
     pnl: 1000,
     pnl7d: 500,
     pnl30d: 750,
@@ -24,26 +25,26 @@ const mockTradingDataWithProfile = {
     totalTrades: 100,
     lastActivityAt: new Date().toISOString(),
     isLive: true,
-  },
+  }),
   positions: [],
   activity: [],
-  profile: {
-    address: '0x1234567890abcdef',
+  profile: mockPolymarketProfile({
+    proxyWallet: '0x1234567890abcdef',
     name: 'CryptoWhale',
     pseudonym: 'whale_king',
     profileImage: 'https://example.com/avatar.png',
     profileImageOptimized: 'https://example.com/avatar-optimized.png',
+    verifiedBadge: true,
     verified: true,
     twitterHandle: 'cryptowhale',
     bio: 'Professional trader',
-  },
-  fetchedAt: new Date().toISOString(),
-};
+  }),
+});
 
-const mockTradingDataWithoutProfile = {
+const mockTradingDataWithoutProfile = mockTradingDataResponse({
   ...mockTradingDataWithProfile,
   profile: null,
-};
+});
 
 describe('useProfile Hook', () => {
   beforeEach(() => {

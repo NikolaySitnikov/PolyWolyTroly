@@ -7,7 +7,7 @@
  * @see Design docs/PAGINATION_GUIDELINES.md
  */
 
-import { useMemo, useCallback, useRef, useEffect, KeyboardEvent } from 'react';
+import { useMemo, useCallback, useRef, useEffect, type KeyboardEvent } from 'react';
 import { tokens } from '../styles/tokens';
 import { useHover } from '../hooks/useHover';
 

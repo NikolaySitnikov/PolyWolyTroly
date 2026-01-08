@@ -168,10 +168,11 @@ export function useWebSocket(
 
     // Always add to sets (they're Sets so duplicates are ignored)
     // This handles both initial mount and StrictMode remount
-    statsCallbacks.add(callbacksRef.current.onStats);
-    depositCallbacks.add(callbacksRef.current.onDeposit);
-    tradingUpdateCallbacks.add(callbacksRef.current.onTradingUpdate);
-    connectionCallbacks.add(callbacksRef.current.onConnection);
+    // Non-null assertions are safe because callbacks are created in the block above
+    statsCallbacks.add(callbacksRef.current.onStats!);
+    depositCallbacks.add(callbacksRef.current.onDeposit!);
+    tradingUpdateCallbacks.add(callbacksRef.current.onTradingUpdate!);
+    connectionCallbacks.add(callbacksRef.current.onConnection!);
 
     subscriberCount++;
 

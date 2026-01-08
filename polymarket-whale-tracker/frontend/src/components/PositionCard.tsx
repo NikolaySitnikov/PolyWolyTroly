@@ -96,32 +96,6 @@ function StatusBadge({ status }: { status: 'active' | 'resolved' | 'expired' }) 
   );
 }
 
-/**
- * Outcome badge component (YES/NO)
- */
-function OutcomeBadge({ outcome }: { outcome: 'YES' | 'NO' }) {
-  const isYes = outcome === 'YES';
-  const color = isYes ? tokens.colors.profit : tokens.colors.loss;
-
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        padding: '4px 10px',
-        background: `${color}15`,
-        border: `1px solid ${color}40`,
-        borderRadius: '6px',
-        fontFamily: tokens.fonts.mono,
-        fontSize: '12px',
-        fontWeight: 600,
-        color,
-      }}
-    >
-      {outcome}
-    </span>
-  );
-}
 
 /**
  * Metric box component for position stats

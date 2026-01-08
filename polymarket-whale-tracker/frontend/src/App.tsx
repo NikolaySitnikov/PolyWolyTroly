@@ -97,12 +97,19 @@ const WS_URL = getWebSocketUrl();
 
 /**
  * Map frontend camelCase sort field to backend snake_case
+ * Trading fields (pnl, winRate, etc.) fallback to total_deposited
+ * since backend doesn't support sorting by trading metrics
  */
 function mapSortFieldToApi(field: WhaleSortField): ApiSortField {
   const mapping: Record<WhaleSortField, ApiSortField> = {
     totalDeposited: 'total_deposited',
     depositCount: 'deposit_count',
     firstSeenAt: 'first_seen_at',
+    // Trading fields - backend doesn't support these, fallback to total_deposited
+    pnl: 'total_deposited',
+    winRate: 'total_deposited',
+    portfolioValue: 'total_deposited',
+    lastActivityAt: 'first_seen_at',
   };
   return mapping[field];
 }

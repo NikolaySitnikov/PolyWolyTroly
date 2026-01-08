@@ -5,76 +5,59 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { PositionsTable } from './PositionsTable';
-import type { Position } from '../types/position';
+import { mockPosition } from '../test/mockFactories';
 
 describe('PositionsTable', () => {
-  const mockPositions: Position[] = [
-    {
+  const mockPositions = [
+    mockPosition({
       conditionId: 'cond1',
-      asset: 'asset1',
-      outcomeIndex: 0,
-      outcome: 'Yes',
       title: 'Will Trump win the 2024 election?',
-      slug: 'will-trump-win',
       eventSlug: 'trump-2024',
-      size: 1000,
       avgPrice: 0.42,
+      curPrice: 0.58,
       currentPrice: 0.58,
-      initialValue: 420,
+      size: 1000,
       currentValue: 580,
+      cashPnl: 160,
       pnl: 160,
+      percentPnl: 38.1,
       pnlPercent: 38.1,
-      isActive: true,
-      category: 'Politics',
-      endDate: '2024-11-05T00:00:00Z',
       normalizedOutcome: 'YES',
-      status: 'active',
       normalizedCategory: 'politics',
-    },
-    {
+    }),
+    mockPosition({
       conditionId: 'cond2',
-      asset: 'asset2',
-      outcomeIndex: 1,
       outcome: 'No',
       title: 'Will BTC hit $100K by end of 2024?',
-      slug: 'btc-100k',
       eventSlug: 'btc-price-2024',
+      avgPrice: 0.52,
+      curPrice: 0.42,
+      currentPrice: 0.42,
       size: 800,
-      avgPrice: 0.65,
-      currentPrice: 0.52,
-      initialValue: 520,
       currentValue: 416,
+      cashPnl: -104,
       pnl: -104,
+      percentPnl: -20,
       pnlPercent: -20,
-      isActive: true,
-      category: 'Crypto',
-      endDate: '2024-12-31T00:00:00Z',
       normalizedOutcome: 'NO',
-      status: 'active',
       normalizedCategory: 'crypto',
-    },
-    {
+    }),
+    mockPosition({
       conditionId: 'cond3',
-      asset: 'asset3',
-      outcomeIndex: 0,
-      outcome: 'Yes',
       title: 'Will the Fed cut rates in March 2024?',
-      slug: 'fed-rates',
       eventSlug: 'fed-march-2024',
-      size: 500,
-      avgPrice: 0.3,
-      currentPrice: 0.45,
-      initialValue: 150,
+      avgPrice: 0.50,
+      curPrice: 0,
+      currentPrice: 0,
+      size: 450,
       currentValue: 225,
+      cashPnl: 75,
       pnl: 75,
-      pnlPercent: 50,
+      redeemable: true,
       isActive: false,
-      category: 'Finance',
-      endDate: '2024-03-20T00:00:00Z',
-      normalizedOutcome: 'YES',
       status: 'resolved',
       normalizedCategory: 'finance',
-    },
+    }),
   ];
 
   it('renders positions table', () => {
@@ -112,8 +95,9 @@ describe('PositionsTable', () => {
   it('displays formatted prices', () => {
     render(<PositionsTable positions={mockPositions} />);
 
-    expect(screen.getByText('42¢')).toBeInTheDocument();
-    expect(screen.getByText('58¢')).toBeInTheDocument();
+    // Multiple positions may have same price, so use getAllByText
+    expect(screen.getAllByText('42¢').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('58¢').length).toBeGreaterThan(0);
   });
 
   it('displays formatted P&L', () => {

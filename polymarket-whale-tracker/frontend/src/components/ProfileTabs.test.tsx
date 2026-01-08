@@ -2,9 +2,9 @@
  * ProfileTabs Component Tests
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ProfileTabs, PROFILE_TABS, ProfileTabId } from './ProfileTabs';
+import { ProfileTabs, PROFILE_TABS, type ProfileTabId } from './ProfileTabs';
 
 describe('ProfileTabs', () => {
   const mockOnChange = vi.fn();

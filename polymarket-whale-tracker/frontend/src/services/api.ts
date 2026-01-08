@@ -391,67 +391,27 @@ export interface TradingMetrics {
   isLive: boolean;
 }
 
-/**
- * Position data from Polymarket
- */
-export interface PositionData {
-  conditionId: string;
-  asset: string;
-  outcomeIndex: number;
-  outcome: string;
-  title: string;
-  slug: string;
-  eventSlug: string;
-  size: number;
-  avgPrice: number;
-  currentPrice: number;
-  initialValue: number;
-  currentValue: number;
-  pnl: number;
-  pnlPercent: number;
-  isActive: boolean;
-  category?: string;
-  endDate?: string;
-}
+// Re-export trading types from polymarket.ts for consistency with backend response
+// The backend returns these exact types from Polymarket APIs
+export type { PolymarketPosition, PolymarketActivity, PolymarketUserProfile } from '../types/polymarket';
 
-/**
- * Activity data from Polymarket
- */
-export interface ActivityData {
-  id: string;
-  type: string;
-  timestamp: string;
-  market: string;
-  marketSlug: string;
-  outcome: string;
-  amount: number;
-  price?: number;
-  shares?: number;
-}
-
-/**
- * User profile from Polymarket Gamma API
- */
-export interface UserProfileData {
-  address: string;
-  name?: string;
-  pseudonym?: string;
-  bio?: string;
-  profileImage?: string;
-  profileImageOptimized?: string;
-  twitterHandle?: string;
-  verified: boolean;
-}
+// Legacy type aliases for backwards compatibility
+// TODO: Migrate all usages to use Polymarket* types directly
+import type { PolymarketPosition, PolymarketActivity, PolymarketUserProfile } from '../types/polymarket';
+export type PositionData = PolymarketPosition;
+export type ActivityData = PolymarketActivity;
+export type UserProfileData = PolymarketUserProfile;
 
 /**
  * Complete trading data response from backend
+ * Matches WalletTradingData from backend
  */
 export interface TradingDataResponse {
   address: string;
   metrics: TradingMetrics;
-  positions: PositionData[];
-  activity: ActivityData[];
-  profile: UserProfileData | null;
+  positions: PolymarketPosition[];
+  activity: PolymarketActivity[];
+  profile: PolymarketUserProfile | null;
   fetchedAt: string;
 }
 

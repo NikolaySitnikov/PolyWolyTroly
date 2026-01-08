@@ -67,8 +67,8 @@ export function getDisplayName(
   if (profile?.pseudonym && !looksLikeAddress(profile.pseudonym)) {
     return profile.pseudonym;
   }
-  if (profile?.address) {
-    return truncateAddress(profile.address);
+  if (profile?.proxyWallet) {
+    return truncateAddress(profile.proxyWallet);
   }
   if (address) {
     return truncateAddress(address);
