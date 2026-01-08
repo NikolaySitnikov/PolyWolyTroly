@@ -10,7 +10,7 @@
 import { useState, useMemo, type CSSProperties } from 'react';
 import { tokens } from '../styles/tokens';
 import { Pagination } from './Pagination';
-import { CategoryTag, inferCategory, type MarketCategory } from './CategoryTag';
+import { CategoryTag, inferCategory, getSportEmoji, type MarketCategory } from './CategoryTag';
 import type { Position, PositionSortField } from '../types/position';
 import { sortPositions } from '../types/position';
 
@@ -429,6 +429,8 @@ export function PositionsTable({
                 const category: MarketCategory =
                   position.normalizedCategory || inferCategory(position.title);
                 const pnlColor = getPnlColor(position.pnl);
+                // Get sport-specific emoji for sports markets using seriesSlug from Gamma API
+                const sportEmoji = category === 'sports' ? getSportEmoji(position.seriesSlug, position.title) : undefined;
 
                 return (
                   <tr
@@ -447,7 +449,7 @@ export function PositionsTable({
                     <td style={{ ...cellStyle, width: '35%' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <CategoryTag category={category} size="small" />
+                          <CategoryTag category={category} size="small" iconOverride={sportEmoji} />
                           <StatusDot status={position.status} />
                         </div>
                         <div

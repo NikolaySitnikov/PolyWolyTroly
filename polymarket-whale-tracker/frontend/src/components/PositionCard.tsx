@@ -8,7 +8,7 @@
  */
 
 import { tokens } from '../styles/tokens';
-import { CategoryTag, inferCategory, type MarketCategory } from './CategoryTag';
+import { CategoryTag, inferCategory, getSportEmoji, type MarketCategory } from './CategoryTag';
 import type { Position } from '../types/position';
 
 interface PositionCardProps {
@@ -193,6 +193,8 @@ export function PositionCard({ position, onClick }: PositionCardProps) {
   // Infer category from title if not provided
   const category: MarketCategory = position.normalizedCategory || inferCategory(position.title);
   const pnlColor = getPnlColor(position.pnl);
+  // Get sport-specific emoji for sports markets using seriesSlug from Gamma API
+  const sportEmoji = category === 'sports' ? getSportEmoji(position.seriesSlug, position.title) : undefined;
 
   return (
     <div
@@ -238,7 +240,7 @@ export function PositionCard({ position, onClick }: PositionCardProps) {
           marginBottom: '12px',
         }}
       >
-        <CategoryTag category={category} size="small" />
+        <CategoryTag category={category} size="small" iconOverride={sportEmoji} />
         <StatusBadge status={position.status} />
       </div>
 

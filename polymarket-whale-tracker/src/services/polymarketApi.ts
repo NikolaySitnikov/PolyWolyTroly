@@ -233,6 +233,94 @@ export const polymarketApi = {
   },
 
   /**
+   * Fetch market metadata from Gamma API for given slugs
+   * Returns a map of slug -> { sportsMarketType, seriesSlug }
+   *
+   * Note: We use slug for lookup because the Gamma API doesn't properly filter by conditionId
+   */
+  async getMarketMetadataBySlug(
+    slugs: string[]
+  ): Promise<Map<string, { sportsMarketType: string | null; seriesSlug: string | null }>> {
+    const metadataMap = new Map<string, { sportsMarketType: string | null; seriesSlug: string | null }>();
+
+    if (slugs.length === 0) return metadataMap;
+
+    try {
+      // Fetch each market individually since Gamma API doesn't support batch slug queries
+      // Use Promise.all for parallel fetching with a concurrency limit
+      const BATCH_SIZE = 10; // Limit concurrent requests
+
+      for (let i = 0; i < slugs.length; i += BATCH_SIZE) {
+        const batch = slugs.slice(i, i + BATCH_SIZE);
+        const results = await Promise.all(
+          batch.map(async (slug) => {
+            try {
+              const url = `${POLYMARKET_GAMMA_API}/markets?slug=${encodeURIComponent(slug)}`;
+              const response = await fetch(url);
+              if (!response.ok) return null;
+
+              const markets = await response.json();
+              if (Array.isArray(markets) && markets.length > 0) {
+                const market = markets[0];
+                return {
+                  slug,
+                  sportsMarketType: market.sportsMarketType || null,
+                  seriesSlug: market.events?.[0]?.series?.[0]?.slug || null,
+                };
+              }
+              return null;
+            } catch {
+              return null;
+            }
+          })
+        );
+
+        for (const result of results) {
+          if (result) {
+            metadataMap.set(result.slug, {
+              sportsMarketType: result.sportsMarketType,
+              seriesSlug: result.seriesSlug,
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching market metadata:", error);
+    }
+
+    return metadataMap;
+  },
+
+  /**
+   * Enrich positions with market metadata (sportsMarketType, seriesSlug)
+   * Fetches metadata from Gamma API and adds it to each position
+   */
+  async enrichPositionsWithMetadata(
+    positions: PolymarketPosition[]
+  ): Promise<PolymarketPosition[]> {
+    if (positions.length === 0) return positions;
+
+    // Extract unique slugs (positions have a slug field)
+    const slugs = [...new Set(positions.map(p => p.slug).filter(Boolean))];
+
+    // Fetch metadata for all slugs
+    const metadataMap = await this.getMarketMetadataBySlug(slugs);
+
+    // Enrich positions with metadata
+    return positions.map(position => {
+      const metadata = metadataMap.get(position.slug);
+      if (metadata) {
+        return {
+          ...position,
+          sportsMarketType: metadata.sportsMarketType,
+          seriesSlug: metadata.seriesSlug,
+        };
+      }
+      return position;
+    });
+  },
+
+  /**
    * Fetch activity history for a wallet from Polymarket Data API
    */
   async getActivity(
@@ -1129,10 +1217,13 @@ export const polymarketApi = {
     metrics.activePositions = positionCount;
     metrics.totalTrades = predictionsCount;
 
+    // Enrich positions with market metadata (sportsMarketType, seriesSlug) for sport emoji detection
+    const enrichedPositions = await this.enrichPositionsWithMetadata(positions.slice(0, 20));
+
     return {
       address,
       metrics,
-      positions: positions.slice(0, 20),
+      positions: enrichedPositions,
       activity: activity.slice(0, 50),
       profile,
       fetchedAt: new Date().toISOString(),

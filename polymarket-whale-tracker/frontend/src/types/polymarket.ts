@@ -46,6 +46,11 @@ export interface PolymarketPosition {
   oppositeAsset: string;
   endDate: string;
   negativeRisk: boolean;
+  // Enriched fields from Gamma API (optional - populated by backend)
+  /** Sports market type (e.g., "moneyline", "spread") - presence indicates sports market */
+  sportsMarketType?: string | null;
+  /** Series/league slug (e.g., "nba-2026", "premier-league-2025") for sport type detection */
+  seriesSlug?: string | null;
 }
 
 /**

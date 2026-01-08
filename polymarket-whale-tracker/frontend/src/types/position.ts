@@ -28,6 +28,7 @@ export type MarketCategory =
   | 'tech'
   | 'entertainment'
   | 'science'
+  | 'world'
   | 'other';
 
 /**
@@ -50,6 +51,7 @@ export const CATEGORY_CONFIGS: Record<MarketCategory, CategoryConfig> = {
   tech: { label: 'Tech', color: '#a855f7', icon: '💻' },
   entertainment: { label: 'Entertainment', color: '#ec4899', icon: '🎬' },
   science: { label: 'Science', color: '#06b6d4', icon: '🔬' },
+  world: { label: 'World', color: '#64748b', icon: '🌍' },
   other: { label: 'Other', color: '#6b7280', icon: '📊' },
 } as const;
 
@@ -94,9 +96,20 @@ export function toPosition(raw: PolymarketPosition): Position {
     status = raw.endDate && new Date(raw.endDate) < new Date() ? 'expired' : 'resolved';
   }
 
-  // Extract category from title (basic heuristic)
-  const category = extractCategory(raw.title);
-  const normalizedCategory = normalizeCategory(category);
+  // Determine category: use sportsMarketType if available (from Gamma API enrichment),
+  // otherwise fall back to title-based extraction
+  let category: string;
+  let normalizedCategory: MarketCategory;
+
+  if (raw.sportsMarketType) {
+    // If sportsMarketType is present, it's definitely a sports market
+    category = 'Sports';
+    normalizedCategory = 'sports';
+  } else {
+    // Fall back to title-based extraction
+    category = extractCategory(raw.title);
+    normalizedCategory = normalizeCategory(category);
+  }
 
   return {
     ...raw,
@@ -113,39 +126,70 @@ export function toPosition(raw: PolymarketPosition): Position {
 }
 
 /**
- * Extract category from market title using heuristics
+ * Extract category from market title using heuristics.
+ * Uses comprehensive pattern matching to detect sports betting markets.
  */
 function extractCategory(title: string): string {
   if (!title) return 'other';
   const lower = title.toLowerCase();
 
-  if (lower.includes('trump') || lower.includes('biden') || lower.includes('election') ||
-      lower.includes('president') || lower.includes('congress') || lower.includes('senate')) {
+  // Politics - elections, politicians, government
+  if (/trump|biden|election|president|congress|senate|governor|vote|democrat|republican|nominee|cabinet|administration/i.test(lower)) {
     return 'Politics';
   }
-  if (lower.includes('bitcoin') || lower.includes('btc') || lower.includes('ethereum') ||
-      lower.includes('eth') || lower.includes('crypto')) {
+
+  // Crypto - cryptocurrencies and blockchain
+  if (/bitcoin|btc|ethereum|eth\b|crypto|defi|blockchain|solana|altcoin/i.test(lower)) {
     return 'Crypto';
   }
-  if (lower.includes('nfl') || lower.includes('nba') || lower.includes('mlb') ||
-      lower.includes('super bowl') || lower.includes('world cup') || lower.includes('champions')) {
+
+  // Sports - comprehensive detection for betting markets
+  // Includes: leagues, teams, betting patterns (vs., O/U, Spread), game outcomes
+  if (/nfl|nba|mlb|nhl|mls|ufc|pga|atp|wta|epl|world cup|championship|playoff|game\b|match|team|player|finals|super bowl|premier league|la liga|bundesliga|serie a|ligue 1|champions league/i.test(lower)) {
     return 'Sports';
   }
-  if (lower.includes('fed') || lower.includes('rate') || lower.includes('inflation') ||
-      lower.includes('gdp') || lower.includes('stock') || lower.includes('s&p')) {
+  // Sports betting patterns: "vs." matchups, over/under, spreads, win predictions
+  if (/\bvs\.?\b|\bversus\b|\bo\/u\b|over\/under|spread|\bwin on\b|\bwin\s+\d|moneyline/i.test(lower)) {
+    return 'Sports';
+  }
+  // Sports team names (NBA, NFL, Soccer, etc.)
+  if (/mavericks|jazz|lakers|celtics|warriors|bulls|heat|nets|knicks|76ers|suns|bucks|nuggets|clippers|rockets|spurs|pistons|pacers|hawks|hornets|wizards|magic|raptors|grizzlies|pelicans|kings|thunder|timberwolves|blazers|cavaliers/i.test(lower)) {
+    return 'Sports';
+  }
+  if (/cowboys|eagles|chiefs|49ers|patriots|packers|bills|ravens|bengals|dolphins|lions|jets|broncos|chargers|raiders|steelers|saints|buccaneers|panthers|falcons|vikings|seahawks|cardinals|commanders|bears|browns|texans|colts|jaguars|titans/i.test(lower)) {
+    return 'Sports';
+  }
+  if (/arsenal|chelsea|liverpool|manchester|tottenham|barcelona|real madrid|juventus|bayern|psg|inter milan|ac milan|dortmund|atletico/i.test(lower)) {
+    return 'Sports';
+  }
+  // Generic sports keywords
+  if (/soccer|football|basketball|baseball|hockey|tennis|golf|boxing|mma|cricket|rugby|racing|formula|nascar/i.test(lower)) {
+    return 'Sports';
+  }
+
+  // Finance - markets, rates, economic indicators
+  if (/stock|fed\b|interest rate|inflation|gdp|earnings|ipo|s&p|nasdaq|dow|treasury|bond|bps/i.test(lower)) {
     return 'Finance';
   }
-  if (lower.includes('openai') || lower.includes('apple') || lower.includes('google') ||
-      lower.includes('microsoft') || lower.includes('ai ') || lower.includes(' ai')) {
+
+  // Tech - companies, products, AI
+  if (/openai|apple|google|microsoft|ai\b|gpt|iphone|android|startup|meta|amazon|tesla/i.test(lower)) {
     return 'Tech';
   }
-  if (lower.includes('movie') || lower.includes('oscar') || lower.includes('grammy') ||
-      lower.includes('emmy') || lower.includes('album')) {
+
+  // Entertainment - shows, movies, music, awards
+  if (/movie|oscar|grammy|emmy|golden globe|film|album|award|netflix|disney|celebrity|season|episode/i.test(lower)) {
     return 'Entertainment';
   }
-  if (lower.includes('nasa') || lower.includes('spacex') || lower.includes('rocket') ||
-      lower.includes('research') || lower.includes('discovery')) {
+
+  // Science - research, space, health
+  if (/nasa|spacex|space|climate|research|study|vaccine|species|discovery|mars|moon|rocket/i.test(lower)) {
     return 'Science';
+  }
+
+  // World - geopolitics, conflicts, international affairs
+  if (/war|treaty|country|nation|international|un\b|nato|summit|invade|military|venezuela|ukraine|russia|china\b|iran|israel/i.test(lower)) {
+    return 'World';
   }
 
   return 'Other';
@@ -181,6 +225,9 @@ export function normalizeCategory(category?: string): MarketCategory {
   }
   if (lower.includes('science') || lower.includes('research') || lower.includes('space')) {
     return 'science';
+  }
+  if (lower.includes('world') || lower.includes('international') || lower.includes('geopolitic')) {
+    return 'world';
   }
 
   return 'other';
