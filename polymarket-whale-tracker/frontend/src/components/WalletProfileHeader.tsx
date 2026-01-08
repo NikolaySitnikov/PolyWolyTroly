@@ -209,6 +209,114 @@ export function WalletProfileHeader({
     transition: 'all 0.15s ease',
   };
 
+  // Mobile layout: Avatar on left, name+badge top-right, address bottom-right
+  if (isMobile) {
+    return (
+      <div style={containerStyle}>
+        {/* Top row: Avatar + Name/Address info */}
+        <div
+          style={{
+            display: 'flex',
+            gap: '16px',
+            marginBottom: '16px',
+          }}
+        >
+          {/* Avatar */}
+          <GeneratedAvatar
+            address={address}
+            profile={profile}
+            size={avatarSize}
+          />
+
+          {/* Right side: Name + Live badge (top), Address (bottom) */}
+          <div
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              gap: '8px',
+              minWidth: 0,
+            }}
+          >
+            {/* Name + Live badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <h1 style={nameStyle}>
+                {hasUsername ? (
+                  <>
+                    {displayName}
+                    {profile?.verified && <VerifiedBadge />}
+                  </>
+                ) : (
+                  truncateAddress(address)
+                )}
+              </h1>
+              <LiveBadge
+                isLive={isLive}
+                lastActivityAt={lastActivityAt}
+                size="md"
+                showLabel
+              />
+            </div>
+
+            {/* Twitter handle (if available) */}
+            {profile?.twitterHandle && (
+              <span style={handleStyle}>@{profile.twitterHandle}</span>
+            )}
+
+            {/* Address box - links to Polymarket profile */}
+            <a
+              href={`https://polymarket.com/profile/${address}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                ...addressBoxStyle,
+                fontSize: '10px',
+                padding: '6px 10px',
+              }}
+              title="View on Polymarket"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = `${tokens.colors.cyan}20`;
+                e.currentTarget.style.boxShadow = `0 0 10px ${tokens.colors.cyanGlow}`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = `${tokens.colors.cyan}10`;
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              {address}
+            </a>
+          </div>
+        </div>
+
+        {/* Actions row */}
+        <div style={actionsStyle}>
+          <CopyButton text={address} />
+          <a
+            href={`https://polygonscan.com/address/${address}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={polygonscanButtonStyle}
+          >
+            View on Polygonscan ↗
+          </a>
+          {profile?.twitterHandle && (
+            <a
+              href={`https://x.com/${profile.twitterHandle}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={twitterButtonStyle}
+              title={`@${profile.twitterHandle} on X`}
+            >
+              𝕏
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop layout: Avatar | Info | Actions
   return (
     <div style={containerStyle}>
       <div style={contentStyle}>
@@ -266,7 +374,7 @@ export function WalletProfileHeader({
           </a>
         </div>
 
-        {/* Actions (desktop: right side, mobile: below) */}
+        {/* Actions (desktop: right side) */}
         <div style={actionsStyle}>
           <CopyButton text={address} />
           <a
