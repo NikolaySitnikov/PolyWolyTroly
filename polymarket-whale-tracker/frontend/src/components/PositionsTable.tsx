@@ -118,7 +118,7 @@ function StatusDot({ status }: { status: 'active' | 'resolved' | 'expired' }) {
           background: color,
           boxShadow: status === 'active' ? `0 0 6px ${color}` : 'none',
           marginLeft: '8px',
-          cursor: 'help',
+          cursor: 'pointer',
         }}
       />
     </Tooltip>
