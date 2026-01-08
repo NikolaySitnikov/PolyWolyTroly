@@ -274,15 +274,6 @@ export function WalletProfile({
               fontSize: '14px',
               color: tokens.colors.textSecondary,
               cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = tokens.colors.cyan;
-              e.currentTarget.style.color = tokens.colors.cyan;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = tokens.colors.border;
-              e.currentTarget.style.color = tokens.colors.textSecondary;
             }}
           >
             ← Back to Whales
