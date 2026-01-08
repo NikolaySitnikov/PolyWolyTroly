@@ -9,6 +9,7 @@
  * @see Design docs/TRADING_FEATURES_DESIGN_GUIDE.md - Section 12
  */
 
+import { useState } from 'react';
 import { tokens } from '../styles/tokens';
 
 /**
@@ -146,6 +147,7 @@ export function ProfileTabs({
   searchVisibleOnTabs = ['positions'],
 }: ProfileTabsProps) {
   const showSearch = onSearchChange && searchVisibleOnTabs.includes(activeTab);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // Mobile layout: tabs row, then search row below
   if (isMobile) {
@@ -285,17 +287,10 @@ export function ProfileTabs({
             padding: '6px 12px',
             marginRight: '16px',
             background: tokens.colors.void,
-            border: `1px solid ${tokens.colors.border}`,
+            border: `1px solid ${isSearchFocused ? tokens.colors.cyan : tokens.colors.border}`,
             borderRadius: '8px',
+            boxShadow: isSearchFocused ? `0 0 0 2px ${tokens.colors.cyanGlow}` : 'none',
             transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.borderColor = tokens.colors.cyan;
-            e.currentTarget.style.boxShadow = `0 0 0 2px ${tokens.colors.cyanGlow}`;
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.borderColor = tokens.colors.border;
-            e.currentTarget.style.boxShadow = 'none';
           }}
         >
           <span style={{ color: tokens.colors.textMuted, fontSize: '13px' }}>🔍</span>
@@ -304,6 +299,8 @@ export function ProfileTabs({
             placeholder={searchPlaceholder}
             value={searchFilter}
             onChange={(e) => onSearchChange(e.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
+            onBlur={() => setIsSearchFocused(false)}
             style={{
               flex: 1,
               background: 'transparent',
