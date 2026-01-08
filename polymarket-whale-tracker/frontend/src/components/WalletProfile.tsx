@@ -19,6 +19,9 @@ import { WalletProfileHeader } from './WalletProfileHeader';
 import { TradingMetricsGrid } from './TradingMetricsGrid';
 import { TradingMetricsGridSkeleton } from './TradingMetricsGridSkeleton';
 import { PnlToggle } from './PnlToggle';
+import { ProfileTabs, type ProfileTabId } from './ProfileTabs';
+import { PositionsTable } from './PositionsTable';
+import { PositionCard } from './PositionCard';
 import { usePolymarketTrading } from '../hooks/usePolymarketTrading';
 import type { WalletData, WalletDeposit } from '../hooks/useWallet';
 import type { PnlTimeWindow } from '../types/polymarket';
@@ -104,8 +107,11 @@ export function WalletProfile({
   // P&L time window state
   const [pnlTimeWindow, setPnlTimeWindow] = useState<PnlTimeWindow>('7d');
 
-  // Fetch trading data (profile, live status, etc.)
-  const { profile, isLive, metrics, getPnl, loading: tradingLoading, error: tradingError, refetch: refetchTrading } = usePolymarketTrading(wallet.address);
+  // Active tab state
+  const [activeTab, setActiveTab] = useState<ProfileTabId>('positions');
+
+  // Fetch trading data (profile, live status, positions, etc.)
+  const { profile, isLive, metrics, positions, getPnl, loading: tradingLoading, error: tradingError, refetch: refetchTrading, activePositionsCount, totalPositionsCount } = usePolymarketTrading(wallet.address);
 
   // Determine if trading metrics are in a loading state (no data yet)
   const isMetricsLoading = tradingLoading && metrics === null;
@@ -383,7 +389,7 @@ export function WalletProfile({
         )}
       </div>
 
-      {/* Deposit History */}
+      {/* Tabbed Content: Positions | Activity | Deposits */}
       <div
         style={{
           background: tokens.colors.surface,
@@ -392,176 +398,260 @@ export function WalletProfile({
           overflow: 'hidden',
         }}
       >
-        {/* Header */}
-        <div
-          style={{
-            padding: '16px 20px',
-            borderBottom: `1px solid ${tokens.colors.border}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+        {/* Tab Navigation */}
+        <ProfileTabs
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          counts={{
+            positions: totalPositionsCount,
+            deposits: depositsTotal,
           }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '16px' }}>📜</span>
-            <span
-              style={{
-                fontFamily: tokens.fonts.body,
-                fontWeight: 600,
-                fontSize: '14px',
-                color: tokens.colors.textPrimary,
-              }}
-            >
-              Deposit History
-            </span>
-          </div>
-          <span
-            style={{
-              fontFamily: tokens.fonts.mono,
-              fontSize: '12px',
-              color: tokens.colors.textMuted,
-            }}
-          >
-            {depositsTotal} total
-          </span>
-        </div>
+          isMobile={isMobile}
+        />
 
-        {/* Deposit List */}
-        <div
-          style={{
-            maxHeight: '400px',
-            overflowY: 'auto',
-          }}
-        >
-          {depositsLoading ? (
-            <div
-              style={{
-                padding: '48px 20px',
-                textAlign: 'center',
-                color: tokens.colors.textMuted,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: '24px',
-                  marginBottom: '12px',
-                  animation: 'pulse 2s ease-in-out infinite',
-                }}
-              >
-                💰
-              </div>
-              Loading deposits...
-            </div>
-          ) : deposits.length === 0 ? (
-            <div
-              style={{
-                padding: '48px 20px',
-                textAlign: 'center',
-                color: tokens.colors.textMuted,
-              }}
-            >
-              No deposits found
-            </div>
-          ) : (
-            deposits.map((deposit) => (
-              <div
-                key={deposit.id}
-                style={{
-                  padding: '14px 20px',
-                  borderBottom: `1px solid ${tokens.colors.border}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                }}
-              >
-                {/* Icon */}
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '8px',
-                    background: `${tokens.colors.profit}15`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '16px',
-                    flexShrink: 0,
-                  }}
-                >
-                  ↓
-                </div>
-
-                {/* Content */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      marginBottom: '4px',
-                    }}
-                  >
-                    <span
+        {/* Tab Content */}
+        <div role="tabpanel">
+          {/* Positions Tab */}
+          {activeTab === 'positions' && (
+            <>
+              {isMobile ? (
+                /* Mobile: Card list */
+                <div style={{ padding: '16px' }}>
+                  {tradingLoading && positions.length === 0 ? (
+                    <div
                       style={{
-                        fontFamily: tokens.fonts.mono,
-                        fontSize: '16px',
-                        fontWeight: 600,
-                        color: tokens.colors.profit,
+                        padding: '48px 20px',
+                        textAlign: 'center',
+                        color: tokens.colors.textMuted,
                       }}
                     >
-                      +{formatUSD(deposit.amount)}
-                    </span>
-                  </div>
-                  <a
-                    href={`https://polygonscan.com/tx/${deposit.txHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                      <div
+                        style={{
+                          fontSize: '24px',
+                          marginBottom: '12px',
+                          animation: 'pulse 2s ease-in-out infinite',
+                        }}
+                      >
+                        📊
+                      </div>
+                      Loading positions...
+                    </div>
+                  ) : positions.length === 0 ? (
+                    <div
+                      style={{
+                        padding: '48px 20px',
+                        textAlign: 'center',
+                        color: tokens.colors.textMuted,
+                      }}
+                    >
+                      <div style={{ fontSize: '32px', marginBottom: '16px' }}>📊</div>
+                      <div
+                        style={{
+                          fontFamily: tokens.fonts.display,
+                          fontSize: '18px',
+                          color: tokens.colors.textPrimary,
+                          marginBottom: '8px',
+                        }}
+                      >
+                        No positions found
+                      </div>
+                      <p style={{ margin: 0 }}>This whale hasn't opened any positions yet</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {positions.map((position) => (
+                        <PositionCard
+                          key={position.conditionId}
+                          position={position}
+                          onClick={() => {
+                            window.open(`https://polymarket.com/event/${position.eventSlug}`, '_blank');
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Desktop: Table */
+                <div style={{ padding: '0' }}>
+                  <PositionsTable
+                    positions={positions}
+                    loading={tradingLoading && positions.length === 0}
+                    onPositionClick={(position) => {
+                      window.open(`https://polymarket.com/event/${position.eventSlug}`, '_blank');
+                    }}
+                  />
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Activity Tab - Placeholder for Step 8 */}
+          {activeTab === 'activity' && (
+            <div
+              style={{
+                padding: '48px 20px',
+                textAlign: 'center',
+                color: tokens.colors.textMuted,
+              }}
+            >
+              <div style={{ fontSize: '32px', marginBottom: '16px' }}>📜</div>
+              <div
+                style={{
+                  fontFamily: tokens.fonts.display,
+                  fontSize: '18px',
+                  color: tokens.colors.textPrimary,
+                  marginBottom: '8px',
+                }}
+              >
+                Activity Coming Soon
+              </div>
+              <p style={{ margin: 0 }}>Trading activity history will be available in a future update</p>
+            </div>
+          )}
+
+          {/* Deposits Tab */}
+          {activeTab === 'deposits' && (
+            <>
+              {/* Deposit List */}
+              <div
+                style={{
+                  maxHeight: '400px',
+                  overflowY: 'auto',
+                }}
+              >
+                {depositsLoading ? (
+                  <div
                     style={{
-                      fontFamily: tokens.fonts.mono,
-                      fontSize: '11px',
+                      padding: '48px 20px',
+                      textAlign: 'center',
                       color: tokens.colors.textMuted,
-                      textDecoration: 'none',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = tokens.colors.cyan;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = tokens.colors.textMuted;
                     }}
                   >
-                    {formatTxHash(deposit.txHash)} ↗
-                  </a>
-                </div>
+                    <div
+                      style={{
+                        fontSize: '24px',
+                        marginBottom: '12px',
+                        animation: 'pulse 2s ease-in-out infinite',
+                      }}
+                    >
+                      💰
+                    </div>
+                    Loading deposits...
+                  </div>
+                ) : deposits.length === 0 ? (
+                  <div
+                    style={{
+                      padding: '48px 20px',
+                      textAlign: 'center',
+                      color: tokens.colors.textMuted,
+                    }}
+                  >
+                    No deposits found
+                  </div>
+                ) : (
+                  deposits.map((deposit) => (
+                    <div
+                      key={deposit.id}
+                      style={{
+                        padding: '14px 20px',
+                        borderBottom: `1px solid ${tokens.colors.border}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                      }}
+                    >
+                      {/* Icon */}
+                      <div
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '8px',
+                          background: `${tokens.colors.profit}15`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '16px',
+                          flexShrink: 0,
+                        }}
+                      >
+                        ↓
+                      </div>
 
-                {/* Time */}
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontFamily: tokens.fonts.mono,
-                    color: tokens.colors.textMuted,
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}
-                >
-                  {formatRelativeTime(deposit.createdAt)}
-                </span>
+                      {/* Content */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            marginBottom: '4px',
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontFamily: tokens.fonts.mono,
+                              fontSize: '16px',
+                              fontWeight: 600,
+                              color: tokens.colors.profit,
+                            }}
+                          >
+                            +{formatUSD(deposit.amount)}
+                          </span>
+                        </div>
+                        <a
+                          href={`https://polygonscan.com/tx/${deposit.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            fontFamily: tokens.fonts.mono,
+                            fontSize: '11px',
+                            color: tokens.colors.textMuted,
+                            textDecoration: 'none',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = tokens.colors.cyan;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = tokens.colors.textMuted;
+                          }}
+                        >
+                          {formatTxHash(deposit.txHash)} ↗
+                        </a>
+                      </div>
+
+                      {/* Time */}
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontFamily: tokens.fonts.mono,
+                          color: tokens.colors.textMuted,
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {formatRelativeTime(deposit.createdAt)}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
-            ))
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Pagination
+                  currentPage={depositsPage}
+                  totalPages={totalPages}
+                  totalItems={depositsTotal}
+                  itemsPerPage={depositsPerPage}
+                  onPageChange={onDepositsPageChange}
+                  entityName="deposits"
+                  isMobile={isMobile}
+                />
+              )}
+            </>
           )}
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <Pagination
-            currentPage={depositsPage}
-            totalPages={totalPages}
-            totalItems={depositsTotal}
-            itemsPerPage={depositsPerPage}
-            onPageChange={onDepositsPageChange}
-            entityName="deposits"
-            isMobile={isMobile}
-          />
-        )}
       </div>
 
       {/* Whale Navigation - sticky mobile pagination matching WhaleTable style */}

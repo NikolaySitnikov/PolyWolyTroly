@@ -93,23 +93,34 @@ describe('Position Types', () => {
   });
 
   describe('toPosition', () => {
+    // Mock using actual Polymarket API field names
     const mockRawPosition: PolymarketPosition = {
-      conditionId: 'cond123',
+      proxyWallet: '0x123',
       asset: 'asset123',
-      outcomeIndex: 0,
-      outcome: 'Yes',
-      title: 'Will X happen?',
-      slug: 'will-x-happen',
-      eventSlug: 'x-event',
+      conditionId: 'cond123',
       size: 100,
       avgPrice: 0.4,
-      currentPrice: 0.6,
       initialValue: 40,
       currentValue: 60,
-      pnl: 20,
-      pnlPercent: 50,
-      isActive: true,
-      category: 'Politics',
+      cashPnl: 20,
+      percentPnl: 50,
+      totalBought: 100,
+      realizedPnl: 0,
+      percentRealizedPnl: 0,
+      curPrice: 0.6, // Active position has non-zero price
+      redeemable: false,
+      mergeable: false,
+      title: 'Will Trump win the 2024 election?',
+      slug: 'will-x-happen',
+      icon: '',
+      eventId: 'event123',
+      eventSlug: 'x-event',
+      outcome: 'Yes',
+      outcomeIndex: 0,
+      oppositeOutcome: 'No',
+      oppositeAsset: 'asset456',
+      endDate: '2024-12-31T00:00:00Z',
+      negativeRisk: false,
     };
 
     it('should convert raw position to Position with YES outcome', () => {
@@ -132,8 +143,9 @@ describe('Position Types', () => {
       expect(position.status).toBe('active');
     });
 
-    it('should set status to resolved for inactive positions without end date', () => {
-      const raw = { ...mockRawPosition, isActive: false };
+    it('should set status to resolved for inactive positions (redeemable with future end date)', () => {
+      // Use a future end date to get "resolved" status (not "expired")
+      const raw = { ...mockRawPosition, curPrice: 0, redeemable: true, endDate: '2099-12-31T00:00:00Z' };
       const position = toPosition(raw);
       expect(position.status).toBe('resolved');
     });
@@ -141,20 +153,25 @@ describe('Position Types', () => {
     it('should set status to expired for inactive positions with past end date', () => {
       const raw = {
         ...mockRawPosition,
-        isActive: false,
+        curPrice: 0,
+        redeemable: true,
         endDate: '2020-01-01T00:00:00Z',
       };
       const position = toPosition(raw);
       expect(position.status).toBe('expired');
     });
 
-    it('should preserve all original properties', () => {
+    it('should map API fields to aliased fields', () => {
       const position = toPosition(mockRawPosition);
 
       expect(position.conditionId).toBe('cond123');
-      expect(position.title).toBe('Will X happen?');
-      expect(position.pnl).toBe(20);
-      expect(position.currentPrice).toBe(0.6);
+      expect(position.title).toBe('Will Trump win the 2024 election?');
+      // Aliased fields from raw API
+      expect(position.pnl).toBe(20); // from cashPnl
+      expect(position.currentPrice).toBe(0.6); // from curPrice
+      expect(position.pnlPercent).toBe(50); // from percentPnl
+      expect(position.isActive).toBe(true); // computed from curPrice > 0 && !redeemable
+      expect(position.category).toBe('Politics'); // extracted from title
     });
   });
 
@@ -168,24 +185,43 @@ describe('Position Types', () => {
 
   describe('sortPositions', () => {
     const createPosition = (pnl: number, currentValue: number, size: number): Position => ({
-      conditionId: `cond-${pnl}`,
+      // PolymarketPosition base fields
+      proxyWallet: '0x123',
       asset: 'asset',
-      outcomeIndex: 0,
-      outcome: 'Yes',
-      title: 'Test',
-      slug: 'test',
-      eventSlug: 'test-event',
+      conditionId: `cond-${pnl}`,
       size,
       avgPrice: 0.5,
-      currentPrice: 0.6,
       initialValue: 50,
       currentValue,
-      pnl,
-      pnlPercent: 10,
-      isActive: true,
+      cashPnl: pnl,
+      percentPnl: 10,
+      totalBought: 100,
+      realizedPnl: 0,
+      percentRealizedPnl: 0,
+      curPrice: 0.6,
+      redeemable: false,
+      mergeable: false,
+      title: 'Test',
+      slug: 'test',
+      icon: '',
+      eventId: 'event123',
+      eventSlug: 'test-event',
+      outcome: 'Yes',
+      outcomeIndex: 0,
+      oppositeOutcome: 'No',
+      oppositeAsset: 'asset456',
+      endDate: '2024-12-31T00:00:00Z',
+      negativeRisk: false,
+      // Position enhanced fields
       normalizedOutcome: 'YES',
       status: 'active',
       normalizedCategory: 'other',
+      // Aliased fields
+      currentPrice: 0.6,
+      pnl,
+      pnlPercent: 10,
+      isActive: true,
+      category: 'Other',
     });
 
     const positions: Position[] = [

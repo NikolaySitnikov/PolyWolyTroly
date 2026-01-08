@@ -788,3 +788,179 @@ Trading data requests have built-in resilience:
           │         timeout/error                 │
           └───────────────────────────────────────┘
 ```
+
+---
+
+## Positions Display System (Step 7)
+
+The whale profile now includes a tabbed interface for viewing positions, activity, and deposits:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         PROFILE TABS ARCHITECTURE                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  ProfileTabs Component                                                  │
+    │                                                                         │
+    │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐                   │
+    │  │ 📊 Positions │ │ 📜 Activity  │ │ 💰 Deposits  │                   │
+    │  │     (6)      │ │              │ │    (15)      │                   │
+    │  └──────────────┘ └──────────────┘ └──────────────┘                   │
+    │        ▲                                                               │
+    │        │ active tab                                                    │
+    │                                                                         │
+    │  Features:                                                              │
+    │  • Tab navigation with counts                                          │
+    │  • ARIA accessibility (tablist/tab/tabpanel)                           │
+    │  • Keyboard navigation support                                         │
+    │  • Mobile-optimized layout                                              │
+    └────────────────────────────────────────────────────────────────────────┘
+```
+
+### Position Data Transformation
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     POSITION DATA FLOW                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    Polymarket Data API                 toPosition()                Frontend UI
+    ─────────────────────              ─────────────               ───────────
+
+    PolymarketPosition                    Position                 PositionCard
+    ┌──────────────────┐   transform    ┌──────────────────┐      PositionsTable
+    │ curPrice: 0.58   │ ─────────────► │ currentPrice: 58 │ ─────────────────►
+    │ cashPnl: 160     │                │ pnl: 160         │      Display:
+    │ percentPnl: 38.1 │                │ pnlPercent: 38.1 │      "58¢", "+$160"
+    │ redeemable: false│                │ isActive: true   │
+    │ title: "Will..." │                │ category: "..."  │
+    └──────────────────┘                │ status: "active" │
+                                        │ normalizedOutcome│
+                                        │ normalizedCategory
+                                        └──────────────────┘
+
+    Key Mappings:
+    • curPrice      → currentPrice (for display as "58¢")
+    • cashPnl       → pnl (for display as "+$160")
+    • percentPnl    → pnlPercent
+    • Computed: isActive = curPrice > 0 && !redeemable
+    • Extracted: category from title using heuristics
+```
+
+### Responsive Position Display
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     RESPONSIVE LAYOUT                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    DESKTOP (>768px): PositionsTable
+    ┌───────────────────────────────────────────────────────────────────────┐
+    │ Market              │ Position │ Size   │ Avg  │ Current │ P&L      │
+    ├─────────────────────┼──────────┼────────┼──────┼─────────┼──────────┤
+    │ 📌 Other Active     │   NO     │ $182K  │ 51¢  │  51¢    │ +$487    │
+    │ Mavericks vs Jazz   │          │        │      │         │          │
+    ├─────────────────────┼──────────┼────────┼──────┼─────────┼──────────┤
+    │ 📌 Other Active     │   YES    │ $60    │ 51¢  │  55¢    │ +$4      │
+    │ Spread: Mavericks   │          │        │      │         │          │
+    └───────────────────────────────────────────────────────────────────────┘
+
+    Features:
+    • Sortable columns (Size, P&L)
+    • Pagination for many positions
+    • Click row to open on Polymarket
+    • Category tags with colors
+
+    MOBILE (<768px): PositionCard
+    ┌───────────────────────────────────────────────────────────────────────┐
+    │ ┌─────────────────────────────────────────────────────────────────┐   │
+    │ │ 📌 Other  Active                                                │   │
+    │ │ Mavericks vs. Jazz: O/U 241.5                                  │   │
+    │ │                                                                 │   │
+    │ │ Position        Avg Price        Current                        │   │
+    │ │ NO $182.3K      51¢              51¢ +$487                      │   │
+    │ │                                                                 │   │
+    │ │ View on Polymarket ↗                                           │   │
+    │ └─────────────────────────────────────────────────────────────────┘   │
+    └───────────────────────────────────────────────────────────────────────┘
+
+    Features:
+    • Card layout optimized for touch
+    • Clear visual hierarchy
+    • Tap to open on Polymarket
+    • Category badge and status
+```
+
+### Category Detection
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     CATEGORY EXTRACTION                                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    Title-based heuristics extract category from market title:
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  Category Detection Logic (extractCategory function)                    │
+    │                                                                         │
+    │  Title Contains          │  Category Assigned                          │
+    │  ─────────────────────────┼─────────────────────────                   │
+    │  trump, biden, election   │  🏛️ Politics                               │
+    │  bitcoin, btc, ethereum   │  ₿ Crypto                                  │
+    │  nfl, nba, super bowl     │  ⚽ Sports                                  │
+    │  fed, rate, inflation     │  📈 Finance                                │
+    │  openai, apple, google    │  💻 Tech                                   │
+    │  movie, oscar, grammy     │  🎬 Entertainment                          │
+    │  nasa, spacex, research   │  🔬 Science                                │
+    │  (default)                │  📌 Other                                  │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    Each category has:
+    • Unique icon emoji
+    • Distinct color for visual differentiation
+    • Badge display in both table and cards
+```
+
+### Component Test Coverage
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     TEST COVERAGE (63 tests)                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ProfileTabs.test.tsx ────────────── 8 tests
+    • Tab rendering
+    • Active tab selection
+    • onChange callbacks
+    • Count badges display
+    • 99+ truncation for large counts
+    • Accessibility attributes
+
+    PositionCard.test.tsx ──────────── 18 tests
+    • Position display
+    • Outcome badges (YES/NO)
+    • Price formatting (cents)
+    • P&L formatting (+$160, -$250)
+    • Category tags
+    • Click handling
+    • Keyboard navigation
+    • Large value formatting (K, M suffixes)
+
+    PositionsTable.test.tsx ─────────── 15 tests
+    • Table rendering
+    • Column headers
+    • Row display
+    • Sorting (P&L, Size)
+    • Pagination
+    • Empty state
+    • Loading skeleton
+    • Row click handling
+
+    position.test.ts ──────────────── 22 tests
+    • normalizeCategory function
+    • toPosition transformation
+    • API field mapping
+    • Status computation
+    • sortPositions function
+```

@@ -66,6 +66,17 @@ export interface Position extends PolymarketPosition {
   normalizedCategory: MarketCategory;
   /** Price history for sparkline (optional) */
   priceHistory?: number[];
+  // Aliased fields for component compatibility
+  /** Current price (alias for curPrice) */
+  currentPrice: number;
+  /** P&L (alias for cashPnl) */
+  pnl: number;
+  /** P&L percent (alias for percentPnl) */
+  pnlPercent: number;
+  /** Whether position is active (computed from curPrice/redeemable) */
+  isActive: boolean;
+  /** Market category (extracted from title) */
+  category: string;
 }
 
 /**
@@ -75,19 +86,69 @@ export function toPosition(raw: PolymarketPosition): Position {
   const normalizedOutcome: PositionOutcome =
     raw.outcome?.toUpperCase() === 'YES' ? 'YES' : 'NO';
 
+  // Position is active if it has a non-zero price and is not redeemable
+  const isActive = raw.curPrice > 0 && !raw.redeemable;
+
   let status: PositionStatus = 'active';
-  if (!raw.isActive) {
+  if (!isActive) {
     status = raw.endDate && new Date(raw.endDate) < new Date() ? 'expired' : 'resolved';
   }
 
-  const normalizedCategory = normalizeCategory(raw.category);
+  // Extract category from title (basic heuristic)
+  const category = extractCategory(raw.title);
+  const normalizedCategory = normalizeCategory(category);
 
   return {
     ...raw,
     normalizedOutcome,
     status,
     normalizedCategory,
+    // Aliased fields for component compatibility
+    currentPrice: raw.curPrice,
+    pnl: raw.cashPnl,
+    pnlPercent: raw.percentPnl,
+    isActive,
+    category,
   };
+}
+
+/**
+ * Extract category from market title using heuristics
+ */
+function extractCategory(title: string): string {
+  if (!title) return 'other';
+  const lower = title.toLowerCase();
+
+  if (lower.includes('trump') || lower.includes('biden') || lower.includes('election') ||
+      lower.includes('president') || lower.includes('congress') || lower.includes('senate')) {
+    return 'Politics';
+  }
+  if (lower.includes('bitcoin') || lower.includes('btc') || lower.includes('ethereum') ||
+      lower.includes('eth') || lower.includes('crypto')) {
+    return 'Crypto';
+  }
+  if (lower.includes('nfl') || lower.includes('nba') || lower.includes('mlb') ||
+      lower.includes('super bowl') || lower.includes('world cup') || lower.includes('champions')) {
+    return 'Sports';
+  }
+  if (lower.includes('fed') || lower.includes('rate') || lower.includes('inflation') ||
+      lower.includes('gdp') || lower.includes('stock') || lower.includes('s&p')) {
+    return 'Finance';
+  }
+  if (lower.includes('openai') || lower.includes('apple') || lower.includes('google') ||
+      lower.includes('microsoft') || lower.includes('ai ') || lower.includes(' ai')) {
+    return 'Tech';
+  }
+  if (lower.includes('movie') || lower.includes('oscar') || lower.includes('grammy') ||
+      lower.includes('emmy') || lower.includes('album')) {
+    return 'Entertainment';
+  }
+  if (lower.includes('nasa') || lower.includes('spacex') || lower.includes('rocket') ||
+      lower.includes('research') || lower.includes('discovery')) {
+    return 'Science';
+  }
+
+  return 'Other';
 }
 
 /**
