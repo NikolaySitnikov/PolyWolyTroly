@@ -730,15 +730,14 @@ export function WhaleTable({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  background: currentPage === totalPages ? tokens.colors.surface : tokens.colors.cyan,
-                  border: `1px solid ${currentPage === totalPages ? tokens.colors.border : tokens.colors.cyan}`,
+                  background: tokens.colors.surface,
+                  border: `1px solid ${tokens.colors.border}`,
                   borderRadius: '14px',
                   fontSize: '20px',
-                  color: currentPage === totalPages ? tokens.colors.muted : tokens.colors.void,
+                  color: currentPage === totalPages ? tokens.colors.muted : tokens.colors.textSecondary,
                   cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
                   opacity: currentPage === totalPages ? 0.4 : 1,
                   transition: 'all 0.15s ease',
-                  boxShadow: currentPage !== totalPages ? `0 0 25px ${tokens.colors.cyanGlow}` : 'none',
                 }}
               >
                 ›

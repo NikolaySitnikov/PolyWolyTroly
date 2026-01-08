@@ -816,15 +816,14 @@ export function AlertFeed({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  background: currentPage === actualTotalPages ? tokens.colors.surface : tokens.colors.cyan,
-                  border: `1px solid ${currentPage === actualTotalPages ? tokens.colors.border : tokens.colors.cyan}`,
+                  background: tokens.colors.surface,
+                  border: `1px solid ${tokens.colors.border}`,
                   borderRadius: '14px',
                   fontSize: '20px',
-                  color: currentPage === actualTotalPages ? tokens.colors.muted : tokens.colors.void,
+                  color: currentPage === actualTotalPages ? tokens.colors.muted : tokens.colors.textSecondary,
                   cursor: currentPage === actualTotalPages ? 'not-allowed' : 'pointer',
                   opacity: currentPage === actualTotalPages ? 0.4 : 1,
                   transition: 'all 0.15s ease',
-                  boxShadow: currentPage !== actualTotalPages ? `0 0 25px ${tokens.colors.cyanGlow}` : 'none',
                 }}
               >
                 ›
