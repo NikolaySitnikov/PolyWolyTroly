@@ -216,6 +216,10 @@ PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymar
 │  • /activity?user={address}   - Trading activity history                    │
 │  • /positions?user={address}  - Current & historical positions              │
 │  • /value?user={address}      - Portfolio value & P&L metrics               │
+│  • /traded?user={address}     - Total unique markets traded (predictions)   │
+│                                  Returns: { user: string, traded: number }  │
+│                                  FAST single-call endpoint for prediction   │
+│                                  count - matches Polymarket profile UI      │
 │                                                                              │
 │  Purpose: Trading data for whale profiles (P&L, positions, win rate)        │
 │  NOTE: Also used as SOURCE OF TRUTH for "is this wallet new?"               │
@@ -230,6 +234,24 @@ PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymar
 │  • /public-profile?address={address} - User profile (name, avatar, etc.)    │
 │                                                                              │
 │  Purpose: Display names and avatars for whale profiles                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  POLYMARKET USER PNL API                                                     │
+│                                                                              │
+│  Base URL: https://user-pnl-api.polymarket.com                              │
+│                                                                              │
+│  Endpoints:                                                                  │
+│  • /user-pnl?user_address={address}&interval={1d|1w|1m|max}&fidelity={1h|1d}│
+│                                                                              │
+│  Returns: Array of { t: timestamp, p: cumulative_pnl } points               │
+│                                                                              │
+│  Purpose: Accurate time-windowed P&L calculation                            │
+│  • 7d P&L = current_pnl - pnl_from_7_days_ago                               │
+│  • 30d P&L = current_pnl - pnl_from_30_days_ago                             │
+│  • All-time P&L = latest cumulative value                                   │
+│                                                                              │
+│  NOTE: This is the official API Polymarket's frontend uses for P&L charts   │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐

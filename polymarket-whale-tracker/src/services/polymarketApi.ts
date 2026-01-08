@@ -329,49 +329,26 @@ export const polymarketApi = {
   },
 
   /**
-   * Get total predictions count by paginating through all trades
-   * and counting unique conditionId (markets).
+   * Get total predictions count from the /traded endpoint.
    *
-   * "Predictions" on Polymarket = unique markets the user has participated in.
-   * Betting on both Yes and No of the same market counts as 1 prediction.
+   * This is a FAST single API call that returns the exact count of unique
+   * markets the user has traded on - matching what Polymarket shows on profiles.
    */
   async getTotalPredictionsCount(walletAddress: string): Promise<number> {
     try {
       const address = walletAddress.toLowerCase();
-      const uniqueMarkets = new Set<string>();
-      let offset = 0;
-      const pageSize = 500; // Max allowed by API
+      const url = `${POLYMARKET_DATA_API}/traded?user=${address}`;
+      const response = await fetch(url);
 
-      while (true) {
-        const url = `${POLYMARKET_DATA_API}/trades?user=${address}&limit=${pageSize}&offset=${offset}`;
-        const response = await fetch(url);
-
-        if (!response.ok) {
-          console.error(`Trades API error: ${response.status}`);
-          break;
-        }
-
-        const trades: PolymarketTrade[] = await response.json();
-        if (!Array.isArray(trades) || trades.length === 0) {
-          break;
-        }
-
-        // Count unique conditionId (markets) only
-        for (const trade of trades) {
-          uniqueMarkets.add(trade.conditionId);
-        }
-
-        offset += pageSize;
-
-        // Stop if we got fewer than page size (no more data)
-        if (trades.length < pageSize) {
-          break;
-        }
+      if (!response.ok) {
+        console.error(`Traded API error: ${response.status}`);
+        return 0;
       }
 
-      return uniqueMarkets.size;
+      const data = await response.json();
+      return data?.traded || 0;
     } catch (error) {
-      console.error("Error counting predictions:", error);
+      console.error("Error fetching predictions count:", error);
       return 0;
     }
   },
@@ -1060,57 +1037,97 @@ export const polymarketApi = {
   },
 
   /**
-   * FAST fetch of essential trading data for a wallet
+   * Fetch accurate position count by paginating through all positions
+   * Returns the total count of positions (not capped at 100)
+   */
+  async getPositionCount(walletAddress: string): Promise<number> {
+    try {
+      const address = walletAddress.toLowerCase();
+      let count = 0;
+      let offset = 0;
+      const pageSize = 100;
+
+      while (true) {
+        const url = `${POLYMARKET_DATA_API}/positions?user=${address}&limit=${pageSize}&offset=${offset}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          break;
+        }
+
+        const positions = await response.json();
+        if (!Array.isArray(positions) || positions.length === 0) {
+          break;
+        }
+
+        count += positions.length;
+        offset += pageSize;
+
+        // Stop if we got fewer than page size (no more data)
+        if (positions.length < pageSize) {
+          break;
+        }
+      }
+
+      return count;
+    } catch (error) {
+      console.error("Error counting positions:", error);
+      return 0;
+    }
+  },
+
+  /**
+   * Fetch trading data for a wallet with ACCURATE counts
    *
-   * Strategy: Fetch only the MINIMUM data needed for instant display
-   * - Single page of positions (100) - instant
-   * - Single page of activity (100) - instant
-   * - Portfolio value - instant
-   * - Profile - instant
-   * - User PnL history (pre-aggregated by Polymarket) - instant
-   *
-   * SKIP slow operations:
-   * - getTotalPredictionsCount (paginates all trades - SLOW)
-   * - getAllPositions pagination (SLOW for active whales)
-   * - getAllActivity pagination (SLOW for active whales)
-   *
-   * Use trades.length as "predictions" estimate (good enough for display)
+   * Strategy: Fetch all data in parallel including the accurate counts.
+   * Uses longer timeouts on pagination operations to handle active whales.
    */
   async getWalletTradingData(walletAddress: string): Promise<WalletTradingData> {
     const address = walletAddress.toLowerCase();
 
-    // FAST: Fetch only essential data in parallel with tight timeouts
-    // Each call has a 3-second timeout to prevent hanging
+    // Timeouts: Fast calls get 3s, pagination calls get 15s (for whales with 1000+ trades)
     const FAST_TIMEOUT = 3000;
+    const PAGINATION_TIMEOUT = 15000;
 
-    const [positions, activity, trades, value, profile, timeWindowedPnl] = await Promise.all([
-      // Single page of positions (fast)
+    // Fetch everything in parallel
+    const [
+      positions,
+      activity,
+      value,
+      profile,
+      timeWindowedPnl,
+      positionCount,
+      predictionsCount,
+    ] = await Promise.all([
+      // Single page of positions for display (fast)
       this.withTimeout(this.getPositions(address, 100), FAST_TIMEOUT, []),
-      // Single page of activity (fast)
+      // Single page of activity for display (fast)
       this.withTimeout(this.getActivity(address, 100), FAST_TIMEOUT, []),
-      // Single page of trades (fast) - use count as predictions estimate
-      this.withTimeout(this.getTrades(address, 100), FAST_TIMEOUT, []),
       // Portfolio value (fast - single API call)
       this.withTimeout(this.getValue(address), FAST_TIMEOUT, null),
       // Profile (fast - single API call)
       this.withTimeout(this.getProfile(address), FAST_TIMEOUT, null),
       // P&L history from user-pnl API (fast - pre-aggregated)
       this.withTimeout(this.getAllTimeWindowedPnl(address), FAST_TIMEOUT, { pnl7d: 0, pnl30d: 0, pnlAll: 0 }),
+      // ACCURATE position count (paginates all positions) - needs time for active whales
+      this.withTimeout(this.getPositionCount(address), PAGINATION_TIMEOUT, 0),
+      // ACCURATE predictions count (paginates all trades, counts unique markets) - needs time for active whales
+      this.withTimeout(this.getTotalPredictionsCount(address), PAGINATION_TIMEOUT, 0),
     ]);
 
-    // Calculate metrics from the fast-fetched data
+    // Calculate metrics from the fetched data
+    // Pass empty trades array - we'll override the counts anyway
     const metrics = this.calculateTradingMetrics(
       positions,
       activity,
-      trades,
+      [],
       value,
       timeWindowedPnl
     );
 
-    // Use trades.length as rough "predictions" count
-    // (Accurate count requires pagination which is SLOW)
-    // This is good enough for display - shows recent activity
-    metrics.totalTrades = trades.length;
+    // Override with ACCURATE counts
+    metrics.activePositions = positionCount;
+    metrics.totalTrades = predictionsCount;
 
     return {
       address,
