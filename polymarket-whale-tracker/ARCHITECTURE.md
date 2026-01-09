@@ -1016,7 +1016,7 @@ The whale profile now includes a tabbed interface for viewing positions, activit
     Title-based heuristics extract category from market title:
 
     ┌────────────────────────────────────────────────────────────────────────┐
-    │  Category Detection Logic (extractCategory function)                    │
+    │  Category Detection Logic (inferCategory function in CategoryTag.tsx)   │
     │                                                                         │
     │  Title Contains          │  Category Assigned                          │
     │  ─────────────────────────┼─────────────────────────                   │
@@ -1027,11 +1027,40 @@ The whale profile now includes a tabbed interface for viewing positions, activit
     │  openai, apple, google    │  💻 Tech                                   │
     │  movie, oscar, grammy     │  🎬 Entertainment                          │
     │  nasa, spacex, research   │  🔬 Science                                │
+    │  war, treaty, military    │  🌍 World                                  │
     │  (default)                │  📌 Other                                  │
     └────────────────────────────────────────────────────────────────────────┘
 
+    Sports detection uses comprehensive team/league databases:
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  Sports Team Databases (regex patterns in CategoryTag.tsx)              │
+    │                                                                         │
+    │  League/Competition              │  Teams/Keywords                      │
+    │  ────────────────────────────────┼────────────────────────────────      │
+    │  NBA                             │  30 teams + college basketball       │
+    │  NFL                             │  32 teams                            │
+    │  MLB                             │  30 teams                            │
+    │  NHL                             │  32 teams                            │
+    │  MLS                             │  30 teams                            │
+    │  English Football (EPL + EFL)    │  20 EPL + 30+ Championship teams    │
+    │  La Liga                         │  20 teams                            │
+    │  Bundesliga                      │  18 teams                            │
+    │  Serie A                         │  20 teams                            │
+    │  Ligue 1                         │  18 teams                            │
+    │  Other Euro + Saudi Pro League   │  40+ clubs                           │
+    │  College Football (FBS)          │  134 teams (SEC, Big Ten, ACC, etc) │
+    │  UFC/MMA                         │  Fighters + weight classes           │
+    │  Tennis                          │  Players + Grand Slams               │
+    │  Golf                            │  PGA + LIV players/tournaments       │
+    │  Racing                          │  F1, NASCAR, IndyCar drivers         │
+    │  Cricket                         │  IPL teams + players                 │
+    │  Rugby                           │  Six Nations + major teams           │
+    │  Esports                         │  LoL, CS2, Valorant, etc            │
+    └────────────────────────────────────────────────────────────────────────┘
+
     Each category has:
-    • Unique icon emoji
+    • Unique icon emoji (sports markets get sport-specific emoji: ⚽🏀🏈 etc)
     • Distinct color for visual differentiation
     • Badge display in both table and cards
 ```
