@@ -559,6 +559,8 @@ export function ActivityHistoryTable({
                   color: tokens.colors.textMuted,
                   textAlign: 'left',
                   width: '30%',
+                  maxWidth: 0,
+                  overflow: 'hidden',
                 }}
               >
                 Market
@@ -647,7 +649,7 @@ export function ActivityHistoryTable({
                     </td>
 
                     {/* Market */}
-                    <td style={{ ...cellStyle, width: '30%' }}>
+                    <td style={{ ...cellStyle, width: '30%', maxWidth: 0, overflow: 'hidden' }}>
                       {hasMarket ? (
                         <TruncatedText text={activity.title!} />
                       ) : (
