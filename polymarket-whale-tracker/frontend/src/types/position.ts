@@ -255,11 +255,12 @@ export function sortPositions(
 ): Position[] {
   const sorted = [...positions].sort((a, b) => {
     // Handle title sorting (alphabetical)
+    // For title: desc (↓) = A to Z, asc (↑) = Z to A
     if (field === 'title') {
       const aTitle = a.title?.toLowerCase() || '';
       const bTitle = b.title?.toLowerCase() || '';
       const comparison = aTitle.localeCompare(bTitle);
-      return direction === 'desc' ? -comparison : comparison;
+      return direction === 'desc' ? comparison : -comparison;
     }
 
     // Numeric sorting for other fields
