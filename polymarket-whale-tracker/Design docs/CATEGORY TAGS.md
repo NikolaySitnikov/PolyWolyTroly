@@ -1,24 +1,174 @@
-## Market Category Tags — Design Specification
+# Market Category Tags — Design Specification
 
 ## Overview
 
-Market category tags provide quick visual categorization for prediction markets, helping users scan and filter by topic area. They should be compact, scannable, and visually distinctive without overwhelming the market card content.
+Market category tags provide quick visual categorization for prediction markets, helping users scan and filter by topic area. Categories are inferred from market titles using comprehensive keyword matching since the Polymarket API does not provide category metadata for closed positions.
 
 ---
 
 ## Category Taxonomy
 
-| Category          | Icon | Colour                     | Use Cases                              |
-| ----------------- | ---- | -------------------------- | -------------------------------------- |
-| **Politics**      | 🏛️  | `#ff6b35` (Orange)         | Elections, legislation, government     |
-| **Crypto**        | ₿    | `#f7931a` (Bitcoin Orange) | Bitcoin, Ethereum, DeFi, regulations   |
-| **Sports**        | ⚽    | `#22c55e` (Green)          | Games, championships, player stats     |
-| **Finance**       | 📈   | `#3b82f6` (Blue)           | Stocks, Fed rates, economic indicators |
-| **Tech**          | 💻   | `#a855f7` (Purple)         | Product launches, company news, AI     |
-| **Entertainment** | 🎬   | `#ec4899` (Pink)           | Awards, releases, celebrity            |
-| **Science**       | 🔬   | `#06b6d4` (Teal)           | Research, space, climate               |
-| **World**         | 🌍   | `#64748b` (Slate)          | Geopolitics, international events      |
-| **Other**         | 📌   | `#6b7280` (Grey)           | Uncategorized markets                  |
+| Category          | Icon | Color                      | Hex Code   | Use Cases                                         |
+| ----------------- | ---- | -------------------------- | ---------- | ------------------------------------------------- |
+| **Politics**      | 🏛️  | Red                        | `#ef4444`  | Elections, legislation, government, world leaders |
+| **Crypto**        | ₿    | Bitcoin Orange             | `#f7931a`  | Bitcoin, Ethereum, DeFi, token sales, L1/L2       |
+| **Sports**        | ⚽    | Green                      | `#22c55e`  | Games, championships, player stats                |
+| **Finance**       | 📈   | Blue                       | `#3b82f6`  | Stocks, Fed rates, economic indicators            |
+| **Tech**          | 💻   | Purple                     | `#a855f7`  | Product launches, AI models, semiconductors       |
+| **Entertainment** | 🎬   | Pink                       | `#ec4899`  | Awards, releases, celebrity                       |
+| **Science**       | 🔬   | Cyan                       | `#06b6d4`  | Research, space, climate                          |
+| **World**         | 🌍   | Teal                       | `#14b8a6`  | Geopolitics, international conflicts              |
+| **Other**         | 📌   | Gray                       | `#6b7280`  | Uncategorized markets                             |
+
+### Color Design Principles
+
+Colors are chosen to be visually distinct from each other:
+- **Politics (Red)** vs **Crypto (Orange)**: Different hue families
+- **World (Teal)** vs **Science (Cyan)**: Teal is warmer/greener
+- **Tech (Purple)** vs **Entertainment (Pink)**: Purple is cooler
+- **Other (Gray)**: Neutral, doesn't compete with other categories
+
+---
+
+## Category Inference
+
+Since the Polymarket API doesn't provide category data for closed positions, categories are inferred from market title text using the `inferCategory()` function in `CategoryTag.tsx`.
+
+### Detection Priority Order
+
+Categories are checked in this order (first match wins):
+
+1. **Politics** - elections, politicians, world leaders
+2. **Crypto** - cryptocurrencies, blockchain projects, token sales
+3. **Sports** - leagues, teams, athletes (comprehensive database)
+4. **Finance** - markets, rates, economic indicators
+5. **Tech** - companies, AI models/labs, semiconductors
+6. **Entertainment** - awards, movies, music
+7. **Science** - research, space, health
+8. **World** - geopolitics, conflicts, international affairs
+9. **Other** - fallback for unmatched markets
+
+### Politics Detection
+
+```regex
+trump|biden|election|president|congress|senate|governor|vote|democrat|republican|
+nominee|cabinet|administration|maduro|zelensky|putin|xi jinping|netanyahu|macron|
+trudeau|milei|lula|modi|bolsonaro|erdogan|orban|scholz|starmer|sunak|meloni|
+impeach|regime|dictator
+```
+
+**World Leaders Included:**
+- US: Trump, Biden
+- Latin America: Maduro, Milei, Lula, Bolsonaro
+- Europe: Macron, Scholz, Starmer, Sunak, Meloni, Orban
+- Russia/Ukraine: Putin, Zelensky
+- Middle East: Netanyahu
+- Asia: Xi Jinping, Modi, Erdogan
+
+### Crypto Detection
+
+```regex
+bitcoin|btc|ethereum|eth|crypto|defi|blockchain|solana|altcoin|polymarket|token|
+airdrop|ico|ido|public sale|fdv|market cap|tge|mainnet|testnet|l1|l2|layer 1|
+layer 2|nft|dao|staking|liquidity|dex|cex|binance|coinbase|arbitrum|optimism|
+polygon|avalanche|cardano|polkadot|cosmos|near|aptos|sui|sei|monad|berachain|
+eclipse|movement|zksync|starknet|scroll|linea|base|blast|manta|mantle|hyperliquid|
+jupiter|raydium|uniswap|aave|compound|maker|lido|eigenlayer|celestia|worldcoin|
+pyth|jito|tensor|magic eden|opensea|blur|pudgy|azuki|bayc|degen|farcaster|lens|
+friend.tech|pump.fun|meme coin|memecoin|shib|doge|pepe|bonk|wif|floki|solomon|
+lighter|parcl|drift|vertex|gmx
+```
+
+**Categories:**
+- Major coins: Bitcoin, Ethereum, Solana
+- L1/L2 chains: Arbitrum, Optimism, Base, Blast, zkSync, Starknet
+- DeFi protocols: Uniswap, Aave, Compound, Hyperliquid, Jupiter
+- NFT/Social: OpenSea, Blur, Farcaster, Lens
+- Memecoins: DOGE, PEPE, BONK, WIF, FLOKI
+- Prediction markets: Polymarket, Solomon, Lighter
+
+### Tech Detection
+
+```regex
+apple|google|microsoft|ai|gpt|openai|iphone|android|startup|meta|amazon|tesla|
+gemini|claude|anthropic|mistral|llama|perplexity|copilot|chatgpt|sora|midjourney|
+stable diffusion|nvidia|amd|intel|chip|semiconductor|robot|autopilot|self-driving|
+xai|deepmind|inflection
+```
+
+**AI Models & Labs:**
+- OpenAI: GPT, ChatGPT, Sora
+- Google: Gemini, DeepMind
+- Anthropic: Claude
+- Other: Mistral, LLaMA, Perplexity, Midjourney, Stable Diffusion, xAI, Inflection
+
+**Hardware:**
+- NVIDIA, AMD, Intel, chip, semiconductor
+
+### Sports Detection
+
+Uses comprehensive team databases covering:
+- **NBA**: 30 teams + WNBA
+- **NFL**: 32 teams
+- **MLB**: 30 teams
+- **NHL**: 32 teams (including Utah Mammoth)
+- **MLS**: 30 teams
+- **European Soccer**: EPL (20), La Liga (20), Bundesliga (18), Serie A (20), Ligue 1 (18), Other (30+)
+- **College Football**: 134 FBS teams across SEC, Big Ten, ACC, Big 12, and independents
+- **Combat Sports**: UFC fighters, boxing champions, weight classes
+- **Other**: Tennis, Golf, Racing (F1, NASCAR), Cricket, Rugby, Esports
+
+See `CLOSED_POSITIONS_FEATURE.md` for complete team lists.
+
+### Finance Detection
+
+```regex
+stock|fed|interest rate|inflation|gdp|earnings|ipo|s&p|nasdaq|dow|treasury|bond|bps
+```
+
+### Entertainment Detection
+
+```regex
+oscar|grammy|movie|film|album|award|netflix|disney|celebrity|stranger things|
+season|episode|emmy|golden globe
+```
+
+### Science Detection
+
+```regex
+nasa|space|climate|research|study|vaccine|species|discovery|spacex|mars|moon
+```
+
+### World Detection
+
+```regex
+\bwar\b|treaty|country|nation|international|un|nato|summit|invade|military|
+custody|venezuela|ukraine|russia|china|iran|israel
+```
+
+**Note:** Uses word boundary `\b` for "war" to prevent matching "Warriors" (sports team).
+
+---
+
+## Sport-Specific Emojis
+
+For sports markets, the category tag shows a sport-specific emoji based on the detected sport type:
+
+| Sport | Emoji | Detection Method |
+|-------|-------|------------------|
+| Boxing/MMA | 🥊 | UFC fighters, weight classes, fight terms |
+| Basketball | 🏀 | NBA/WNBA teams |
+| American Football | 🏈 | NFL teams, College Football teams, Super Bowl |
+| Soccer | ⚽ | EPL, La Liga, Bundesliga, Serie A, Ligue 1, MLS, Champions League |
+| Baseball | ⚾ | MLB teams, World Series |
+| Hockey | 🏒 | NHL teams, Stanley Cup |
+| Tennis | 🎾 | Players, Grand Slam tournaments |
+| Golf | ⛳ | PGA/LPGA, major tournaments |
+| Racing | 🏎️ | F1, NASCAR, drivers |
+| Cricket | 🏏 | IPL teams, international |
+| Rugby | 🏉 | Six Nations, international teams |
+| Esports | 🎮 | LoL, Dota, CS2, Valorant teams |
+| Default | 🏆 | Unknown sports |
 
 ---
 
@@ -38,47 +188,23 @@ Market category tags provide quick visual categorization for prediction markets,
 
 | Variant               | Height | Padding  | Font Size | Icon Size |
 | --------------------- | ------ | -------- | --------- | --------- |
-| **Small** (in cards)  | 20px   | 4px 8px  | 10px      | 12px      |
-| **Default** (filters) | 26px   | 6px 12px | 12px      | 14px      |
-| **Large** (headers)   | 32px   | 8px 16px | 13px      | 16px      |
+| **Small** (in cards)  | 20px   | 4px 8px  | 10px      | 11px      |
+| **Default** (filters) | 26px   | 6px 12px | 12px      | 13px      |
+| **Large** (headers)   | 32px   | 8px 16px | 13px      | 15px      |
 
-### Base Styles
-
-css
-
-```css
-.category-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-
-  font-family: var(--font-mono);  /* JetBrains Mono */
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-
-  border-radius: 4px;
-  white-space: nowrap;
-
-  transition: all 0.15s ease;
-}
-```
-
-### Colour Application
+### Color Application
 
 Tags use a subtle, low-contrast style to avoid competing with market data:
 
-css
-
 ```css
 .category-tag {
-  /* Background: category colour at 15% opacity */
+  /* Background: category color at 15% opacity */
   background: ${categoryColor}15;
 
-  /* Border: category colour at 40% opacity */
+  /* Border: category color at 40% opacity */
   border: 1px solid ${categoryColor}40;
 
-  /* Text: category colour at full or 90% */
+  /* Text: category color at full */
   color: ${categoryColor};
 }
 
@@ -100,337 +226,12 @@ css
 
 ---
 
-## React Component
+## Files
 
-tsx
-
-```tsx
-/**
- * CategoryTag Component
- * 
- * Visual tag for market categorization.
- * @see Design docs/MARKET_CATEGORIES.md
- */
-
-import { tokens } from '../styles/tokens';
-
-type MarketCategory = 
-  | 'politics' 
-  | 'crypto' 
-  | 'sports' 
-  | 'finance' 
-  | 'tech' 
-  | 'entertainment' 
-  | 'science' 
-  | 'world' 
-  | 'other';
-
-type TagSize = 'small' | 'default' | 'large';
-
-interface CategoryTagProps {
-  category: MarketCategory;
-  size?: TagSize;
-  /** If true, shows as selected/active */
-  active?: boolean;
-  /** If true, tag is clickable */
-  onClick?: () => void;
-  /** Hide the icon, show only text */
-  hideIcon?: boolean;
-}
-
-const CATEGORY_CONFIG: Record<MarketCategory, { icon: string; label: string; color: string }> = {
-  politics: { icon: '🏛️', label: 'Politics', color: '#ff6b35' },
-  crypto: { icon: '₿', label: 'Crypto', color: '#f7931a' },
-  sports: { icon: '⚽', label: 'Sports', color: '#22c55e' },
-  finance: { icon: '📈', label: 'Finance', color: '#3b82f6' },
-  tech: { icon: '💻', label: 'Tech', color: '#a855f7' },
-  entertainment: { icon: '🎬', label: 'Entertainment', color: '#ec4899' },
-  science: { icon: '🔬', label: 'Science', color: '#06b6d4' },
-  world: { icon: '🌍', label: 'World', color: '#64748b' },
-  other: { icon: '📌', label: 'Other', color: '#6b7280' },
-};
-
-const SIZE_CONFIG: Record<TagSize, { 
-  height: string; 
-  padding: string; 
-  fontSize: string; 
-  iconSize: string;
-  gap: string;
-}> = {
-  small: { height: '20px', padding: '0 8px', fontSize: '10px', iconSize: '11px', gap: '3px' },
-  default: { height: '26px', padding: '0 12px', fontSize: '12px', iconSize: '13px', gap: '5px' },
-  large: { height: '32px', padding: '0 16px', fontSize: '13px', iconSize: '15px', gap: '6px' },
-};
-
-export function CategoryTag({ 
-  category, 
-  size = 'small', 
-  active = false,
-  onClick,
-  hideIcon = false,
-}: CategoryTagProps) {
-  const config = CATEGORY_CONFIG[category];
-  const sizeConfig = SIZE_CONFIG[size];
-  const isClickable = !!onClick;
-
-  return (
-    <span
-      data-testid={`category-tag-${category}`}
-      onClick={onClick}
-      role={isClickable ? 'button' : undefined}
-      tabIndex={isClickable ? 0 : undefined}
-      onKeyDown={isClickable ? (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick?.();
-        }
-      } : undefined}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: sizeConfig.gap,
-        height: sizeConfig.height,
-        padding: sizeConfig.padding,
-
-        background: active ? config.color : `${config.color}15`,
-        border: `1px solid ${active ? config.color : `${config.color}40`}`,
-        borderRadius: '4px',
-
-        fontFamily: tokens.fonts.mono,
-        fontSize: sizeConfig.fontSize,
-        fontWeight: 500,
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
-        color: active ? tokens.colors.void : config.color,
-
-        cursor: isClickable ? 'pointer' : 'default',
-        transition: 'all 0.15s ease',
-        userSelect: 'none',
-
-        ...(active && {
-          boxShadow: `0 0 15px ${config.color}40`,
-        }),
-      }}
-      onMouseEnter={(e) => {
-        if (!active && isClickable) {
-          e.currentTarget.style.background = `${config.color}25`;
-          e.currentTarget.style.borderColor = `${config.color}60`;
-          e.currentTarget.style.boxShadow = `0 0 10px ${config.color}20`;
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!active && isClickable) {
-          e.currentTarget.style.background = `${config.color}15`;
-          e.currentTarget.style.borderColor = `${config.color}40`;
-          e.currentTarget.style.boxShadow = 'none';
-        }
-      }}
-    >
-      {!hideIcon && (
-        <span style={{ fontSize: sizeConfig.iconSize, lineHeight: 1 }}>
-          {config.icon}
-        </span>
-      )}
-      <span>{config.label}</span>
-    </span>
-  );
-}
-
-/**
- * Helper to get category from market question (basic keyword matching)
- * In production, this should come from the API
- */
-export function inferCategory(question: string): MarketCategory {
-  const q = question.toLowerCase();
-
-  if (/trump|biden|election|president|congress|senate|governor|vote|democrat|republican/i.test(q)) {
-    return 'politics';
-  }
-  if (/bitcoin|btc|ethereum|eth|crypto|defi|token|blockchain|solana/i.test(q)) {
-    return 'crypto';
-  }
-  if (/nfl|nba|mlb|world cup|championship|playoff|game|match|team|player/i.test(q)) {
-    return 'sports';
-  }
-  if (/stock|fed|rate|inflation|gdp|earnings|ipo|market|s&p|nasdaq/i.test(q)) {
-    return 'finance';
-  }
-  if (/apple|google|microsoft|ai|gpt|launch|iphone|android|startup/i.test(q)) {
-    return 'tech';
-  }
-  if (/oscar|grammy|movie|film|album|award|netflix|disney|celebrity/i.test(q)) {
-    return 'entertainment';
-  }
-  if (/nasa|space|climate|research|study|vaccine|species|discovery/i.test(q)) {
-    return 'science';
-  }
-  if (/war|treaty|country|nation|international|un|nato|summit/i.test(q)) {
-    return 'world';
-  }
-
-  return 'other';
-}
-```
-
----
-
-## Integration with TrendingMarkets
-
-Update `MarketCard` to include the tag:
-
-tsx
-
-```tsx
-// In TrendingMarkets.tsx
-
-import { CategoryTag, inferCategory } from './CategoryTag';
-
-function MarketCard({ market, index }: { market: TrendingMarketResponse; index: number }) {
-  // Ideally category comes from API, fallback to inference
-  const category = market.category || inferCategory(market.question);
-
-  return (
-    <a href={...} style={...}>
-      {/* Category tag - top right corner */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'flex-start',
-        marginBottom: '8px',
-      }}>
-        <CategoryTag category={category} size="small" />
-        {/* Optional: 24h change indicator */}
-        {market.priceChange24h !== undefined && (
-          <span style={{
-            fontFamily: tokens.fonts.mono,
-            fontSize: '11px',
-            color: market.priceChange24h >= 0 ? tokens.colors.profit : tokens.colors.loss,
-          }}>
-            {market.priceChange24h >= 0 ? '↑' : '↓'} 
-            {Math.abs(market.priceChange24h).toFixed(1)}%
-          </span>
-        )}
-      </div>
-
-      {/* Market question */}
-      <div style={{...}}>
-        {market.question}
-      </div>
-
-      {/* ... rest of card */}
-    </a>
-  );
-}
-```
-
----
-
-## Category Filter Bar
-
-For filtering markets by category:
-
-tsx
-
-```tsx
-/**
- * CategoryFilter Component
- * 
- * Horizontal scrollable filter bar for market categories.
- */
-
-import { useState } from 'react';
-import { tokens } from '../styles/tokens';
-import { CategoryTag, type MarketCategory } from './CategoryTag';
-
-const ALL_CATEGORIES: MarketCategory[] = [
-  'politics', 'crypto', 'sports', 'finance', 
-  'tech', 'entertainment', 'science', 'world', 'other'
-];
-
-interface CategoryFilterProps {
-  selected: MarketCategory | null;
-  onSelect: (category: MarketCategory | null) => void;
-}
-
-export function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        gap: '8px',
-        overflowX: 'auto',
-        padding: '4px 0',
-        marginBottom: '16px',
-        /* Hide scrollbar but keep functionality */
-        scrollbarWidth: 'none',
-        msOverflowStyle: 'none',
-      }}
-    >
-      {/* "All" option */}
-      <button
-        onClick={() => onSelect(null)}
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          height: '26px',
-          padding: '0 12px',
-          background: selected === null ? tokens.colors.cyan : 'transparent',
-          border: `1px solid ${selected === null ? tokens.colors.cyan : tokens.colors.border}`,
-          borderRadius: '4px',
-          fontFamily: tokens.fonts.mono,
-          fontSize: '12px',
-          fontWeight: 500,
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          color: selected === null ? tokens.colors.void : tokens.colors.textSecondary,
-          cursor: 'pointer',
-          transition: 'all 0.15s ease',
-          whiteSpace: 'nowrap',
-          boxShadow: selected === null ? `0 0 15px ${tokens.colors.cyanGlow}` : 'none',
-        }}
-      >
-        All
-      </button>
-
-      {/* Category tags */}
-      {ALL_CATEGORIES.map((category) => (
-        <CategoryTag
-          key={category}
-          category={category}
-          size="default"
-          active={selected === category}
-          onClick={() => onSelect(selected === category ? null : category)}
-        />
-      ))}
-    </div>
-  );
-}
-```
-
----
-
-## Visual Examples
-
-### In Market Card (Small)
-```
-┌────────────────────────────────────────┐
-│ 🏛️ POLITICS                    ↑ 2.3% │
-│                                        │
-│ Will Trump win the 2024 election?      │
-│                                        │
-│ ████████████░░░░░░░░  62% Yes         │
-│                                        │
-│ $1.2M 24h                              │
-└────────────────────────────────────────┘
-```
-
-### Filter Bar (Default)
-```
-┌──────────────────────────────────────────────────────────────────┐
-│ [All] [🏛️ Politics] [₿ Crypto] [⚽ Sports] [📈 Finance] [...]   │
-└──────────────────────────────────────────────────────────────────┘
-        ↑ active                  ↑ hover glow
-```
+| File | Description |
+|------|-------------|
+| `frontend/src/components/CategoryTag.tsx` | Main component with `inferCategory()` and `getSportEmoji()` |
+| `frontend/src/types/position.ts` | `CATEGORY_CONFIGS` constant (kept in sync) |
 
 ---
 
@@ -438,29 +239,6 @@ export function CategoryFilter({ selected, onSelect }: CategoryFilterProps) {
 
 - Tags have `role="button"` when clickable
 - Keyboard navigation with Enter/Space
-- Colour is never the only indicator (always paired with icon + label)
+- Color is never the only indicator (always paired with icon + label)
 - Focus-visible outline using cyan
 - Screen reader announces category name
-
----
-
-## API Considerations
-
-Ideally the backend provides a `category` field on markets:
-
-typescript
-
-```typescript
-interface TrendingMarketResponse {
-  id: string;
-  question: string;
-  eventSlug: string;
-  yesPrice: number;
-  volume24hr: number;
-  category?: MarketCategory;  // ← Add this
-  priceChange24h?: number;    // ← For trend indicator
-  priceHistory?: number[];    // ← For sparklines
-}
-```
-
-If not available from Polymarket API, the `inferCategory()` helper provides a reasonable fallback based on keyword matching.
