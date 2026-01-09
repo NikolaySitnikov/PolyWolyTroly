@@ -497,6 +497,7 @@ export function WalletProfile({
               >
                 {/* Active filter button */}
                 <button
+                  type="button"
                   onClick={() => setPositionStatusFilter('active')}
                   data-testid="position-filter-active"
                   style={{
@@ -529,6 +530,7 @@ export function WalletProfile({
 
                 {/* Redeemable filter button */}
                 <button
+                  type="button"
                   onClick={() => setPositionStatusFilter('redeemable')}
                   data-testid="position-filter-redeemable"
                   style={{
@@ -561,6 +563,7 @@ export function WalletProfile({
 
                 {/* All filter button */}
                 <button
+                  type="button"
                   onClick={() => setPositionStatusFilter('all')}
                   data-testid="position-filter-all"
                   style={{
@@ -603,6 +606,7 @@ export function WalletProfile({
 
                 {/* Closed/Historical filter button */}
                 <button
+                  type="button"
                   onClick={() => setPositionStatusFilter('closed')}
                   data-testid="position-filter-closed"
                   style={{
@@ -691,6 +695,107 @@ export function WalletProfile({
                     </div>
                   ) : (
                     <>
+                      {/* Desktop: Table header for closed positions */}
+                      {!isMobile && (
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '12px 20px',
+                            borderBottom: `1px solid ${tokens.colors.border}`,
+                            background: tokens.colors.void,
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '48px',
+                              flexShrink: 0,
+                              fontFamily: tokens.fonts.mono,
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.1em',
+                              color: tokens.colors.textMuted,
+                            }}
+                          >
+                            Result
+                          </div>
+                          <div
+                            style={{
+                              flex: 1,
+                              minWidth: 0,
+                              fontFamily: tokens.fonts.mono,
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.1em',
+                              color: tokens.colors.textMuted,
+                            }}
+                          >
+                            Market
+                          </div>
+                          <div
+                            style={{
+                              width: '80px',
+                              textAlign: 'center',
+                              flexShrink: 0,
+                              fontFamily: tokens.fonts.mono,
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.1em',
+                              color: tokens.colors.textMuted,
+                            }}
+                          >
+                            Position
+                          </div>
+                          <div
+                            style={{
+                              width: '90px',
+                              textAlign: 'right',
+                              flexShrink: 0,
+                              fontFamily: tokens.fonts.mono,
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.1em',
+                              color: tokens.colors.textMuted,
+                            }}
+                          >
+                            Invested
+                          </div>
+                          <div
+                            style={{
+                              width: '90px',
+                              textAlign: 'right',
+                              flexShrink: 0,
+                              fontFamily: tokens.fonts.mono,
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.1em',
+                              color: tokens.colors.textMuted,
+                            }}
+                          >
+                            P&L
+                          </div>
+                          <div
+                            style={{
+                              width: '80px',
+                              textAlign: 'right',
+                              flexShrink: 0,
+                              fontFamily: tokens.fonts.mono,
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.1em',
+                              color: tokens.colors.textMuted,
+                            }}
+                          >
+                            When
+                          </div>
+                        </div>
+                      )}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '12px' : '0' }}>
                         {closedPositions.map((position) => (
                           <ClosedPositionCard
