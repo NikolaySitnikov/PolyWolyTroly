@@ -73,6 +73,7 @@ function formatTxHash(hash: string): string {
 
 /**
  * Activity type icon component
+ * Uses simple Unicode symbols, styled with activity color
  */
 function ActivityIcon({ config }: { config: ActivityTypeConfig }) {
   return (
@@ -82,10 +83,13 @@ function ActivityIcon({ config }: { config: ActivityTypeConfig }) {
         height: '36px',
         borderRadius: '8px',
         background: config.bgColor,
+        border: `1px solid ${config.color}30`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         fontSize: '16px',
+        fontWeight: 700,
+        color: config.color,
         flexShrink: 0,
       }}
     >
@@ -429,7 +433,7 @@ export function ActivityCard({ activity, onClick }: ActivityCardProps) {
               gap: '4px',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.color = tokens.colors.cyan;
+              e.currentTarget.style.color = tokens.colors.textPrimary;
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.color = tokens.colors.textMuted;

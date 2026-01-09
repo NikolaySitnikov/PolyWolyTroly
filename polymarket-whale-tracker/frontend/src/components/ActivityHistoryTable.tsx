@@ -160,6 +160,7 @@ function formatTxHash(hash: string): string {
 
 /**
  * Activity type badge component
+ * Clean, minimal design - label only, no icons
  */
 function ActivityTypeBadge({ activity }: { activity: Activity }) {
   const { config } = activity;
@@ -169,7 +170,6 @@ function ActivityTypeBadge({ activity }: { activity: Activity }) {
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '6px',
         padding: '4px 10px',
         background: config.bgColor,
         border: `1px solid ${config.color}30`,
@@ -183,8 +183,7 @@ function ActivityTypeBadge({ activity }: { activity: Activity }) {
         whiteSpace: 'nowrap',
       }}
     >
-      <span>{config.icon}</span>
-      <span>{config.label}</span>
+      {config.label}
     </span>
   );
 }
@@ -718,7 +717,7 @@ export function ActivityHistoryTable({
                               textDecoration: 'none',
                             }}
                             onMouseEnter={(e) => {
-                              e.currentTarget.style.color = tokens.colors.cyan;
+                              e.currentTarget.style.color = tokens.colors.textPrimary;
                             }}
                             onMouseLeave={(e) => {
                               e.currentTarget.style.color = tokens.colors.textMuted;

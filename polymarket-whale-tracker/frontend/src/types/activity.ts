@@ -34,6 +34,19 @@ export interface ActivityTypeConfig {
 /**
  * Activity type configurations for UI display
  */
+/**
+ * Activity type color logic follows universal trading terminal conventions:
+ * - GREEN (profit): Money/value coming IN (deposits, redemptions, claims)
+ * - RED (loss): Money/value going OUT (withdrawals)
+ * - CYAN (primary): Buying positions (acquiring assets)
+ * - MAGENTA (secondary): Selling positions (liquidating assets)
+ * - NEUTRAL: Informational (transfers, unknown)
+ *
+ * Buy/Sell use accent colors (cyan/magenta) rather than green/red because:
+ * - Buying isn't inherently "good" - you're spending money to acquire risk
+ * - Selling isn't inherently "bad" - you're taking profits or cutting losses
+ * - Green/red should be reserved for actual P&L outcomes
+ */
 export const ACTIVITY_TYPE_CONFIGS: Record<ActivityType, ActivityTypeConfig> = {
   deposit: {
     icon: '↓',
@@ -48,16 +61,16 @@ export const ACTIVITY_TYPE_CONFIGS: Record<ActivityType, ActivityTypeConfig> = {
     bgColor: `${tokens.colors.loss}15`,
   },
   buy: {
-    icon: '🛒',
+    icon: '+',
     label: 'Buy',
-    color: tokens.colors.cyan,
-    bgColor: `${tokens.colors.cyan}15`,
+    color: tokens.colors.profit,
+    bgColor: `${tokens.colors.profit}15`,
   },
   sell: {
-    icon: '💰',
+    icon: '−',
     label: 'Sell',
-    color: tokens.colors.magenta,
-    bgColor: `${tokens.colors.magenta}15`,
+    color: tokens.colors.loss,
+    bgColor: `${tokens.colors.loss}15`,
   },
   redeem: {
     icon: '✓',
@@ -66,10 +79,10 @@ export const ACTIVITY_TYPE_CONFIGS: Record<ActivityType, ActivityTypeConfig> = {
     bgColor: `${tokens.colors.profit}15`,
   },
   claim: {
-    icon: '🎁',
+    icon: '★',
     label: 'Claim',
-    color: tokens.colors.purple,
-    bgColor: `${tokens.colors.purple}15`,
+    color: tokens.colors.gold,
+    bgColor: `${tokens.colors.gold}15`,
   },
   transfer: {
     icon: '↔',
