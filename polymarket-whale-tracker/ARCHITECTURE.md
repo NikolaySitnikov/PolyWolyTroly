@@ -1107,3 +1107,165 @@ The whale profile now includes a tabbed interface for viewing positions, activit
     • Status computation
     • sortPositions function
 ```
+
+---
+
+## Activity History "Load More" Pattern
+
+The Activity tab supports progressive loading of historical activity beyond the initial 50 items:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     ACTIVITY LOAD MORE ARCHITECTURE                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  API ENDPOINT                                                           │
+    │                                                                         │
+    │  GET /api/wallets/:address/activity?limit=50&offset=0                  │
+    │                                                                         │
+    │  Parameters:                                                            │
+    │  • limit: Number of activities to fetch (max 100, default 50)          │
+    │  • offset: Number of activities to skip (for pagination)               │
+    │                                                                         │
+    │  Response:                                                              │
+    │  {                                                                      │
+    │    activity: PolymarketActivity[],                                     │
+    │    pagination: {                                                        │
+    │      limit: number,                                                     │
+    │      offset: number,                                                    │
+    │      count: number,        // Number returned in this batch            │
+    │      hasMore: boolean      // true if count === limit                  │
+    │    }                                                                    │
+    │  }                                                                      │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DATA FLOW                                                              │
+    │                                                                         │
+    │                     Initial Load                                        │
+    │                          │                                              │
+    │                          ▼                                              │
+    │    ┌─────────────────────────────────────────────────────────────────┐ │
+    │    │  fetchTradingData() → First 50 activities                       │ │
+    │    │  (via /api/wallets/:address/trading endpoint)                   │ │
+    │    └─────────────────────────────────────────────────────────────────┘ │
+    │                          │                                              │
+    │                          ▼                                              │
+    │    ┌─────────────────────────────────────────────────────────────────┐ │
+    │    │  User clicks "Load More Activity"                               │ │
+    │    └─────────────────────────────────────────────────────────────────┘ │
+    │                          │                                              │
+    │                          ▼                                              │
+    │    ┌─────────────────────────────────────────────────────────────────┐ │
+    │    │  loadMore() in useActivity hook                                 │ │
+    │    │                                                                  │ │
+    │    │  1. Calculate offset = allRawActivities.length                  │ │
+    │    │  2. Fetch: /api/wallets/:address/activity?limit=50&offset=X    │ │
+    │    │  3. Transform: response.activity.map(toActivity)                │ │
+    │    │  4. Dedupe: Filter by transactionHash                           │ │
+    │    │  5. Append: [...prev, ...unique]                                │ │
+    │    │  6. Update: setHasMoreFromApi(response.pagination.hasMore)      │ │
+    │    └─────────────────────────────────────────────────────────────────┘ │
+    │                          │                                              │
+    │                          ▼                                              │
+    │    ┌─────────────────────────────────────────────────────────────────┐ │
+    │    │  Combined with live WebSocket activities                         │ │
+    │    │  Sorted by timestamp (newest first)                              │ │
+    │    └─────────────────────────────────────────────────────────────────┘ │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  HOOK STATE (useActivity.ts)                                           │
+    │                                                                         │
+    │  New state for Load More:                                              │
+    │  • loadingMore: boolean       - Shows "Loading..." on button           │
+    │  • hasMoreFromApi: boolean    - Controls button visibility             │
+    │                                                                         │
+    │  Returned from hook:                                                    │
+    │  • hasMore: boolean           - Pass to UI components                  │
+    │  • loadMore: () => void       - Trigger fetch of next batch            │
+    │  • loadingMore: boolean       - Loading state for button               │
+    │  • loadedCount: number        - Total activities loaded so far         │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  UI COMPONENTS                                                          │
+    │                                                                         │
+    │  Desktop (ActivityHistoryTable.tsx):                                    │
+    │  ┌─────────────────────────────────────────────────────────────────┐   │
+    │  │  ... activity rows ...                                          │   │
+    │  │  ──────────────────────────────────────────────────────────────│   │
+    │  │              [ Load More Activity ]                             │   │
+    │  │         (only shown when hasMore=true)                          │   │
+    │  └─────────────────────────────────────────────────────────────────┘   │
+    │                                                                         │
+    │  Mobile (WalletProfile.tsx activity cards):                            │
+    │  ┌─────────────────────────────────────────────────────────────────┐   │
+    │  │  ... activity cards ...                                         │   │
+    │  │              [ Load More ]                                      │   │
+    │  │         (only shown when hasMore=true)                          │   │
+    │  └─────────────────────────────────────────────────────────────────┘   │
+    │                                                                         │
+    │  Button States:                                                         │
+    │  • Idle: "Load More Activity" (desktop) / "Load More" (mobile)         │
+    │  • Loading: "Loading..." with cursor: wait                             │
+    │  • Hover: Cyan border/text highlight                                   │
+    │  • Hidden: When hasMore=false (no more data)                           │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DEDUPLICATION                                                          │
+    │                                                                         │
+    │  Activities are deduped by transactionHash to prevent duplicates       │
+    │  when combining:                                                        │
+    │  • Live WebSocket activities (newest, highest priority)                │
+    │  • Initially fetched activities                                        │
+    │  • Load More activities                                                 │
+    │                                                                         │
+    │  const existingHashes = new Set(prev.map(a => a.transactionHash));     │
+    │  const unique = newActivities.filter(a =>                              │
+    │    !a.transactionHash || !existingHashes.has(a.transactionHash)        │
+    │  );                                                                     │
+    └────────────────────────────────────────────────────────────────────────┘
+```
+
+### Activity Type Color Scheme
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     ACTIVITY TYPE COLOR SCHEME                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────┬──────────────┬─────────────────────────────────────────┐
+    │  Activity Type │  Color       │  Semantic Meaning                       │
+    ├────────────────┼──────────────┼─────────────────────────────────────────┤
+    │ Buy            │  Green       │  Acquiring assets - positive action     │
+    │                │  #00ff88     │  "Adding to position"                   │
+    ├────────────────┼──────────────┼─────────────────────────────────────────┤
+    │ Sell           │  Red         │  Liquidating assets                     │
+    │                │  #ff3366     │  "Exiting position"                     │
+    ├────────────────┼──────────────┼─────────────────────────────────────────┤
+    │ Redeem         │  Gold        │  Cashing out resolved position          │
+    │                │  #f59e0b     │  "Collecting winnings"                  │
+    ├────────────────┼──────────────┼─────────────────────────────────────────┤
+    │ Claim          │  Purple      │  Rewards/incentives                     │
+    │                │  #8b5cf6     │  "Bonus or airdrop"                     │
+    ├────────────────┼──────────────┼─────────────────────────────────────────┤
+    │ Deposit        │  Green       │  Adding funds to platform               │
+    │                │  #00ff88     │  "Capital inflow"                       │
+    ├────────────────┼──────────────┼─────────────────────────────────────────┤
+    │ Withdrawal     │  Red         │  Removing funds from platform           │
+    │                │  #ff3366     │  "Capital outflow"                      │
+    ├────────────────┼──────────────┼─────────────────────────────────────────┤
+    │ Transfer       │  Gray        │  Moving between wallets                 │
+    │                │  #7a8899     │  "Neutral movement"                     │
+    └────────────────┴──────────────┴─────────────────────────────────────────┘
+
+    Design Rationale:
+    • Buy/Deposit = Green: Acquiring assets or adding capital (positive)
+    • Sell/Withdrawal = Red: Liquidating or removing capital (negative)
+    • Redeem = Gold: Cashing out winning positions (celebratory)
+    • Claim = Purple: Special rewards/incentives (distinct from trades)
+    • Transfer = Gray: Neutral wallet-to-wallet movement
+```
