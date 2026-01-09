@@ -56,6 +56,12 @@ interface ProfileTabsProps {
 
 /**
  * Tab button component
+ *
+ * Design Philosophy:
+ * - Active state uses clean white text (not cyan) for elegance
+ * - Underline uses a subtle gradient (cyan → purple) for visual interest
+ * - Cyan is reserved for interactive emphasis, not static labels
+ * - Count badges are subtle, not attention-grabbing
  */
 function TabButton({
   tab,
@@ -82,31 +88,43 @@ function TabButton({
         alignItems: 'center',
         gap: isMobile ? '6px' : '8px',
         padding: isMobile ? '10px 14px' : '12px 20px',
-        background: isActive ? tokens.colors.surface : 'transparent',
+        background: 'transparent',
         border: 'none',
-        borderBottom: `2px solid ${isActive ? tokens.colors.cyan : 'transparent'}`,
+        borderBottom: 'none', // We'll use a pseudo-element effect via wrapper
         fontFamily: tokens.fonts.body,
         fontSize: isMobile ? '13px' : '14px',
         fontWeight: isActive ? 600 : 500,
-        color: isActive ? tokens.colors.cyan : tokens.colors.textSecondary,
+        color: isActive ? tokens.colors.textPrimary : tokens.colors.textSecondary,
         cursor: 'pointer',
-        transition: 'all 0.15s ease',
+        transition: 'all 0.2s ease',
         whiteSpace: 'nowrap',
         position: 'relative',
       }}
       onMouseEnter={(e) => {
         if (!isActive) {
           e.currentTarget.style.color = tokens.colors.textPrimary;
-          e.currentTarget.style.background = tokens.colors.surfaceHover;
         }
       }}
       onMouseLeave={(e) => {
         if (!isActive) {
           e.currentTarget.style.color = tokens.colors.textSecondary;
-          e.currentTarget.style.background = 'transparent';
         }
       }}
     >
+      {/* Gradient underline for active state */}
+      {isActive && (
+        <span
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: isMobile ? '14px' : '20px',
+            right: isMobile ? '14px' : '20px',
+            height: '2px',
+            background: `linear-gradient(90deg, ${tokens.colors.cyan} 0%, ${tokens.colors.purple} 100%)`,
+            borderRadius: '2px 2px 0 0',
+          }}
+        />
+      )}
       <span style={{ fontSize: isMobile ? '14px' : '16px' }}>{tab.icon}</span>
       <span>{tab.label}</span>
       {count !== undefined && count > 0 && (
@@ -115,16 +133,16 @@ function TabButton({
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            minWidth: '20px',
-            height: '20px',
+            minWidth: '22px',
+            height: '22px',
             padding: '0 6px',
-            background: isActive ? `${tokens.colors.cyan}20` : tokens.colors.surface,
-            border: `1px solid ${isActive ? tokens.colors.cyan : tokens.colors.border}`,
-            borderRadius: '10px',
+            background: isActive ? `${tokens.colors.textPrimary}10` : tokens.colors.surface,
+            border: `1px solid ${isActive ? `${tokens.colors.textPrimary}30` : tokens.colors.border}`,
+            borderRadius: '11px',
             fontFamily: tokens.fonts.mono,
             fontSize: '11px',
             fontWeight: 600,
-            color: isActive ? tokens.colors.cyan : tokens.colors.textMuted,
+            color: isActive ? tokens.colors.textPrimary : tokens.colors.textMuted,
           }}
         >
           {count > 99 ? '99+' : count}
