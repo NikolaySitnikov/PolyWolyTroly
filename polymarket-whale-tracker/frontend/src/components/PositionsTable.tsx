@@ -127,7 +127,7 @@ function StatusDot({ status }: { status: 'active' | 'redeemable' }) {
             height: '6px',
             borderRadius: '50%',
             background: color,
-            boxShadow: status === 'active' ? `0 0 6px ${color}` : 'none',
+            boxShadow: `0 0 6px ${color}`,
           }}
         />
       </span>
