@@ -353,6 +353,38 @@ Short format: 0x1234...5678
 - Click to copy interaction
 ```
 
+### Tooltips
+
+The Tooltip component supports variants for different use cases:
+
+**Default Variant** (for status indicators, small labels):
+```
+- Max-width: 280px
+- Padding: 8px 12px
+- Border: 1px solid var(--border)
+- Font-size: 12px
+- Color: var(--text-secondary)
+- Animation: fadeInUp 150ms
+```
+
+**Title Variant** (for truncated market titles):
+```
+- Max-width: 400px
+- Padding: 12px 16px
+- Border: 1px solid cyan at 40% opacity
+- Font-size: 14px
+- Font-weight: 500
+- Color: var(--text-primary) - white for readability
+- Box-shadow: Enhanced with cyan glow
+```
+
+#### Truncation Detection
+
+The `TruncatedText` component automatically detects when text is truncated:
+- Compares `scrollWidth` vs `clientWidth`
+- Only shows tooltip when text doesn't fit
+- Re-checks on window resize
+
 ---
 
 ## 🐋 The Whale Mascot

@@ -81,13 +81,38 @@ Each position displays a category tag with sport-specific emoji:
 
 See `CLOSED_POSITIONS_FEATURE.md` for complete team lists.
 
-### 4. Outcome Badge
+### 4. Truncated Market Title Tooltip
+
+Long market titles are truncated with ellipsis and show a styled tooltip on hover:
+
+#### TruncatedText Component
+
+The `TruncatedText` component:
+1. Detects when text is actually truncated (using `scrollWidth > clientWidth`)
+2. Only shows tooltip when text doesn't fit
+3. Uses the `title` variant of the Tooltip component for better readability
+
+#### Tooltip "title" Variant Styling
+
+| Property | Value |
+|----------|-------|
+| Max Width | 400px (vs 280px default) |
+| Padding | `tokens.spacing[3]` × `tokens.spacing[4]` |
+| Border | Cyan accent (`tokens.colors.cyan + '40'`) |
+| Font Size | `tokens.fontSizes.sm` (14px) |
+| Font Weight | 500 (medium) |
+| Text Color | `tokens.colors.textPrimary` (white) |
+| Shadow | Enhanced with cyan glow |
+
+This variant provides better readability for market titles compared to the default tooltip style.
+
+### 5. Outcome Badge
 
 Displays YES/NO badge with semantic colors:
 - YES: Green (`tokens.colors.profit`)
 - NO: Red (`tokens.colors.loss`)
 
-### 5. Pagination
+### 6. Pagination
 
 - Default: 10 items per page
 - Uses `Pagination` component
