@@ -24,6 +24,26 @@ npm run dev -- --host
 - Local: http://localhost:5173
 - Network: http://<your-ip>:5173
 
+### Starting Services via Claude Code
+
+When using Claude Code to start services, use `nohup` to prevent processes from being killed when the conversation progresses:
+
+```bash
+# Backend (from polymarket-whale-tracker directory)
+nohup npm run dev:api > /tmp/polywoly-api.log 2>&1 &
+
+# Frontend (from polymarket-whale-tracker/frontend directory)
+nohup npm run dev -- --host > /tmp/polywoly-frontend.log 2>&1 &
+```
+
+**Important**: Do NOT use Claude Code's `run_in_background` parameter - those processes get killed between messages. Always use `nohup` directly.
+
+To check logs:
+```bash
+tail -f /tmp/polywoly-api.log      # Backend logs
+tail -f /tmp/polywoly-frontend.log # Frontend logs
+```
+
 ### Access from Other Devices (same WiFi)
 
 To find your local IP:
