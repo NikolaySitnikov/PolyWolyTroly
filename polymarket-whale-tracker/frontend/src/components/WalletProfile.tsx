@@ -646,11 +646,13 @@ export function WalletProfile({
                 </button>
               </div>
 
-              {/* Positions content - stable container prevents layout shift when switching filters */}
+              {/* Positions content - both views rendered, hidden via CSS to prevent layout shift */}
               <div style={{ minHeight: '200px' }}>
-                {/* Closed positions view */}
-                {positionStatusFilter === 'closed' ? (
-                  <div style={{ padding: isMobile ? '16px' : '0' }}>
+                {/* Closed positions view - hidden when not active */}
+                <div style={{
+                  display: positionStatusFilter === 'closed' ? 'block' : 'none',
+                  padding: isMobile ? '16px' : '0',
+                }}>
                   {closedLoading && closedPositions.length === 0 ? (
                     <div
                       style={{
@@ -885,9 +887,14 @@ export function WalletProfile({
                     </>
                   )}
                 </div>
-              ) : isMobile ? (
-                /* Mobile: Card list for active/redeemable/all */
-                <div style={{ padding: '16px' }}>
+
+                {/* Active/Redeemable/All positions view - hidden when closed is active */}
+                {isMobile ? (
+                  /* Mobile: Card list for active/redeemable/all */
+                  <div style={{
+                    display: positionStatusFilter !== 'closed' ? 'block' : 'none',
+                    padding: '16px',
+                  }}>
                   {tradingLoading && positions.length === 0 ? (
                     <div
                       style={{
@@ -962,19 +969,22 @@ export function WalletProfile({
                       ))}
                     </div>
                   )}
-                </div>
-              ) : (
-                /* Desktop: Table for active/redeemable/all */
-                <div style={{ padding: '0' }}>
-                  <PositionsTable
-                    positions={filteredPositions}
-                    loading={tradingLoading && positions.length === 0}
-                    onPositionClick={(position) => {
-                      window.open(`https://polymarket.com/event/${position.eventSlug}`, '_blank');
-                    }}
-                  />
-                </div>
-              )}
+                  </div>
+                ) : (
+                  /* Desktop: Table for active/redeemable/all */
+                  <div style={{
+                    display: positionStatusFilter !== 'closed' ? 'block' : 'none',
+                    padding: '0',
+                  }}>
+                    <PositionsTable
+                      positions={filteredPositions}
+                      loading={tradingLoading && positions.length === 0}
+                      onPositionClick={(position) => {
+                        window.open(`https://polymarket.com/event/${position.eventSlug}`, '_blank');
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </>
           )}
