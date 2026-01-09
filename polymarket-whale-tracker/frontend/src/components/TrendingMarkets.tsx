@@ -1019,11 +1019,8 @@ export function TrendingMarkets({
               gap: '4px',
               fontFamily: tokens.fonts.mono,
               fontSize: '12px',
-              color: tokens.colors.cyan,
+              color: tokens.colors.textMuted,
               textDecoration: 'none',
-              padding: '6px 10px',
-              background: `${tokens.colors.cyan}10`,
-              borderRadius: '8px',
             }}
           >
             View all →
@@ -1167,23 +1164,17 @@ export function TrendingMarkets({
           target="_blank"
           rel="noopener noreferrer"
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
             fontFamily: tokens.fonts.mono,
             fontSize: '12px',
-            color: tokens.colors.cyan,
+            color: tokens.colors.textMuted,
             textDecoration: 'none',
-            padding: '6px 10px',
-            background: `${tokens.colors.cyan}10`,
-            borderRadius: '8px',
-            transition: 'background 0.2s ease',
+            transition: 'color 0.2s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = `${tokens.colors.cyan}20`;
+            e.currentTarget.style.color = tokens.colors.cyan;
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = `${tokens.colors.cyan}10`;
+            e.currentTarget.style.color = tokens.colors.textMuted;
           }}
         >
           View all →
