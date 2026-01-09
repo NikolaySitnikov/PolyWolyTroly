@@ -76,7 +76,16 @@ To change the minimum deposit amount for Telegram alerts:
 
 **Important**: Multiple stale processes can cause alerts with old thresholds. Always verify only one blockchain listener is running:
 ```bash
+# Check for TypeScript source processes
 ps aux | grep "src/index.ts" | grep -v grep
+
+# Also check for compiled JavaScript processes (dist/index.js)
+ps aux | grep "dist/index.js" | grep -v grep
+```
+
+**Warning**: If you previously ran `npm run build` and started `node dist/index.js`, that process may still be running with old settings. Kill it with:
+```bash
+pkill -f "dist/index.js"
 ```
 
 ---
