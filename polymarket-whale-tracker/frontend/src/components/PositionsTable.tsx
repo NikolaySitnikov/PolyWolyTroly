@@ -157,8 +157,7 @@ function OutcomeBadge({ outcome }: { outcome: string }) {
   return (
     <span
       style={{
-        display: 'inline-flex',
-        alignItems: 'center',
+        display: 'inline-block',
         padding: '3px 8px',
         background: `${color}15`,
         border: `1px solid ${color}40`,
@@ -167,7 +166,12 @@ function OutcomeBadge({ outcome }: { outcome: string }) {
         fontSize: '11px',
         fontWeight: 600,
         color,
-        whiteSpace: 'nowrap',
+        lineHeight: 1.3,
+        // Stay on one line when there's space, but allow wrapping when constrained
+        // Using 'normal' allows natural word-based wrapping when the cell is narrow
+        whiteSpace: 'normal',
+        wordBreak: 'normal',
+        overflowWrap: 'break-word',
       }}
     >
       {outcome}
@@ -225,6 +229,7 @@ function SortableHeader({
   currentDir,
   onSort,
   align = 'left',
+  width,
 }: {
   label: string;
   field: PositionSortField;
@@ -232,6 +237,7 @@ function SortableHeader({
   currentDir: SortDirection;
   onSort: (field: PositionSortField) => void;
   align?: 'left' | 'right';
+  width?: string;
 }) {
   const isActive = currentField === field;
 
@@ -248,6 +254,7 @@ function SortableHeader({
     whiteSpace: 'nowrap',
     userSelect: 'none',
     transition: 'color 0.15s ease',
+    width,
   };
 
   return (
@@ -578,6 +585,7 @@ export function PositionsTable({
                 currentDir={sortDir}
                 onSort={handleSort}
                 align="left"
+                width="30%"
               />
               <th
                 style={{
@@ -589,7 +597,7 @@ export function PositionsTable({
                   letterSpacing: '0.1em',
                   color: tokens.colors.textMuted,
                   textAlign: 'left',
-                  width: '10%',
+                  width: '15%',
                 }}
               >
                 Position
@@ -634,12 +642,18 @@ export function PositionsTable({
                     e.currentTarget.style.color = tokens.colors.textMuted;
                   }
                 }}
-                title={`Click to sort, right-click or Shift+click to toggle ${sizeDisplayMode === 'value' ? 'shares' : 'value'}`}
               >
-                {sizeDisplayMode === 'value' ? 'Size' : 'Shares'}
-                {sortField === 'currentValue' && (
-                  <span style={{ marginLeft: '4px' }}>{sortDir === 'desc' ? '↓' : '↑'}</span>
-                )}
+                <Tooltip
+                  content={`Click to sort, right-click or Shift+click to toggle ${sizeDisplayMode === 'value' ? 'shares' : 'value'}`}
+                  placement="top"
+                >
+                  <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    {sizeDisplayMode === 'value' ? 'Size' : 'Shares'}
+                    {sortField === 'currentValue' && (
+                      <span style={{ marginLeft: '4px' }}>{sortDir === 'desc' ? '↓' : '↑'}</span>
+                    )}
+                  </span>
+                </Tooltip>
               </th>
               <th
                 style={{
@@ -678,6 +692,7 @@ export function PositionsTable({
                 currentDir={sortDir}
                 onSort={handleSort}
                 align="right"
+                width="13%"
               />
             </tr>
           </thead>
@@ -710,7 +725,7 @@ export function PositionsTable({
                     }}
                   >
                     {/* Market */}
-                    <td style={{ ...cellStyle, width: '35%' }}>
+                    <td style={{ ...cellStyle }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <CategoryTag category={category} size="small" iconOverride={sportEmoji} />
@@ -721,7 +736,7 @@ export function PositionsTable({
                     </td>
 
                     {/* Position (YES/NO) */}
-                    <td style={{ ...cellStyle, width: '10%' }}>
+                    <td style={{ ...cellStyle }}>
                       <OutcomeBadge outcome={position.normalizedOutcome} />
                     </td>
 
