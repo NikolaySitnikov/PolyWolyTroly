@@ -837,44 +837,18 @@ function App() {
       {(() => {
         // Determine if ticker is visible to adjust padding
         const tickerVisible = showLiveTicker && !alertsLoading && alerts.length > 0;
-        const mobilePaddingTop = tickerVisible
-          ? LAYOUT.content.paddingTop.mobile
-          : LAYOUT.content.paddingTopNoTicker.mobile;
-        const desktopPaddingTop = tickerVisible
-          ? LAYOUT.content.paddingTop.desktop
-          : LAYOUT.content.paddingTopNoTicker.desktop;
+        const paddingTop = tickerVisible
+          ? (isMobile ? LAYOUT.content.paddingTop.mobile : LAYOUT.content.paddingTop.desktop)
+          : (isMobile ? LAYOUT.content.paddingTopNoTicker.mobile : LAYOUT.content.paddingTopNoTicker.desktop);
 
-        return isMobile ? (
-          <PullToRefresh onRefresh={handlePullToRefresh}>
-            <main
-              style={{
-                position: 'relative',
-                zIndex: 2,
-                padding: tokens.spacing[4],
-                paddingTop: mobilePaddingTop,
-                paddingBottom: LAYOUT.content.paddingBottom.mobile,
-                maxWidth: '1400px',
-                margin: '0 auto',
-              }}
-            >
-              {/* View content */}
-              {currentView === 'dashboard' && renderDashboardContent()}
-              {currentView === 'whales' && renderWhalesContent()}
-              {currentView === 'alerts' && renderAlertsContent()}
-              {currentView === 'wallet' && renderWalletContent()}
-
-              {/* Settings page */}
-              {currentView === 'settings' && <Settings isMobile={isMobile} />}
-            </main>
-          </PullToRefresh>
-        ) : (
+        const mainContent = (
           <main
             style={{
               position: 'relative',
               zIndex: 2,
-              padding: tokens.spacing[8],
-              paddingTop: desktopPaddingTop,
-              paddingBottom: LAYOUT.content.paddingBottom.desktop,
+              padding: isMobile ? tokens.spacing[4] : tokens.spacing[8],
+              paddingTop,
+              paddingBottom: isMobile ? LAYOUT.content.paddingBottom.mobile : LAYOUT.content.paddingBottom.desktop,
               maxWidth: '1400px',
               margin: '0 auto',
             }}
@@ -888,6 +862,14 @@ function App() {
             {/* Settings page */}
             {currentView === 'settings' && <Settings isMobile={isMobile} />}
           </main>
+        );
+
+        // Always wrap with PullToRefresh but disable on desktop
+        // This maintains consistent React tree structure so state persists on resize
+        return (
+          <PullToRefresh onRefresh={handlePullToRefresh} disabled={!isMobile}>
+            {mainContent}
+          </PullToRefresh>
         );
       })()}
 

@@ -57,42 +57,28 @@ function getPnlColor(pnl: number): string {
 }
 
 /**
- * Status badge component
+ * Status dot component - matches desktop StatusDot
+ * Just a colored dot with glow, no text label
  */
-function StatusBadge({ status }: { status: 'active' | 'resolved' | 'expired' }) {
+function StatusDot({ status }: { status: 'active' | 'redeemable' }) {
   const config = {
-    active: { color: tokens.colors.live, label: 'Active' },
-    resolved: { color: tokens.colors.purple, label: 'Resolved' },
-    expired: { color: tokens.colors.textMuted, label: 'Expired' },
+    active: { color: tokens.colors.live },
+    redeemable: { color: tokens.colors.purple },
   };
 
-  const { color, label } = config[status];
+  const { color } = config[status];
 
   return (
     <span
       style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '4px',
-        fontFamily: tokens.fonts.mono,
-        fontSize: '10px',
-        fontWeight: 500,
-        color,
-        textTransform: 'uppercase',
-        letterSpacing: '0.05em',
+        display: 'inline-block',
+        width: '6px',
+        height: '6px',
+        borderRadius: '50%',
+        background: color,
+        boxShadow: `0 0 6px ${color}`,
       }}
-    >
-      <span
-        style={{
-          width: '6px',
-          height: '6px',
-          borderRadius: '50%',
-          background: color,
-          boxShadow: status === 'active' ? `0 0 6px ${color}` : 'none',
-        }}
-      />
-      {label}
-    </span>
+    />
   );
 }
 
@@ -215,7 +201,7 @@ export function PositionCard({ position, onClick }: PositionCardProps) {
         }}
       >
         <CategoryTag category={category} size="small" iconOverride={sportEmoji} />
-        <StatusBadge status={position.status} />
+        <StatusDot status={position.status} />
       </div>
 
       {/* Market Question */}

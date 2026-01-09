@@ -137,6 +137,103 @@ When creating a new mobile card component, verify:
 
 ---
 
+## Status Dots (Not Badges)
+
+Position cards display a status indicator for active/redeemable positions. Both mobile and desktop use the same **StatusDot** pattern:
+
+### StatusDot Specification
+
+| Property | Value | Notes |
+|----------|-------|-------|
+| Size | 6px × 6px | Compact, unobtrusive |
+| Border-radius | 50% | Perfect circle |
+| Active color | `tokens.colors.live` (green) | Market is live |
+| Redeemable color | `tokens.colors.purple` | Claim your winnings |
+| Glow effect | `boxShadow: 0 0 6px ${color}` | Both statuses have glow |
+
+### Implementation
+
+```typescript
+function StatusDot({ status }: { status: 'active' | 'redeemable' }) {
+  const config = {
+    active: { color: tokens.colors.live },
+    redeemable: { color: tokens.colors.purple },
+  };
+
+  const { color } = config[status];
+
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        width: '6px',
+        height: '6px',
+        borderRadius: '50%',
+        background: color,
+        boxShadow: `0 0 6px ${color}`,
+      }}
+    />
+  );
+}
+```
+
+### What NOT to do
+
+- ❌ Don't spell out "ACTIVE" or "REDEEMABLE" text labels on mobile
+- ❌ Don't use different patterns for mobile vs desktop
+- ❌ Don't forget the glow effect on either status
+- ✅ Use the same StatusDot component pattern on both platforms
+
+---
+
+## Viewport Resize State Persistence
+
+When users resize from desktop to mobile (or vice versa), component state should persist. This is especially important for:
+
+- Filter selections (Active, Redeemable, All, Closed)
+- Sort selections
+- Pagination state
+- Expanded/collapsed sections
+
+### The Problem
+
+Conditional rendering with different wrapper components causes React to unmount/remount children:
+
+```typescript
+// ❌ BAD: Different tree structures cause state loss
+return isMobile ? (
+  <PullToRefresh>
+    <main>{content}</main>
+  </PullToRefresh>
+) : (
+  <>{content}</>
+);
+```
+
+### The Solution
+
+Always use the same wrapper but with conditional behavior:
+
+```typescript
+// ✅ GOOD: Consistent tree structure preserves state
+return (
+  <PullToRefresh onRefresh={handleRefresh} disabled={!isMobile}>
+    <main>{content}</main>
+  </PullToRefresh>
+);
+```
+
+### Implementation Details
+
+1. **PullToRefresh** component accepts a `disabled` prop
+2. When `disabled={true}`, it renders children without pull-to-refresh behavior
+3. This maintains consistent React tree structure across viewport changes
+4. Child component state (like filter selections) persists through resize
+
+**File:** `frontend/src/App.tsx` (lines 867-873)
+
+---
+
 ## Files Changed (January 4, 2026)
 
 1. **Created:** `frontend/src/styles/cardStyles.ts`
@@ -155,6 +252,23 @@ When creating a new mobile card component, verify:
 3. **Updated:** `frontend/src/components/WhaleTable.tsx`
    - Updated to import and use `formatCardTime()`
    - Removed local `formatDate()` function
+
+## Files Changed (January 8, 2026)
+
+1. **Updated:** `frontend/src/components/PositionCard.tsx`
+   - Replaced `StatusBadge` with `StatusDot` to match desktop pattern
+   - Removed text labels ("ACTIVE", "REDEEMABLE")
+   - Added glow effect for both active and redeemable statuses
+   - Fixed type to accept `'active' | 'redeemable'` (matching Position type)
+
+2. **Updated:** `frontend/src/App.tsx`
+   - Changed conditional PullToRefresh wrapping to always wrap
+   - Uses `disabled={!isMobile}` to maintain consistent React tree
+   - Fixes filter state persistence on viewport resize
+
+3. **Updated:** `frontend/src/components/WalletProfile.tsx`
+   - Made Active, Redeemable, All filter buttons use consistent white styling
+   - All filters now use `textSecondary` border and `textPrimary` text when selected
 
 ---
 
