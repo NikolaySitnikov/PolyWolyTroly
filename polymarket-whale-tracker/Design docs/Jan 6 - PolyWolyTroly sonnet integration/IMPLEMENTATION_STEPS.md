@@ -249,7 +249,7 @@ This document breaks down the "sonnet Integration Plan" into 10 discrete impleme
 
 ---
 
-## Step 8: Activity History Display
+## Step 8: Activity History Display ✅ COMPLETED
 **Goal:** Display transaction history on wallet profile
 
 ### Tasks:
@@ -272,15 +272,37 @@ This document breaks down the "sonnet Integration Plan" into 10 discrete impleme
    - Integrate activity filter state
    - Move existing deposit history to "Deposits" tab (or merge)
 
+4. Fix activity type normalization:
+   - Handle TRADE type with side field (BUY/SELL)
+   - Convert Unix seconds timestamps to milliseconds
+
 ### Verification:
-- [ ] Navigate to whale profile
-- [ ] Click Activity tab
-- [ ] Verify activity items display with correct icons and colours
-- [ ] Verify buy = cyan, sell = magenta, deposit = green, withdrawal = red
-- [ ] Test filter pills work
-- [ ] Verify timestamps show relative time
-- [ ] Click Polygonscan link - verify it opens correct transaction
-- [ ] Compare mobile card vs desktop table views
+- [x] Navigate to whale profile
+- [x] Click Activity tab
+- [x] Verify activity items display with correct icons and colours
+- [x] Verify buy = cyan, sell = magenta, deposit = green, withdrawal = red
+- [x] Test filter pills work
+- [x] Verify timestamps show relative time
+- [x] Click Polygonscan link - verify it opens correct transaction
+- [x] Compare mobile card vs desktop table views
+
+### Implementation Details:
+**Files Created:**
+- `frontend/src/components/ActivityCard.tsx` - Mobile activity card with skeleton
+- `frontend/src/components/ActivityCard.test.tsx` - 16 unit tests
+- `frontend/src/components/ActivityHistoryTable.tsx` - Desktop table with filters, sorting, pagination
+- `frontend/src/components/ActivityHistoryTable.test.tsx` - 19 unit tests
+
+**Files Modified:**
+- `frontend/src/components/WalletProfile.tsx` - Integrated Activity tab
+- `frontend/src/types/activity.ts` - Fixed TRADE type normalization and timestamp conversion
+- `frontend/src/types/activity.test.ts` - Added tests for TRADE type and timestamp conversion
+
+**Key Fixes:**
+- API returns `type: "TRADE"` with `side: "BUY"/"SELL"` - now properly normalized
+- API returns Unix seconds (10 digits) - now converted to milliseconds (13 digits)
+
+**Test Results:** 73 activity-related tests pass
 
 ---
 

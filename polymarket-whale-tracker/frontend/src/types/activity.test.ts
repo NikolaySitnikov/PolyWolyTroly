@@ -62,6 +62,19 @@ describe('Activity Types', () => {
       expect(normalizeActivityType('')).toBe('unknown');
       expect(normalizeActivityType(undefined)).toBe('unknown');
     });
+
+    it('should normalize TRADE type based on side field', () => {
+      expect(normalizeActivityType('TRADE', 'BUY')).toBe('buy');
+      expect(normalizeActivityType('TRADE', 'SELL')).toBe('sell');
+      expect(normalizeActivityType('trade', 'buy')).toBe('buy');
+      expect(normalizeActivityType('trade', 'sell')).toBe('sell');
+    });
+
+    it('should return unknown for TRADE without valid side', () => {
+      expect(normalizeActivityType('TRADE')).toBe('unknown');
+      expect(normalizeActivityType('TRADE', '')).toBe('unknown');
+      expect(normalizeActivityType('TRADE', 'invalid')).toBe('unknown');
+    });
   });
 
   describe('ACTIVITY_TYPE_CONFIGS', () => {
@@ -94,7 +107,7 @@ describe('Activity Types', () => {
     it('should convert raw Polymarket activity to Activity', () => {
       const raw: PolymarketActivity = {
         proxyWallet: '0x123',
-        timestamp: 1704067200,
+        timestamp: 1704067200000, // Already in milliseconds
         type: 'buy',
         conditionId: 'cond123',
         title: 'Will X happen?',
@@ -113,7 +126,35 @@ describe('Activity Types', () => {
       expect(activity.normalizedType).toBe('buy');
       expect(activity.config).toBe(ACTIVITY_TYPE_CONFIGS.buy);
       expect(activity.proxyWallet).toBe('0x123');
-      expect(activity.timestamp).toBe(1704067200);
+      expect(activity.timestamp).toBe(1704067200000);
+    });
+
+    it('should convert timestamp from seconds to milliseconds', () => {
+      const raw: PolymarketActivity = {
+        proxyWallet: '0x123',
+        timestamp: 1704067200, // Unix seconds
+        type: 'buy',
+        side: 'BUY',
+      };
+
+      const activity = toActivity(raw);
+
+      // Should be converted to milliseconds
+      expect(activity.timestamp).toBe(1704067200000);
+    });
+
+    it('should handle TRADE type with side field', () => {
+      const raw: PolymarketActivity = {
+        proxyWallet: '0x123',
+        timestamp: 1704067200,
+        type: 'TRADE',
+        side: 'BUY',
+      };
+
+      const activity = toActivity(raw);
+
+      expect(activity.normalizedType).toBe('buy');
+      expect(activity.config).toBe(ACTIVITY_TYPE_CONFIGS.buy);
     });
 
     it('should handle unknown types gracefully', () => {

@@ -23,9 +23,13 @@ import { ProfileTabs, type ProfileTabId } from './ProfileTabs';
 import { PositionsTable, type SizeDisplayMode } from './PositionsTable';
 import { PositionCard, PositionCardSkeleton } from './PositionCard';
 import { ClosedPositionCard } from './ClosedPositionCard';
+import { ActivityHistoryTable } from './ActivityHistoryTable';
+import { ActivityCard, ActivityCardSkeleton } from './ActivityCard';
 import { usePolymarketTrading } from '../hooks/usePolymarketTrading';
 import { useClosedPositions } from '../hooks/useClosedPositions';
+import { useActivity } from '../hooks/useActivity';
 import { sortPositions, type PositionSortField } from '../types/position';
+import { filterActivities, type ActivityFilterOption } from '../types/activity';
 import type { WalletData, WalletDeposit } from '../hooks/useWallet';
 import type { PnlTimeWindow } from '../types/polymarket';
 
@@ -162,6 +166,23 @@ export function WalletProfile({
     enabled: positionStatusFilter === 'closed',
     pageSize: 25,
   });
+
+  // Fetch activity history (lazy-loaded when Activity tab is selected)
+  const [activityFilter, setActivityFilter] = useState<ActivityFilterOption>('all');
+  const {
+    allActivities,
+    loading: activityLoading,
+    error: activityError,
+  } = useActivity(wallet.address, {
+    enabled: activeTab === 'activity',
+    pageSize: 50,
+    filter: activityFilter,
+  });
+
+  // Filter activities based on selected filter
+  const filteredActivities = useMemo(() => {
+    return filterActivities(allActivities, activityFilter);
+  }, [allActivities, activityFilter]);
 
   // Filter positions by status (active/redeemable) and search term
   // Active: curPrice > 0 (market still live, can trade)
@@ -1098,28 +1119,89 @@ export function WalletProfile({
             </>
           )}
 
-          {/* Activity Tab - Placeholder for Step 8 */}
+          {/* Activity Tab */}
           {activeTab === 'activity' && (
-            <div
-              style={{
-                padding: '48px 20px',
-                textAlign: 'center',
-                color: tokens.colors.textMuted,
-              }}
-            >
-              <div style={{ fontSize: '32px', marginBottom: '16px' }}>📜</div>
-              <div
-                style={{
-                  fontFamily: tokens.fonts.display,
-                  fontSize: '18px',
-                  color: tokens.colors.textPrimary,
-                  marginBottom: '8px',
-                }}
-              >
-                Activity Coming Soon
-              </div>
-              <p style={{ margin: 0 }}>Trading activity history will be available in a future update</p>
-            </div>
+            <>
+              {activityError ? (
+                <div
+                  style={{
+                    padding: '48px 20px',
+                    textAlign: 'center',
+                    color: tokens.colors.textMuted,
+                  }}
+                >
+                  <div style={{ fontSize: '32px', marginBottom: '16px' }}>⚠️</div>
+                  <div
+                    style={{
+                      fontFamily: tokens.fonts.display,
+                      fontSize: '18px',
+                      color: tokens.colors.textPrimary,
+                      marginBottom: '8px',
+                    }}
+                  >
+                    Error loading activity
+                  </div>
+                  <p style={{ margin: 0 }}>{activityError}</p>
+                </div>
+              ) : isMobile ? (
+                /* Mobile: Activity cards */
+                <div style={{ padding: '16px' }}>
+                  {activityLoading && allActivities.length === 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <ActivityCardSkeleton key={i} />
+                      ))}
+                    </div>
+                  ) : allActivities.length === 0 ? (
+                    <div
+                      style={{
+                        padding: '48px 20px',
+                        textAlign: 'center',
+                        color: tokens.colors.textMuted,
+                      }}
+                    >
+                      <div style={{ fontSize: '32px', marginBottom: '16px' }}>📜</div>
+                      <div
+                        style={{
+                          fontFamily: tokens.fonts.display,
+                          fontSize: '18px',
+                          color: tokens.colors.textPrimary,
+                          marginBottom: '8px',
+                        }}
+                      >
+                        No activity found
+                      </div>
+                      <p style={{ margin: 0 }}>This whale has no transaction history yet</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {filteredActivities.map((activity) => (
+                        <ActivityCard
+                          key={`${activity.timestamp}-${activity.transactionHash || Math.random()}`}
+                          activity={activity}
+                          onClick={activity.slug ? () => {
+                            window.open(`https://polymarket.com/event/${activity.slug}`, '_blank');
+                          } : undefined}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Desktop: Activity table */
+                <ActivityHistoryTable
+                  activities={filteredActivities}
+                  loading={activityLoading && allActivities.length === 0}
+                  filter={activityFilter}
+                  onFilterChange={setActivityFilter}
+                  onActivityClick={(activity) => {
+                    if (activity.slug) {
+                      window.open(`https://polymarket.com/event/${activity.slug}`, '_blank');
+                    }
+                  }}
+                />
+              )}
+            </>
           )}
 
           {/* Deposits Tab */}

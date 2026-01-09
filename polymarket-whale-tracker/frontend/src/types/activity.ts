@@ -99,11 +99,20 @@ export interface Activity extends PolymarketActivity {
 
 /**
  * Normalize raw activity type string to ActivityType
+ * Handles various Polymarket API type formats including TRADE with side field
  */
-export function normalizeActivityType(rawType?: string): ActivityType {
+export function normalizeActivityType(rawType?: string, side?: string): ActivityType {
   if (!rawType) return 'unknown';
 
   const lower = rawType.toLowerCase();
+
+  // Handle TRADE type - determine buy/sell based on side field
+  if (lower === 'trade') {
+    const sideLower = side?.toLowerCase();
+    if (sideLower === 'buy') return 'buy';
+    if (sideLower === 'sell') return 'sell';
+    return 'unknown'; // TRADE without valid side
+  }
 
   if (lower.includes('deposit') || lower === 'usdc_deposit') {
     return 'deposit';
@@ -132,13 +141,21 @@ export function normalizeActivityType(rawType?: string): ActivityType {
 
 /**
  * Convert raw Polymarket activity to UI Activity
+ * Normalizes timestamp (converts seconds to milliseconds if needed)
  */
 export function toActivity(raw: PolymarketActivity): Activity {
-  const normalizedType = normalizeActivityType(raw.type);
+  const normalizedType = normalizeActivityType(raw.type, raw.side);
   const config = ACTIVITY_TYPE_CONFIGS[normalizedType];
+
+  // Normalize timestamp: if it looks like seconds (< year 2100 in ms), convert to ms
+  // Timestamps in seconds are roughly 10 digits, in milliseconds 13 digits
+  const timestamp = raw.timestamp < 10000000000
+    ? raw.timestamp * 1000  // Convert seconds to milliseconds
+    : raw.timestamp;
 
   return {
     ...raw,
+    timestamp,
     normalizedType,
     config,
   };
