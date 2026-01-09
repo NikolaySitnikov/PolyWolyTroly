@@ -348,7 +348,6 @@ function SizeCell({
   onToggle: () => void;
   cellStyle: CSSProperties;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
   const [showAlternate, setShowAlternate] = useState(false);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -364,7 +363,6 @@ function SizeCell({
 
   // Handle hover with delay - prevents jarring flashes on accidental hovers
   const handleMouseEnter = useCallback(() => {
-    setIsHovered(true);
     // Small delay before showing alternate value
     hoverTimeoutRef.current = setTimeout(() => {
       setShowAlternate(true);
@@ -372,7 +370,6 @@ function SizeCell({
   }, []);
 
   const handleMouseLeave = useCallback(() => {
-    setIsHovered(false);
     // Clear any pending timeout
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current);

@@ -657,106 +657,220 @@ function ScrollIndicator({
 }
 
 /**
- * Loading skeleton for market cards
+ * Beautiful skeleton card matching the KPI skeleton style
+ * Features shimmer animation with color-coded accent
  */
-function LoadingSkeleton({ count = 4, isMobile = false }: { count?: number; isMobile?: boolean }) {
-  if (isMobile) {
-    return (
+function SkeletonMarketCard({ index, isMobile = false }: { index: number; isMobile?: boolean }) {
+  // Stagger colors for visual variety
+  const accentColors = [
+    tokens.colors.cyan,
+    tokens.colors.profit,
+    tokens.colors.magenta,
+    tokens.colors.purple,
+  ];
+  const color = accentColors[index % accentColors.length];
+  const delay = index * 100;
+
+  return (
+    <div
+      style={{
+        background: tokens.colors.surface,
+        border: `1px solid ${tokens.colors.border}`,
+        borderRadius: isMobile ? '16px' : '12px',
+        padding: '16px',
+        position: 'relative',
+        overflow: 'hidden',
+        width: isMobile ? '280px' : 'auto',
+        flexShrink: isMobile ? 0 : undefined,
+      }}
+    >
+      {/* Shimmer overlay - slides across the card */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: '-100%',
+          width: '100%',
+          height: '100%',
+          background: `linear-gradient(90deg, transparent 0%, ${color}10 50%, transparent 100%)`,
+          animation: `shimmerSlide 2s ease-in-out infinite`,
+          animationDelay: `${delay}ms`,
+        }}
+      />
+
+      {/* Category tag skeleton */}
+      <div
+        style={{
+          width: '70px',
+          height: '22px',
+          borderRadius: '6px',
+          background: `linear-gradient(90deg, ${color}15 0%, ${color}30 50%, ${color}15 100%)`,
+          backgroundSize: '200% 100%',
+          animation: 'shimmer 1.5s ease-in-out infinite',
+          animationDelay: `${delay}ms`,
+          marginBottom: '12px',
+        }}
+      />
+
+      {/* Title skeleton - two lines */}
+      <div
+        style={{
+          width: '90%',
+          height: '14px',
+          borderRadius: '4px',
+          background: `linear-gradient(90deg, ${tokens.colors.border} 0%, ${tokens.colors.surfaceHover} 50%, ${tokens.colors.border} 100%)`,
+          backgroundSize: '200% 100%',
+          animation: 'shimmer 1.5s ease-in-out infinite',
+          animationDelay: `${delay + 50}ms`,
+          marginBottom: '8px',
+        }}
+      />
+      <div
+        style={{
+          width: '65%',
+          height: '14px',
+          borderRadius: '4px',
+          background: `linear-gradient(90deg, ${tokens.colors.border} 0%, ${tokens.colors.surfaceHover} 50%, ${tokens.colors.border} 100%)`,
+          backgroundSize: '200% 100%',
+          animation: 'shimmer 1.5s ease-in-out infinite',
+          animationDelay: `${delay + 100}ms`,
+          marginBottom: '12px',
+        }}
+      />
+
+      {/* Probability bar skeleton */}
+      <div
+        style={{
+          height: '8px',
+          borderRadius: '4px',
+          background: `${tokens.colors.loss}20`,
+          marginBottom: '12px',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            height: '100%',
+            width: '60%',
+            background: `linear-gradient(90deg, ${tokens.colors.profit}40 0%, ${tokens.colors.cyan}40 100%)`,
+            borderRadius: '4px',
+            animation: 'shimmer 1.5s ease-in-out infinite',
+            animationDelay: `${delay + 150}ms`,
+          }}
+        />
+      </div>
+
+      {/* Stats row skeleton */}
       <div
         style={{
           display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           gap: '12px',
-          overflowX: 'auto',
-          paddingBottom: '8px',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
         }}
       >
-        {Array.from({ length: count }).map((_, i) => (
+        {/* Yes probability */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div
-            key={i}
             style={{
-              flexShrink: 0,
-              width: '280px',
-              height: '220px',
-              background: tokens.colors.surface,
-              border: `1px solid ${tokens.colors.border}`,
-              borderRadius: '16px',
-              animation: 'pulse 2s infinite',
+              width: '45px',
+              height: '18px',
+              borderRadius: '4px',
+              background: `linear-gradient(90deg, ${tokens.colors.profit}20 0%, ${tokens.colors.profit}40 50%, ${tokens.colors.profit}20 100%)`,
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 1.5s ease-in-out infinite',
+              animationDelay: `${delay + 200}ms`,
             }}
           />
-        ))}
-      </div>
-    );
-  }
+          <div
+            style={{
+              width: '24px',
+              height: '10px',
+              borderRadius: '3px',
+              background: tokens.colors.border,
+            }}
+          />
+        </div>
 
+        {/* Sparkline placeholder */}
+        <div
+          style={{
+            width: '70px',
+            height: '24px',
+            borderRadius: '4px',
+            background: `linear-gradient(90deg, ${color}10 0%, ${color}25 50%, ${color}10 100%)`,
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.5s ease-in-out infinite',
+            animationDelay: `${delay + 250}ms`,
+          }}
+        />
+
+        {/* Volume */}
+        <div
+          style={{
+            width: '65px',
+            height: '12px',
+            borderRadius: '4px',
+            background: `linear-gradient(90deg, ${tokens.colors.border} 0%, ${tokens.colors.surfaceHover} 50%, ${tokens.colors.border} 100%)`,
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.5s ease-in-out infinite',
+            animationDelay: `${delay + 300}ms`,
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Loading skeleton for market cards
+ * Beautiful animated skeleton matching KPI grid style
+ */
+function LoadingSkeleton({ count = 4, isMobile = false }: { count?: number; isMobile?: boolean }) {
   return (
     <>
-      {Array.from({ length: count }).map((_, i) => (
+      {/* CSS Animations for skeleton */}
+      <style>
+        {`
+          @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+          }
+          @keyframes shimmerSlide {
+            0% { left: -100%; }
+            100% { left: 100%; }
+          }
+        `}
+      </style>
+
+      {isMobile ? (
         <div
-          key={i}
           style={{
-            background: tokens.colors.surface,
-            border: `1px solid ${tokens.colors.border}`,
-            borderRadius: '12px',
-            padding: '16px',
-            animation: 'pulse 2s infinite',
+            display: 'flex',
+            gap: '12px',
+            overflowX: 'auto',
+            paddingBottom: '8px',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
           }}
         >
-          {/* Title skeleton */}
-          <div
-            style={{
-              height: '16px',
-              background: tokens.colors.border,
-              borderRadius: '4px',
-              marginBottom: '8px',
-              width: '80%',
-            }}
-          />
-          <div
-            style={{
-              height: '16px',
-              background: tokens.colors.border,
-              borderRadius: '4px',
-              marginBottom: '12px',
-              width: '60%',
-            }}
-          />
-          {/* Bar skeleton */}
-          <div
-            style={{
-              height: '8px',
-              background: tokens.colors.border,
-              borderRadius: '4px',
-              marginBottom: '12px',
-            }}
-          />
-          {/* Stats skeleton */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div
-              style={{
-                height: '18px',
-                width: '60px',
-                background: tokens.colors.border,
-                borderRadius: '4px',
-              }}
-            />
-            <div
-              style={{
-                height: '14px',
-                width: '80px',
-                background: tokens.colors.border,
-                borderRadius: '4px',
-              }}
-            />
-          </div>
+          {/* Left spacer */}
+          <div style={{ flexShrink: 0, width: '16px' }} aria-hidden="true" />
+          {Array.from({ length: count }).map((_, i) => (
+            <SkeletonMarketCard key={i} index={i} isMobile />
+          ))}
+          {/* Right spacer */}
+          <div style={{ flexShrink: 0, width: '16px' }} aria-hidden="true" />
         </div>
-      ))}
+      ) : (
+        Array.from({ length: count }).map((_, i) => (
+          <SkeletonMarketCard key={i} index={i} />
+        ))
+      )}
     </>
   );
 }
