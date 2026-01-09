@@ -476,8 +476,8 @@ export function inferCategory(question: string): MarketCategory {
   if (/stock|fed\b|interest rate|inflation|gdp|earnings|ipo|s&p|nasdaq|dow|treasury|bond|bps/i.test(q)) {
     return 'finance';
   }
-  // Tech - companies, products, AI
-  if (/apple|google|microsoft|ai\b|gpt|openai|iphone|android|startup|meta|amazon|tesla/i.test(q)) {
+  // Tech - companies, products, AI models and labs
+  if (/apple|google|microsoft|ai\b|gpt|openai|iphone|android|startup|meta|amazon|tesla|gemini|claude|anthropic|mistral|llama|perplexity|copilot|chatgpt|sora|midjourney|stable diffusion|nvidia|amd|intel|chip|semiconductor|robot|autopilot|self-driving|xai|deepmind|inflection/i.test(q)) {
     return 'tech';
   }
   // Entertainment - shows, movies, music, awards
