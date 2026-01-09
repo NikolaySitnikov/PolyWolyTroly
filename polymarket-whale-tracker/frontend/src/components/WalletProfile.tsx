@@ -23,7 +23,7 @@ import { ProfileTabs, type ProfileTabId } from './ProfileTabs';
 import { PositionsTable, type SizeDisplayMode } from './PositionsTable';
 import { PositionCard, PositionCardSkeleton } from './PositionCard';
 import { ClosedPositionCard } from './ClosedPositionCard';
-import { ActivityHistoryTable } from './ActivityHistoryTable';
+import { ActivityHistoryTable, ActivityFilterPills } from './ActivityHistoryTable';
 import { ActivityCard, ActivityCardSkeleton } from './ActivityCard';
 import { usePolymarketTrading } from '../hooks/usePolymarketTrading';
 import { useClosedPositions } from '../hooks/useClosedPositions';
@@ -1146,8 +1146,13 @@ export function WalletProfile({
                   <p style={{ margin: 0 }}>{activityError}</p>
                 </div>
               ) : isMobile ? (
-                /* Mobile: Activity cards */
-                <div style={{ padding: '16px' }}>
+                /* Mobile: Activity cards with filter pills */
+                <>
+                  <ActivityFilterPills
+                    activeFilter={activityFilter}
+                    onChange={setActivityFilter}
+                  />
+                  <div style={{ padding: '16px' }}>
                   {activityLoading && allActivities.length === 0 ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {[1, 2, 3, 4, 5].map((i) => (
@@ -1189,6 +1194,7 @@ export function WalletProfile({
                     </div>
                   )}
                 </div>
+                </>
               ) : (
                 /* Desktop: Activity table */
                 <ActivityHistoryTable

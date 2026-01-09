@@ -189,9 +189,9 @@ function ActivityTypeBadge({ activity }: { activity: Activity }) {
 }
 
 /**
- * Filter pills component
+ * Filter pills component - exported for use in mobile view
  */
-function FilterPills({
+export function ActivityFilterPills({
   activeFilter,
   onChange,
 }: {
@@ -450,7 +450,7 @@ export function ActivityHistoryTable({
   if (!loading && activities.length === 0) {
     return (
       <div style={containerStyle} data-testid="activity-table-empty">
-        <FilterPills activeFilter={filter} onChange={handleFilterChange} />
+        <ActivityFilterPills activeFilter={filter} onChange={handleFilterChange} />
         <div
           style={{
             padding: '48px 24px',
@@ -495,7 +495,7 @@ export function ActivityHistoryTable({
   return (
     <div style={containerStyle} data-testid="activity-history-table">
       {/* Filter Pills */}
-      <FilterPills activeFilter={filter} onChange={handleFilterChange} />
+      <ActivityFilterPills activeFilter={filter} onChange={handleFilterChange} />
 
       <div style={{ overflowX: 'auto' }}>
         <table style={tableStyle}>
