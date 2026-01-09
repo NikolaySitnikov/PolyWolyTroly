@@ -1029,7 +1029,7 @@ export function WalletProfile({
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {filteredPositions.map((position) => (
                         <PositionCard
-                          key={position.conditionId}
+                          key={position.asset}
                           position={position}
                           onClick={() => {
                             window.open(`https://polymarket.com/event/${position.eventSlug}`, '_blank');

@@ -192,11 +192,15 @@ export const polymarketApi = {
   /**
    * Fetch ALL positions for a wallet (paginated)
    * Used for accurate P&L calculation
+   *
+   * Note: Deduplicates by 'asset' field to prevent duplicate positions
+   * that can occur from API pagination overlaps or API bugs.
    */
   async getAllPositions(walletAddress: string): Promise<PolymarketPosition[]> {
     try {
       const address = walletAddress.toLowerCase();
       const allPositions: PolymarketPosition[] = [];
+      const seenAssets = new Set<string>();
       let offset = 0;
       const pageSize = 100;
 
@@ -216,7 +220,14 @@ export const polymarketApi = {
           break;
         }
 
-        allPositions.push(...positions);
+        // Deduplicate by asset field (unique token identifier)
+        for (const pos of positions) {
+          if (!seenAssets.has(pos.asset)) {
+            seenAssets.add(pos.asset);
+            allPositions.push(pos);
+          }
+        }
+
         offset += pageSize;
 
         // Stop if we got fewer than requested (no more data)

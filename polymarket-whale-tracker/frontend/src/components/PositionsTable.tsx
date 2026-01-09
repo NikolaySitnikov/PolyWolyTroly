@@ -492,8 +492,8 @@ export function PositionsTable({
 
                 return (
                   <tr
-                    key={position.conditionId}
-                    data-testid={`position-row-${position.conditionId}`}
+                    key={position.asset}
+                    data-testid={`position-row-${position.asset}`}
                     style={rowStyle}
                     onClick={() => onPositionClick?.(position)}
                     onMouseEnter={(e) => {

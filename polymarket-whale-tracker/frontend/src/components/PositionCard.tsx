@@ -297,7 +297,7 @@ export function PositionCard({ position, onClick }: PositionCardProps) {
 
   return (
     <div
-      data-testid={`position-card-${position.conditionId}`}
+      data-testid={`position-card-${position.asset}`}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
