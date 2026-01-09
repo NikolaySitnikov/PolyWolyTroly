@@ -72,6 +72,7 @@ function TabButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       aria-selected={isActive}
       role="tab"

@@ -491,7 +491,13 @@ export function WalletProfile({
         />
 
         {/* Tab Content */}
-        <div role="tabpanel">
+        <div
+          role="tabpanel"
+          style={{
+            // Minimum height prevents layout jump when switching tabs
+            minHeight: '300px',
+          }}
+        >
           {/* Positions Tab */}
           {activeTab === 'positions' && (
             <>
