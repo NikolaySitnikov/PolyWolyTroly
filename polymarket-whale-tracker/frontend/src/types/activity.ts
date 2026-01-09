@@ -34,23 +34,16 @@ export interface ActivityTypeConfig {
 /**
  * Activity type configurations for UI display
  *
- * Color logic - semantic meaning over aesthetic:
- *
- * | Type       | Meaning                              | Color   |
- * |------------|--------------------------------------|---------|
- * | Buy        | Spend USDC to acquire shares         | Cyan    |
- * | Sell       | Liquidate shares for USDC            | Magenta |
- * | Redeem     | Cash out WINNING position (profit!)  | Green   |
- * | Deposit    | Add funds to account                 | Green   |
- * | Withdrawal | Remove funds from account            | Red     |
- * | Claim      | Rewards/incentives from Polymarket   | Gold    |
- * | Transfer   | Move between wallets                 | Neutral |
- *
- * Buy/Sell use accent colors (cyan/magenta) because:
- * - They're trading actions, not outcomes
- * - Buying isn't "good" - you're taking on risk
- * - Selling isn't "bad" - you might be taking profits
- * - Green/red reserved for actual realized outcomes (redeem = you won!)
+ * Color logic:
+ * | Type       | Color   | Meaning                              |
+ * |------------|---------|--------------------------------------|
+ * | Buy        | Green   | Acquiring assets - positive action   |
+ * | Sell       | Red     | Liquidating assets                   |
+ * | Redeem     | Cyan    | Cashing out resolved position        |
+ * | Deposit    | Green   | Adding funds                         |
+ * | Withdrawal | Red     | Removing funds                       |
+ * | Claim      | Gold    | Rewards/incentives                   |
+ * | Transfer   | Neutral | Moving between wallets               |
  */
 export const ACTIVITY_TYPE_CONFIGS: Record<ActivityType, ActivityTypeConfig> = {
   deposit: {
@@ -68,20 +61,20 @@ export const ACTIVITY_TYPE_CONFIGS: Record<ActivityType, ActivityTypeConfig> = {
   buy: {
     icon: '+',
     label: 'Buy',
-    color: tokens.colors.cyan,
-    bgColor: `${tokens.colors.cyan}15`,
+    color: tokens.colors.profit,
+    bgColor: `${tokens.colors.profit}15`,
   },
   sell: {
     icon: '−',
     label: 'Sell',
-    color: tokens.colors.magenta,
-    bgColor: `${tokens.colors.magenta}15`,
+    color: tokens.colors.loss,
+    bgColor: `${tokens.colors.loss}15`,
   },
   redeem: {
     icon: '✓',
     label: 'Redeem',
-    color: tokens.colors.profit,
-    bgColor: `${tokens.colors.profit}15`,
+    color: tokens.colors.cyan,
+    bgColor: `${tokens.colors.cyan}15`,
   },
   claim: {
     icon: '★',
