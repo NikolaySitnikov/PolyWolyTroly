@@ -174,8 +174,6 @@ export function WalletProfile({
     allActivities,
     loading: activityLoading,
     error: activityError,
-    liveConnected: activityLiveConnected,
-    newTradesCount: activityNewTradesCount,
   } = useActivity(wallet.address, {
     enabled: activeTab === 'activity',
     pageSize: 50,
@@ -1203,8 +1201,6 @@ export function WalletProfile({
                       window.open(`https://polymarket.com/event/${activity.slug}`, '_blank');
                     }
                   }}
-                  liveConnected={activityLiveConnected}
-                  newTradesCount={activityNewTradesCount}
                 />
               )}
             </>
