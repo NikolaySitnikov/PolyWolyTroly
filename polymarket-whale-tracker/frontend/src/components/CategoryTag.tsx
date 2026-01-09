@@ -139,15 +139,15 @@ interface CategoryTagProps {
 
 /** Category configuration with icon, label, and color */
 const CATEGORY_CONFIG: Record<MarketCategory, { icon: string; label: string; color: string }> = {
-  politics: { icon: '🏛️', label: 'Politics', color: '#ff6b35' },
-  crypto: { icon: '₿', label: 'Crypto', color: '#f7931a' },
-  sports: { icon: '⚽', label: 'Sports', color: '#22c55e' },
-  finance: { icon: '📈', label: 'Finance', color: '#3b82f6' },
-  tech: { icon: '💻', label: 'Tech', color: '#a855f7' },
-  entertainment: { icon: '🎬', label: 'Entertainment', color: '#ec4899' },
-  science: { icon: '🔬', label: 'Science', color: '#06b6d4' },
-  world: { icon: '🌍', label: 'World', color: '#ef4444' },  // Red for conflict/geopolitics - distinct from Other
-  other: { icon: '📌', label: 'Other', color: '#6b7280' },
+  politics: { icon: '🏛️', label: 'Politics', color: '#ef4444' },  // Red - government/elections
+  crypto: { icon: '₿', label: 'Crypto', color: '#f7931a' },       // Bitcoin orange
+  sports: { icon: '⚽', label: 'Sports', color: '#22c55e' },       // Green
+  finance: { icon: '📈', label: 'Finance', color: '#3b82f6' },    // Blue
+  tech: { icon: '💻', label: 'Tech', color: '#a855f7' },          // Purple
+  entertainment: { icon: '🎬', label: 'Entertainment', color: '#ec4899' },  // Pink
+  science: { icon: '🔬', label: 'Science', color: '#06b6d4' },    // Cyan
+  world: { icon: '🌍', label: 'World', color: '#f59e0b' },        // Amber/gold - international
+  other: { icon: '📌', label: 'Other', color: '#6b7280' },        // Gray
 };
 
 // =============================================================================
