@@ -1045,6 +1045,17 @@ export function AlertFeed({
                   whiteSpace: 'nowrap',
                   userSelect: 'none',
                   width: '25%',
+                  transition: 'color 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (sortBy !== 'amount') {
+                    e.currentTarget.style.color = tokens.colors.textPrimary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (sortBy !== 'amount') {
+                    e.currentTarget.style.color = tokens.colors.textMuted;
+                  }
                 }}
               >
                 Amount{' '}
@@ -1066,6 +1077,17 @@ export function AlertFeed({
                   whiteSpace: 'nowrap',
                   userSelect: 'none',
                   width: '20%',
+                  transition: 'color 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (sortBy !== 'timestamp') {
+                    e.currentTarget.style.color = tokens.colors.textPrimary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (sortBy !== 'timestamp') {
+                    e.currentTarget.style.color = tokens.colors.textMuted;
+                  }
                 }}
               >
                 Time{' '}

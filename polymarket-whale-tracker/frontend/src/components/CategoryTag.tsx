@@ -156,7 +156,8 @@ const CATEGORY_CONFIG: Record<MarketCategory, { icon: string; label: string; col
 // =============================================================================
 
 // NBA Teams (30 teams) - All current team names and nicknames
-const NBA_TEAMS = /\b(nba|wnba|basketball|76ers|sixers|celtics|nets|knicks|raptors|bulls|cavaliers|cavs|pistons|pacers|bucks|hawks|hornets|heat|magic|wizards|nuggets|timberwolves|thunder|trail blazers|blazers|jazz|warriors|clippers|lakers|suns|kings|mavericks|mavs|rockets|grizzlies|pelicans|spurs)\b/i;
+// Also includes common college basketball team names for better coverage
+const NBA_TEAMS = /\b(nba|wnba|basketball|76ers|sixers|celtics|nets|knicks|raptors|bulls|cavaliers|cavs|pistons|pacers|bucks|hawks|hornets|heat|magic|wizards|nuggets|timberwolves|thunder|trail blazers|blazers|jazz|warriors|clippers|lakers|suns|kings|mavericks|mavs|rockets|grizzlies|pelicans|spurs|pepperdine|waves|toreros|san diego toreros|gonzaga|zags|saint mary's|gaels|santa clara|broncos|pacific|loyola marymount|lions|portland pilots|byu cougars|march madness|ncaa basketball|ncaa tournament|final four|sweet sixteen|elite eight)\b/i;
 
 // NFL Teams (32 teams) - All current team names
 const NFL_TEAMS = /\b(nfl|49ers|niners|bears|bengals|bills|broncos|browns|buccaneers|bucs|cardinals|chargers|chiefs|colts|commanders|cowboys|dolphins|eagles|falcons|giants|jaguars|jags|jets|lions|packers|panthers|patriots|pats|raiders|rams|ravens|saints|seahawks|hawks|steelers|texans|titans|vikings)\b/i;
@@ -185,8 +186,8 @@ const SERIE_A_TEAMS = /\b(serie a|inter milan|inter|internazionale|juventus|juve
 // Ligue 1 Teams (18 teams) - French First Division
 const LIGUE_1_TEAMS = /\b(ligue 1|psg|paris saint germain|paris saint-germain|marseille|olympique marseille|om|lyon|olympique lyonnais|ol|monaco|as monaco|lille|losc|lens|rc lens|rennes|stade rennais|nice|ogc nice|strasbourg|nantes|montpellier|toulouse|reims|brest|lorient|clermont|auxerre|angers|metz|le havre)\b/i;
 
-// Other European Clubs
-const OTHER_EURO_CLUBS = /\b(benfica|sporting lisbon|sporting cp|porto|fc porto|ajax|psv eindhoven|psv|feyenoord|celtic|rangers|galatasaray|fenerbahce|besiktas|shakhtar donetsk|dynamo kyiv|red star belgrade|steaua bucharest|olympiacos|panathinaikos|anderlecht|club brugge|salzburg|rapid vienna|young boys|basel|zenit|cska moscow|spartak moscow)\b/i;
+// Other European Clubs + Saudi Pro League + Other international clubs
+const OTHER_EURO_CLUBS = /\b(benfica|sporting lisbon|sporting cp|porto|fc porto|ajax|psv eindhoven|psv|feyenoord|celtic|rangers|galatasaray|fenerbahce|besiktas|shakhtar donetsk|dynamo kyiv|red star belgrade|steaua bucharest|olympiacos|panathinaikos|anderlecht|club brugge|salzburg|rapid vienna|young boys|basel|zenit|cska moscow|spartak moscow|al khaleej|al kholood|al ittihad|al nassr|al hilal|al ahli|al shabab|al fateh|al taawoun|al ettifaq|al raed|al feiha|al hazm|damac|abha|neom|saudi club|saudi pro league)\b/i;
 
 // College Football - FBS Schools (134 teams across all conferences)
 // SEC Teams

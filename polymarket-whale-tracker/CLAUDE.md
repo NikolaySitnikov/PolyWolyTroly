@@ -72,6 +72,33 @@ React + TypeScript + Vite dashboard with cyberpunk terminal aesthetic:
 - **Settings**: User preferences, theme, notifications
 - **780+ tests** with Vitest + React Testing Library
 
+### Recent UI Enhancements
+
+#### Size/Shares Toggle Feature
+The positions table (desktop and mobile) supports toggling between dollar value and share count:
+- **Desktop**: Click Size column header or hover cells to preview alternate value (150ms delay crossfade)
+- **Mobile**: Tap the Position metric box to toggle; syncs with sort field automatically
+- Sort pill stays highlighted when sorted by either `currentValue` ($ mode) or `size` (shares mode)
+
+#### Mobile UX Improvements
+- **Status filter pills** (Active, Redeemable, All, Closed) now horizontally scrollable on mobile
+- **Sort pills** highlight correctly when toggling between $ and shares modes
+- **Auto-resort on toggle**: When sorted by Size on mobile, toggling display mode automatically re-sorts
+
+#### Sortable Column Hover Highlighting
+Desktop table headers have hover highlighting for sortable columns:
+- **WhaleTable**: Total Deposited, Deposits, First Seen columns
+- **AlertFeed**: Amount, Time columns
+- **PositionsTable**: Market, Size, P&L columns
+- Inactive columns transition from grey to white on hover (0.15s ease)
+
+#### Sports Category Detection
+Enhanced `CategoryTag.tsx` with comprehensive team databases for accurate sports detection:
+- WCC college basketball teams (Pepperdine, Gonzaga, San Diego Toreros, etc.)
+- Saudi Pro League teams (Al Nassr, Al Hilal, Al Ittihad, etc.)
+- Full coverage of NFL, NBA, MLB, NHL, Premier League, La Liga, Bundesliga, Serie A, Ligue 1
+- College football FBS conferences (SEC, Big Ten, Big 12, ACC, Pac-12, etc.)
+
 ### Trading Data Integration (In Progress)
 Integration of Polymarket trading data (P&L, positions, activity) for each whale:
 

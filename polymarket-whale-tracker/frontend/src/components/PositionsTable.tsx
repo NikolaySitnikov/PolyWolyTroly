@@ -17,6 +17,11 @@ import { sortPositions } from '../types/position';
 
 type SortDirection = 'asc' | 'desc';
 
+/**
+ * Size display mode - toggle between dollar value and shares count
+ */
+export type SizeDisplayMode = 'value' | 'shares';
+
 interface PositionsTableProps {
   /** Array of positions to display */
   positions: Position[];
@@ -26,6 +31,10 @@ interface PositionsTableProps {
   itemsPerPage?: number;
   /** Callback when a position is clicked */
   onPositionClick?: (position: Position) => void;
+  /** Size display mode - controlled externally for cross-component sync */
+  sizeDisplayMode?: SizeDisplayMode;
+  /** Callback to toggle size display mode */
+  onSizeToggle?: () => void;
 }
 
 const DEFAULT_ITEMS_PER_PAGE = 10;
@@ -305,6 +314,132 @@ function SkeletonRow() {
 }
 
 /**
+ * Format shares count with K/M suffix
+ */
+function formatShares(shares: number): string {
+  if (shares >= 1000000) {
+    return `${(shares / 1000000).toFixed(2)}M`;
+  }
+  if (shares >= 1000) {
+    return `${(shares / 1000).toFixed(1)}K`;
+  }
+  return shares.toFixed(1);
+}
+
+/**
+ * Size cell component - shows $ value or shares
+ * On hover (desktop): shows the alternate value with elegant crossfade
+ * On click: toggles the display mode globally
+ *
+ * Design philosophy: The hover preview should feel like a subtle reveal,
+ * not a jarring change. A small delay prevents accidental reveals, and
+ * the crossfade animation makes the transition feel intentional and polished.
+ */
+function SizeCell({
+  currentValue,
+  shares,
+  displayMode,
+  onToggle,
+  cellStyle,
+}: {
+  currentValue: number;
+  shares: number;
+  displayMode: SizeDisplayMode;
+  onToggle: () => void;
+  cellStyle: CSSProperties;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [showAlternate, setShowAlternate] = useState(false);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Primary value (what the mode dictates)
+  const primaryText = displayMode === 'value'
+    ? formatUSD(currentValue)
+    : formatShares(shares);
+
+  // Alternate value (shown on hover as preview)
+  const alternateText = displayMode === 'value'
+    ? formatShares(shares)
+    : formatUSD(currentValue);
+
+  // Handle hover with delay - prevents jarring flashes on accidental hovers
+  const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
+    // Small delay before showing alternate value
+    hoverTimeoutRef.current = setTimeout(() => {
+      setShowAlternate(true);
+    }, 150); // 150ms feels intentional but not sluggish
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovered(false);
+    // Clear any pending timeout
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
+    setShowAlternate(false);
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <td
+      style={{
+        ...cellStyle,
+        textAlign: 'right',
+        fontFamily: tokens.fonts.mono,
+        width: '12%',
+        cursor: 'pointer',
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      {/* Crossfade container - both values exist, opacity controls visibility */}
+      <span style={{ position: 'relative', display: 'inline-block' }}>
+        {/* Primary value - fades out on hover */}
+        <span
+          style={{
+            display: 'inline-block',
+            color: tokens.colors.textPrimary,
+            transition: 'opacity 0.2s ease-in-out',
+            opacity: showAlternate ? 0 : 1,
+          }}
+        >
+          {primaryText}
+        </span>
+        {/* Alternate value - fades in on hover, positioned over primary */}
+        <span
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 0,
+            display: 'inline-block',
+            color: tokens.colors.textPrimary,
+            transition: 'opacity 0.2s ease-in-out',
+            opacity: showAlternate ? 1 : 0,
+            pointerEvents: 'none',
+          }}
+        >
+          {alternateText}
+        </span>
+      </span>
+    </td>
+  );
+}
+
+/**
  * PositionsTable - Desktop table for displaying positions
  */
 export function PositionsTable({
@@ -312,10 +447,17 @@ export function PositionsTable({
   loading = false,
   itemsPerPage = DEFAULT_ITEMS_PER_PAGE,
   onPositionClick,
+  sizeDisplayMode: externalSizeMode,
+  onSizeToggle: externalOnToggle,
 }: PositionsTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<PositionSortField>('pnl');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
+  const [internalSizeMode, setInternalSizeMode] = useState<SizeDisplayMode>('value');
+
+  // Use external state if provided, otherwise use internal state
+  const sizeDisplayMode = externalSizeMode ?? internalSizeMode;
+  const toggleSizeDisplayMode = externalOnToggle ?? (() => setInternalSizeMode((prev) => (prev === 'value' ? 'shares' : 'value')));
 
   // Reset to page 1 when positions array changes (e.g., due to filtering)
   // This ensures the table properly re-renders with the new data
@@ -323,10 +465,14 @@ export function PositionsTable({
     setCurrentPage(1);
   }, [positions.length]);
 
-  // Sort positions
+  // Sort positions - use 'size' field when in shares mode and sorting by currentValue
   const sortedPositions = useMemo(() => {
-    return sortPositions(positions, sortField, sortDir);
-  }, [positions, sortField, sortDir]);
+    const effectiveSortField =
+      sortField === 'currentValue' && sizeDisplayMode === 'shares'
+        ? 'size'
+        : sortField;
+    return sortPositions(positions, effectiveSortField, sortDir);
+  }, [positions, sortField, sortDir, sizeDisplayMode]);
 
   // Paginate positions
   const paginatedPositions = useMemo(() => {
@@ -451,14 +597,53 @@ export function PositionsTable({
               >
                 Position
               </th>
-              <SortableHeader
-                label="Size"
-                field="currentValue"
-                currentField={sortField}
-                currentDir={sortDir}
-                onSort={handleSort}
-                align="right"
-              />
+              {/* Size header - clickable to toggle between $ value and shares */}
+              <th
+                style={{
+                  padding: '12px 16px',
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: '10px',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  color: sortField === 'currentValue' ? tokens.colors.cyan : tokens.colors.textMuted,
+                  textAlign: 'right',
+                  width: '12%',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  transition: 'color 0.15s ease',
+                }}
+                onClick={(e) => {
+                  // Shift+click or just click toggles display mode
+                  // Regular click also sorts
+                  if (e.shiftKey) {
+                    toggleSizeDisplayMode();
+                  } else {
+                    handleSort('currentValue');
+                  }
+                }}
+                onContextMenu={(e) => {
+                  // Right-click toggles display mode
+                  e.preventDefault();
+                  toggleSizeDisplayMode();
+                }}
+                onMouseEnter={(e) => {
+                  if (sortField !== 'currentValue') {
+                    e.currentTarget.style.color = tokens.colors.textPrimary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (sortField !== 'currentValue') {
+                    e.currentTarget.style.color = tokens.colors.textMuted;
+                  }
+                }}
+                title={`Click to sort, right-click or Shift+click to toggle ${sizeDisplayMode === 'value' ? 'shares' : 'value'}`}
+              >
+                {sizeDisplayMode === 'value' ? 'Size' : 'Shares'}
+                {sortField === 'currentValue' && (
+                  <span style={{ marginLeft: '4px' }}>{sortDir === 'desc' ? '↓' : '↑'}</span>
+                )}
+              </th>
               <th
                 style={{
                   padding: '12px 16px',
@@ -543,17 +728,15 @@ export function PositionsTable({
                       <OutcomeBadge outcome={position.normalizedOutcome} />
                     </td>
 
-                    {/* Size */}
-                    <td
-                      style={{
-                        ...cellStyle,
-                        textAlign: 'right',
-                        fontFamily: tokens.fonts.mono,
-                        width: '12%',
-                      }}
-                    >
-                      {formatUSD(position.currentValue)}
-                    </td>
+                    {/* Size - toggleable between $ value and shares */}
+                    {/* Hover shows alternate value, click toggles permanently */}
+                    <SizeCell
+                      currentValue={position.currentValue}
+                      shares={position.size}
+                      displayMode={sizeDisplayMode}
+                      onToggle={toggleSizeDisplayMode}
+                      cellStyle={cellStyle}
+                    />
 
                     {/* Avg Price */}
                     <td

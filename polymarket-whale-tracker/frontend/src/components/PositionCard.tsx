@@ -11,11 +11,20 @@ import { tokens } from '../styles/tokens';
 import { CategoryTag, inferCategory, getSportEmoji, type MarketCategory } from './CategoryTag';
 import type { Position } from '../types/position';
 
+/**
+ * Size display mode - toggle between dollar value and shares count
+ */
+export type SizeDisplayMode = 'value' | 'shares';
+
 interface PositionCardProps {
   /** Position data */
   position: Position;
   /** Click handler for navigation to market */
   onClick?: () => void;
+  /** Size display mode - 'value' shows $ amount, 'shares' shows share count */
+  sizeDisplayMode?: SizeDisplayMode;
+  /** Callback when size is clicked to toggle mode */
+  onSizeToggle?: () => void;
 }
 
 /**
@@ -114,11 +123,13 @@ function MetricBox({
   value,
   subValue,
   valueColor,
+  onClick,
 }: {
   label: string;
   value: string;
   subValue?: string;
   valueColor?: string;
+  onClick?: () => void;
 }) {
   return (
     <div
@@ -130,7 +141,9 @@ function MetricBox({
         padding: '8px 10px',
         background: tokens.colors.void,
         borderRadius: '6px',
+        cursor: onClick ? 'pointer' : 'default',
       }}
+      onClick={onClick ? (e) => { e.stopPropagation(); onClick(); } : undefined}
     >
       <span
         style={{
@@ -311,7 +324,20 @@ export function PositionCardSkeleton() {
   );
 }
 
-export function PositionCard({ position, onClick }: PositionCardProps) {
+/**
+ * Format shares count with K/M suffix
+ */
+function formatShares(shares: number): string {
+  if (shares >= 1000000) {
+    return `${(shares / 1000000).toFixed(2)}M`;
+  }
+  if (shares >= 1000) {
+    return `${(shares / 1000).toFixed(1)}K`;
+  }
+  return shares.toFixed(1);
+}
+
+export function PositionCard({ position, onClick, sizeDisplayMode = 'value', onSizeToggle }: PositionCardProps) {
   // Infer category from title if not provided
   const category: MarketCategory = position.normalizedCategory || inferCategory(position.title);
   const pnlColor = getPnlColor(position.pnl);
@@ -395,8 +421,9 @@ export function PositionCard({ position, onClick }: PositionCardProps) {
         <MetricBox
           label="Position"
           value={position.normalizedOutcome}
-          subValue={formatUSD(position.currentValue)}
+          subValue={sizeDisplayMode === 'value' ? formatUSD(position.currentValue) : formatShares(position.size)}
           valueColor={getOutcomeColor(position.normalizedOutcome)}
+          onClick={onSizeToggle}
         />
         <MetricBox
           label="Avg Price"

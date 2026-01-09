@@ -937,6 +937,17 @@ export function WhaleTable({
                   whiteSpace: 'nowrap',
                   userSelect: 'none',
                   width: '25%',
+                  transition: 'color 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (sortBy !== 'totalDeposited') {
+                    e.currentTarget.style.color = tokens.colors.textPrimary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (sortBy !== 'totalDeposited') {
+                    e.currentTarget.style.color = tokens.colors.textMuted;
+                  }
                 }}
               >
                 Total Deposited{' '}
@@ -958,6 +969,17 @@ export function WhaleTable({
                   whiteSpace: 'nowrap',
                   userSelect: 'none',
                   width: '20%',
+                  transition: 'color 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (sortBy !== 'depositCount') {
+                    e.currentTarget.style.color = tokens.colors.textPrimary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (sortBy !== 'depositCount') {
+                    e.currentTarget.style.color = tokens.colors.textMuted;
+                  }
                 }}
               >
                 Deposits{' '}
@@ -979,6 +1001,17 @@ export function WhaleTable({
                   whiteSpace: 'nowrap',
                   userSelect: 'none',
                   width: '20%',
+                  transition: 'color 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (sortBy !== 'firstSeenAt') {
+                    e.currentTarget.style.color = tokens.colors.textPrimary;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (sortBy !== 'firstSeenAt') {
+                    e.currentTarget.style.color = tokens.colors.textMuted;
+                  }
                 }}
               >
                 First Seen{' '}

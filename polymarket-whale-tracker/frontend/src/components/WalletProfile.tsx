@@ -20,7 +20,7 @@ import { TradingMetricsGrid } from './TradingMetricsGrid';
 import { TradingMetricsGridSkeleton } from './TradingMetricsGridSkeleton';
 import { PnlToggle } from './PnlToggle';
 import { ProfileTabs, type ProfileTabId } from './ProfileTabs';
-import { PositionsTable } from './PositionsTable';
+import { PositionsTable, type SizeDisplayMode } from './PositionsTable';
 import { PositionCard, PositionCardSkeleton } from './PositionCard';
 import { ClosedPositionCard } from './ClosedPositionCard';
 import { usePolymarketTrading } from '../hooks/usePolymarketTrading';
@@ -126,6 +126,21 @@ export function WalletProfile({
   // Position sort state (for mobile cards - desktop table has its own internal sorting)
   const [positionSortField, setPositionSortField] = useState<PositionSortField>('pnl');
   const [positionSortDir, setPositionSortDir] = useState<'asc' | 'desc'>('desc');
+
+  // Size display mode: toggle between dollar value and shares count
+  // Shared between mobile cards and desktop table for consistency
+  const [sizeDisplayMode, setSizeDisplayMode] = useState<SizeDisplayMode>('value');
+  const toggleSizeDisplayMode = () => {
+    setSizeDisplayMode((prev) => {
+      const newMode = prev === 'value' ? 'shares' : 'value';
+      // If currently sorted by size (either currentValue or size), update the sort field
+      // to match the new display mode so the list re-sorts accordingly
+      if (positionSortField === 'currentValue' || positionSortField === 'size') {
+        setPositionSortField(newMode === 'value' ? 'currentValue' : 'size');
+      }
+      return newMode;
+    });
+  };
 
   // Clear search when switching wallets
   // Note: This effect would need useEffect, but for simplicity we rely on component remount
@@ -519,6 +534,9 @@ export function WalletProfile({
                   padding: isMobile ? '12px 16px' : '12px 20px',
                   borderBottom: `1px solid ${tokens.colors.border}`,
                   background: tokens.colors.void,
+                  overflowX: 'auto',
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
                 }}
               >
                 {/* Active filter button */}
@@ -540,6 +558,8 @@ export function WalletProfile({
                     color: positionStatusFilter === 'active' ? tokens.colors.textPrimary : tokens.colors.textSecondary,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   Active
@@ -573,6 +593,8 @@ export function WalletProfile({
                     color: positionStatusFilter === 'redeemable' ? tokens.colors.textPrimary : tokens.colors.textSecondary,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   Redeemable
@@ -606,6 +628,8 @@ export function WalletProfile({
                     color: positionStatusFilter === 'all' ? tokens.colors.textPrimary : tokens.colors.textSecondary,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   All
@@ -627,6 +651,7 @@ export function WalletProfile({
                     height: '20px',
                     background: tokens.colors.border,
                     margin: '0 4px',
+                    flexShrink: 0,
                   }}
                 />
 
@@ -651,6 +676,8 @@ export function WalletProfile({
                     color: positionStatusFilter === 'closed' ? tokens.colors.textSecondary : tokens.colors.textMuted,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
+                    flexShrink: 0,
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   Closed
@@ -921,20 +948,29 @@ export function WalletProfile({
                     >
                       {[
                         { field: 'pnl' as PositionSortField, label: 'P&L' },
-                        { field: 'currentValue' as PositionSortField, label: 'Size' },
+                        { field: 'size' as PositionSortField, label: 'Size' }, // Use 'size' as base, we'll handle currentValue/size dynamically
                         { field: 'title' as PositionSortField, label: 'Market' },
                       ].map((option) => {
-                        const isActive = positionSortField === option.field;
+                        // For Size pill, check both 'currentValue' and 'size' fields
+                        const isActive = option.field === 'size'
+                          ? (positionSortField === 'currentValue' || positionSortField === 'size')
+                          : positionSortField === option.field;
                         return (
                           <button
                             key={option.field}
                             onClick={() => {
-                              if (positionSortField === option.field) {
+                              // For Size pill, use the appropriate field based on current display mode
+                              const targetField = option.field === 'size'
+                                ? (sizeDisplayMode === 'value' ? 'currentValue' : 'size')
+                                : option.field;
+
+                              if (positionSortField === targetField ||
+                                  (option.field === 'size' && (positionSortField === 'currentValue' || positionSortField === 'size'))) {
                                 // Toggle direction
                                 setPositionSortDir(positionSortDir === 'desc' ? 'asc' : 'desc');
                               } else {
                                 // New field, default to desc
-                                setPositionSortField(option.field);
+                                setPositionSortField(targetField);
                                 setPositionSortDir('desc');
                               }
                             }}
@@ -1034,6 +1070,8 @@ export function WalletProfile({
                           onClick={() => {
                             window.open(`https://polymarket.com/event/${position.eventSlug}`, '_blank');
                           }}
+                          sizeDisplayMode={sizeDisplayMode}
+                          onSizeToggle={toggleSizeDisplayMode}
                         />
                       ))}
                     </div>
@@ -1051,6 +1089,8 @@ export function WalletProfile({
                       onPositionClick={(position) => {
                         window.open(`https://polymarket.com/event/${position.eventSlug}`, '_blank');
                       }}
+                      sizeDisplayMode={sizeDisplayMode}
+                      onSizeToggle={toggleSizeDisplayMode}
                     />
                   </div>
                 )}
