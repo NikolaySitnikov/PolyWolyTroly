@@ -109,14 +109,31 @@ The sports category is detected using comprehensive regex patterns:
 |-------|-------|-------------------|
 | Boxing/MMA | 🥊 | Jake Paul, Anthony Joshua, UFC, Tyson, Fury |
 | Basketball | 🏀 | Warriors, Lakers, 76ers, NBA, WNBA |
-| Football | 🏈 | Packers, Bears, Cowboys, NFL, Super Bowl, college teams |
+| Football | 🏈 | Packers, Bears, Cowboys, NFL, Super Bowl, college teams (Ole Miss, Miami, Alabama, etc.) |
 | Baseball | ⚾ | Yankees, Dodgers, MLB, World Series |
 | Hockey | 🏒 | Penguins, NHL, Stanley Cup |
-| Soccer | ⚽ | Premier League, Champions League, World Cup |
+| Soccer | ⚽ | Premier League, Champions League, World Cup, EPL teams (Sheffield United, Manchester, Liverpool, etc.) |
 | Tennis | 🎾 | Wimbledon, US Open, ATP |
 | Golf | ⛳ | PGA, Masters, Ryder Cup |
 | Racing | 🏎️ | F1, NASCAR, Grand Prix |
 | Default | 🏆 | Unknown sports |
+
+### College Football Detection
+
+Comprehensive detection for CFB including:
+- **SEC**: Ole Miss (Rebels), Alabama, Auburn, LSU, Georgia, Tennessee, Arkansas, etc.
+- **Big Ten**: Michigan, Ohio State, Penn State, Wisconsin, Iowa, Nebraska, etc.
+- **ACC**: Miami (Hurricanes), Clemson, Virginia Tech, Duke, NC State, etc.
+- **Big 12**: Texas, Oklahoma, TCU, Baylor, Kansas, West Virginia, etc.
+- **Pac-12/Other**: Oregon, USC, UCLA, Utah, Colorado, Stanford, etc.
+- **Team nicknames**: Rebels, Hurricanes, Hokies, Wolfpack, Yellow Jackets, etc.
+
+### Soccer/European Football Detection
+
+Expanded detection for soccer including:
+- **English Premier League**: Manchester, Liverpool, Chelsea, Arsenal, Tottenham, Sheffield United, Newcastle, Brighton, etc.
+- **Top European Clubs**: Barcelona, Real Madrid, Bayern, Juventus, PSG, Inter Milan, AC Milan, Napoli, Dortmund, etc.
+- **Generic patterns**: "FC", "United FC", "City FC", "football club"
 
 ## Access Pattern
 
