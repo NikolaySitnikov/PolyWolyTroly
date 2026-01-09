@@ -642,7 +642,7 @@ export function WalletProfile({
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  📜 Closed
+                  Closed
                 </button>
               </div>
 
