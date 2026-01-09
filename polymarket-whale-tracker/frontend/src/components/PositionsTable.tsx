@@ -596,6 +596,11 @@ export function PositionsTable({
                       }}
                     >
                       {formatPnl(position.pnl)}
+                      {position.pnlPercent !== 0 && (
+                        <span style={{ marginLeft: '4px', opacity: 0.8 }}>
+                          ({position.pnlPercent > 0 ? '+' : ''}{position.pnlPercent.toFixed(1)}%)
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );
