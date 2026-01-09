@@ -150,40 +150,15 @@ function getOutcomeColor(outcome: string): string {
 /**
  * Outcome badge component - supports all outcome types
  * (Yes, No, Over, Under, team names, etc.)
- * Truncates long names with tooltip on hover
  */
 function OutcomeBadge({ outcome }: { outcome: string }) {
   const color = getOutcomeColor(outcome);
-  const textRef = useRef<HTMLSpanElement>(null);
-  const [isTruncated, setIsTruncated] = useState(false);
 
-  const checkTruncation = useCallback(() => {
-    if (textRef.current) {
-      setIsTruncated(textRef.current.scrollWidth > textRef.current.clientWidth);
-    }
-  }, []);
-
-  useEffect(() => {
-    checkTruncation();
-    const timeoutId = setTimeout(checkTruncation, 100);
-    const resizeObserver = new ResizeObserver(checkTruncation);
-    if (textRef.current) {
-      resizeObserver.observe(textRef.current);
-    }
-    window.addEventListener('resize', checkTruncation);
-    return () => {
-      clearTimeout(timeoutId);
-      resizeObserver.disconnect();
-      window.removeEventListener('resize', checkTruncation);
-    };
-  }, [checkTruncation, outcome]);
-
-  const badge = (
+  return (
     <span
-      ref={textRef}
       style={{
-        display: 'inline-block',
-        maxWidth: '100%',
+        display: 'inline-flex',
+        alignItems: 'center',
         padding: '3px 8px',
         background: `${color}15`,
         border: `1px solid ${color}40`,
@@ -193,23 +168,11 @@ function OutcomeBadge({ outcome }: { outcome: string }) {
         fontWeight: 600,
         color,
         whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
       }}
     >
       {outcome}
     </span>
   );
-
-  if (isTruncated) {
-    return (
-      <Tooltip content={outcome} placement="top">
-        {badge}
-      </Tooltip>
-    );
-  }
-
-  return badge;
 }
 
 /**
@@ -626,9 +589,7 @@ export function PositionsTable({
                   letterSpacing: '0.1em',
                   color: tokens.colors.textMuted,
                   textAlign: 'left',
-                  width: '12%',
-                  maxWidth: 0,
-                  overflow: 'hidden',
+                  width: '10%',
                 }}
               >
                 Position
@@ -760,7 +721,7 @@ export function PositionsTable({
                     </td>
 
                     {/* Position (YES/NO) */}
-                    <td style={{ ...cellStyle, width: '12%', maxWidth: 0, overflow: 'hidden' }}>
+                    <td style={{ ...cellStyle, width: '10%' }}>
                       <OutcomeBadge outcome={position.normalizedOutcome} />
                     </td>
 
