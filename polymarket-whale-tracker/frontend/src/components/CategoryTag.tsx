@@ -146,7 +146,7 @@ const CATEGORY_CONFIG: Record<MarketCategory, { icon: string; label: string; col
   tech: { icon: '💻', label: 'Tech', color: '#a855f7' },          // Purple
   entertainment: { icon: '🎬', label: 'Entertainment', color: '#ec4899' },  // Pink
   science: { icon: '🔬', label: 'Science', color: '#06b6d4' },    // Cyan
-  world: { icon: '🌍', label: 'World', color: '#f59e0b' },        // Amber/gold - international
+  world: { icon: '🌍', label: 'World', color: '#14b8a6' },        // Teal - international/geopolitics
   other: { icon: '📌', label: 'Other', color: '#6b7280' },        // Gray
 };
 
@@ -426,8 +426,8 @@ export function CategoryTag({
 export function inferCategory(question: string): MarketCategory {
   const q = question.toLowerCase();
 
-  // Politics - elections, politicians, government
-  if (/trump|biden|election|president|congress|senate|governor|vote|democrat|republican|nominee|cabinet|administration/i.test(q)) {
+  // Politics - elections, politicians, government, world leaders
+  if (/trump|biden|election|president|congress|senate|governor|vote|democrat|republican|nominee|cabinet|administration|maduro|zelensky|putin|xi jinping|netanyahu|macron|trudeau|milei|lula|modi|bolsonaro|erdogan|orban|scholz|starmer|sunak|meloni|impeach|regime|dictator/i.test(q)) {
     return 'politics';
   }
   // Crypto - cryptocurrencies, blockchain, and crypto projects
