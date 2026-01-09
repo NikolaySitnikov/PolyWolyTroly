@@ -905,22 +905,24 @@ function ErrorState({ error, onRetry }: { error: string; onRetry?: () => void })
         <button
           onClick={onRetry}
           style={{
+            padding: '10px 20px',
+            background: tokens.colors.cyan,
+            border: 'none',
+            borderRadius: '10px',
             fontFamily: tokens.fonts.body,
             fontSize: '14px',
-            fontWeight: 500,
-            color: tokens.colors.cyan,
-            background: 'transparent',
-            border: `1px solid ${tokens.colors.cyan}`,
-            borderRadius: '8px',
-            padding: '8px 16px',
+            fontWeight: 600,
+            color: tokens.colors.void,
             cursor: 'pointer',
             transition: 'all 0.2s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = tokens.colors.cyanGlow;
+            e.currentTarget.style.opacity = '0.9';
+            e.currentTarget.style.transform = 'scale(1.02)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.opacity = '1';
+            e.currentTarget.style.transform = 'scale(1)';
           }}
         >
           Retry
