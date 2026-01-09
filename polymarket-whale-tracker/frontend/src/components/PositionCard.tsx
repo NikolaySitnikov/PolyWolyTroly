@@ -405,7 +405,7 @@ export function PositionCard({ position, onClick }: PositionCardProps) {
         <MetricBox
           label="Current"
           value={formatPrice(position.currentPrice)}
-          subValue={formatPnl(position.pnl)}
+          subValue={`${formatPnl(position.pnl)}${position.pnlPercent !== 0 ? ` (${position.pnlPercent > 0 ? '+' : ''}${position.pnlPercent.toFixed(1)}%)` : ''}`}
           valueColor={pnlColor}
         />
       </div>
