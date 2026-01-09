@@ -243,7 +243,7 @@ export function getCategoryConfig(category: MarketCategory): CategoryConfig {
 /**
  * Sort positions by various criteria
  */
-export type PositionSortField = 'pnl' | 'currentValue' | 'size';
+export type PositionSortField = 'pnl' | 'currentValue' | 'size' | 'title';
 
 /**
  * Sort positions array
@@ -254,6 +254,15 @@ export function sortPositions(
   direction: 'asc' | 'desc' = 'desc'
 ): Position[] {
   const sorted = [...positions].sort((a, b) => {
+    // Handle title sorting (alphabetical)
+    if (field === 'title') {
+      const aTitle = a.title?.toLowerCase() || '';
+      const bTitle = b.title?.toLowerCase() || '';
+      const comparison = aTitle.localeCompare(bTitle);
+      return direction === 'desc' ? -comparison : comparison;
+    }
+
+    // Numeric sorting for other fields
     let aVal: number;
     let bVal: number;
 

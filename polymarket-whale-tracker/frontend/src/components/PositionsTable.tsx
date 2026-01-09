@@ -341,21 +341,14 @@ export function PositionsTable({
         <table style={tableStyle}>
           <thead>
             <tr style={{ borderBottom: `1px solid ${tokens.colors.border}`, background: tokens.colors.void }}>
-              <th
-                style={{
-                  padding: '12px 16px',
-                  fontFamily: tokens.fonts.mono,
-                  fontSize: '10px',
-                  fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.1em',
-                  color: tokens.colors.textMuted,
-                  textAlign: 'left',
-                  width: '35%',
-                }}
-              >
-                Market
-              </th>
+              <SortableHeader
+                label="Market"
+                field="title"
+                currentField={sortField}
+                currentDir={sortDir}
+                onSort={handleSort}
+                align="left"
+              />
               <th
                 style={{
                   padding: '12px 16px',
