@@ -20,6 +20,7 @@ import { createPortal } from 'react-dom';
 import { tokens } from '../styles/tokens';
 
 type Placement = 'top' | 'bottom' | 'left' | 'right';
+type TooltipVariant = 'default' | 'title';
 
 interface TooltipProps {
   /** Content to display in the tooltip */
@@ -30,6 +31,8 @@ interface TooltipProps {
   placement?: Placement;
   /** Delay in ms before showing tooltip */
   delay?: number;
+  /** Variant for styling - 'title' has white text and larger font for readability */
+  variant?: TooltipVariant;
 }
 
 /**
@@ -130,6 +133,7 @@ export function Tooltip({
   children,
   placement = 'top',
   delay = 150,
+  variant = 'default',
 }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
@@ -218,15 +222,20 @@ export function Tooltip({
               top: position?.top ?? 0,
               left: position?.left ?? 0,
               zIndex: 9999, // Must be above everything including fixed headers
-              maxWidth: '280px',
-              padding: `${tokens.spacing[2]} ${tokens.spacing[3]}`,
+              maxWidth: variant === 'title' ? '400px' : '280px',
+              padding: variant === 'title'
+                ? `${tokens.spacing[3]} ${tokens.spacing[4]}`
+                : `${tokens.spacing[2]} ${tokens.spacing[3]}`,
               background: tokens.colors.surface,
-              border: `1px solid ${tokens.colors.border}`,
+              border: `1px solid ${variant === 'title' ? tokens.colors.cyan + '40' : tokens.colors.border}`,
               borderRadius: tokens.radius.md,
-              boxShadow: `0 4px 16px rgba(0, 0, 0, 0.4)`,
+              boxShadow: variant === 'title'
+                ? `0 8px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px ${tokens.colors.cyan}20`
+                : `0 4px 16px rgba(0, 0, 0, 0.4)`,
               fontFamily: tokens.fonts.body,
-              fontSize: tokens.fontSizes.xs,
-              color: tokens.colors.textSecondary,
+              fontSize: variant === 'title' ? tokens.fontSizes.sm : tokens.fontSizes.xs,
+              fontWeight: variant === 'title' ? 500 : 400,
+              color: variant === 'title' ? tokens.colors.textPrimary : tokens.colors.textSecondary,
               lineHeight: 1.4,
               pointerEvents: 'none',
               animation: 'fadeInUp 150ms ease-out',

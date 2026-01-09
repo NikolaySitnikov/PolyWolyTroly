@@ -7,7 +7,7 @@
  * @see Design docs/TRADING_FEATURES_DESIGN_GUIDE.md - Section 7
  */
 
-import { useState, useMemo, type CSSProperties } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback, type CSSProperties } from 'react';
 import { tokens } from '../styles/tokens';
 import { Pagination } from './Pagination';
 import { Tooltip } from './Tooltip';
@@ -29,6 +29,53 @@ interface PositionsTableProps {
 }
 
 const DEFAULT_ITEMS_PER_PAGE = 10;
+
+/**
+ * TruncatedText - Shows styled tooltip only when text is actually truncated
+ */
+function TruncatedText({ text, style }: { text: string; style?: CSSProperties }) {
+  const textRef = useRef<HTMLDivElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  const checkTruncation = useCallback(() => {
+    if (textRef.current) {
+      setIsTruncated(textRef.current.scrollWidth > textRef.current.clientWidth);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkTruncation();
+    // Re-check on resize
+    window.addEventListener('resize', checkTruncation);
+    return () => window.removeEventListener('resize', checkTruncation);
+  }, [checkTruncation, text]);
+
+  const textElement = (
+    <div
+      ref={textRef}
+      style={{
+        fontWeight: 500,
+        lineHeight: 1.4,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        ...style,
+      }}
+    >
+      {text}
+    </div>
+  );
+
+  if (isTruncated) {
+    return (
+      <Tooltip content={text} placement="top" variant="title">
+        {textElement}
+      </Tooltip>
+    );
+  }
+
+  return textElement;
+}
 
 /**
  * Format a number as USD with K/M suffix
@@ -246,6 +293,12 @@ export function PositionsTable({
   const [sortField, setSortField] = useState<PositionSortField>('pnl');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
 
+  // Reset to page 1 when positions array changes (e.g., due to filtering)
+  // This ensures the table properly re-renders with the new data
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [positions.length]);
+
   // Sort positions
   const sortedPositions = useMemo(() => {
     return sortPositions(positions, sortField, sortDir);
@@ -457,18 +510,7 @@ export function PositionsTable({
                           <CategoryTag category={category} size="small" iconOverride={sportEmoji} />
                           <StatusDot status={position.status} />
                         </div>
-                        <div
-                          style={{
-                            fontWeight: 500,
-                            lineHeight: 1.4,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}
-                          title={position.title}
-                        >
-                          {position.title}
-                        </div>
+                        <TruncatedText text={position.title} />
                       </div>
                     </td>
 
