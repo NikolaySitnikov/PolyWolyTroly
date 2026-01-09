@@ -23,16 +23,16 @@ export type ProfileTabId = 'positions' | 'activity' | 'deposits';
 interface ProfileTab {
   id: ProfileTabId;
   label: string;
-  icon: string;
 }
 
 /**
  * Default tabs configuration
+ * No icons - labels are clear enough, follows "minimal but dense" philosophy
  */
 export const PROFILE_TABS: ProfileTab[] = [
-  { id: 'positions', label: 'Positions', icon: '📊' },
-  { id: 'activity', label: 'Activity', icon: '📜' },
-  { id: 'deposits', label: 'Deposits', icon: '💰' },
+  { id: 'positions', label: 'Positions' },
+  { id: 'activity', label: 'Activity' },
+  { id: 'deposits', label: 'Deposits' },
 ];
 
 interface ProfileTabsProps {
@@ -125,7 +125,6 @@ function TabButton({
           }}
         />
       )}
-      <span style={{ fontSize: isMobile ? '14px' : '16px' }}>{tab.icon}</span>
       <span>{tab.label}</span>
       {count !== undefined && count > 0 && (
         <span
