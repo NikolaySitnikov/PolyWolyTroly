@@ -14,8 +14,10 @@ export type PositionOutcome = 'YES' | 'NO';
 
 /**
  * Position status
+ * - active: Market is live, position can still be traded
+ * - redeemable: Market resolved, position can be redeemed for winnings
  */
-export type PositionStatus = 'active' | 'resolved' | 'expired';
+export type PositionStatus = 'active' | 'redeemable';
 
 /**
  * Market category for visual styling
@@ -88,13 +90,10 @@ export function toPosition(raw: PolymarketPosition): Position {
   const normalizedOutcome: PositionOutcome =
     raw.outcome?.toUpperCase() === 'YES' ? 'YES' : 'NO';
 
-  // Position is active if it has a non-zero price and is not redeemable
-  const isActive = raw.curPrice > 0 && !raw.redeemable;
-
-  let status: PositionStatus = 'active';
-  if (!isActive) {
-    status = raw.endDate && new Date(raw.endDate) < new Date() ? 'expired' : 'resolved';
-  }
+  // Position is active if it's not redeemable (market still live)
+  // Position is redeemable if the market has resolved and can be claimed
+  const isActive = !raw.redeemable;
+  const status: PositionStatus = raw.redeemable ? 'redeemable' : 'active';
 
   // Determine category: use sportsMarketType if available (from Gamma API enrichment),
   // otherwise fall back to title-based extraction

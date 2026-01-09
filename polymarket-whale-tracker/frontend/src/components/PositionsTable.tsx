@@ -99,11 +99,10 @@ function OutcomeBadge({ outcome }: { outcome: 'YES' | 'NO' }) {
  * Status indicator dot
  * Uses a larger hit area (16x16) for easier hover/touch while keeping visual dot small (6x6)
  */
-function StatusDot({ status }: { status: 'active' | 'resolved' | 'expired' }) {
+function StatusDot({ status }: { status: 'active' | 'redeemable' }) {
   const config = {
     active: { color: tokens.colors.live, label: 'Active - Market is live' },
-    resolved: { color: tokens.colors.purple, label: 'Resolved - Awaiting redemption' },
-    expired: { color: tokens.colors.textMuted, label: 'Expired' },
+    redeemable: { color: tokens.colors.purple, label: 'Redeemable - Claim your winnings' },
   };
 
   const { color, label } = config[status];
