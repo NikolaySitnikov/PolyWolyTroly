@@ -97,11 +97,12 @@ function OutcomeBadge({ outcome }: { outcome: 'YES' | 'NO' }) {
 
 /**
  * Status indicator dot
+ * Uses a larger hit area (16x16) for easier hover/touch while keeping visual dot small (6x6)
  */
 function StatusDot({ status }: { status: 'active' | 'resolved' | 'expired' }) {
   const config = {
-    active: { color: tokens.colors.live, label: 'Active' },
-    resolved: { color: tokens.colors.purple, label: 'Resolved' },
+    active: { color: tokens.colors.live, label: 'Active - Market is live' },
+    resolved: { color: tokens.colors.purple, label: 'Resolved - Awaiting redemption' },
     expired: { color: tokens.colors.textMuted, label: 'Expired' },
   };
 
@@ -111,16 +112,26 @@ function StatusDot({ status }: { status: 'active' | 'resolved' | 'expired' }) {
     <Tooltip content={label} placement="top">
       <span
         style={{
-          display: 'inline-block',
-          width: '6px',
-          height: '6px',
-          borderRadius: '50%',
-          background: color,
-          boxShadow: status === 'active' ? `0 0 6px ${color}` : 'none',
-          marginLeft: '8px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '16px',
+          height: '16px',
+          marginLeft: '4px',
           cursor: 'pointer',
         }}
-      />
+      >
+        <span
+          style={{
+            display: 'inline-block',
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            background: color,
+            boxShadow: status === 'active' ? `0 0 6px ${color}` : 'none',
+          }}
+        />
+      </span>
     </Tooltip>
   );
 }
