@@ -49,6 +49,10 @@ interface UseClosedPositionsResult {
   allLoadedPositions: PolymarketClosedPosition[];
   /** Reset to first page */
   reset: () => void;
+  /** Prefetch data (call on hover to warm cache before user clicks) */
+  prefetch: () => void;
+  /** Whether data has been fetched at least once */
+  hasFetched: boolean;
 }
 
 const DEFAULT_PAGE_SIZE = 25;
@@ -72,9 +76,11 @@ export function useClosedPositions(
   const [hasMore, setHasMore] = useState(true);
   const [sortBy, setSortByInternal] = useState<ClosedPositionSortField>(initialSortBy);
   const [sortDir, setSortDirInternal] = useState<'ASC' | 'DESC'>(initialSortDir);
+  const [hasFetched, setHasFetched] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const fetchedAddressRef = useRef<string | null>(null);
+  const prefetchingRef = useRef(false);
 
   const fetchData = useCallback(async (pageNum: number, append: boolean = false) => {
     if (!address || !enabled) {
@@ -114,6 +120,7 @@ export function useClosedPositions(
 
       setHasMore(data.pagination.hasMore);
       fetchedAddressRef.current = address;
+      setHasFetched(true);
       setLoading(false);
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;
@@ -179,6 +186,35 @@ export function useClosedPositions(
     fetchData(1, false);
   }, [fetchData]);
 
+  // Prefetch data on hover (before user clicks)
+  // This warms the cache so switching to Closed tab is instant
+  const prefetch = useCallback(async () => {
+    // Skip if already fetched, currently fetching, or prefetching
+    if (hasFetched || loading || prefetchingRef.current || !address) {
+      return;
+    }
+
+    prefetchingRef.current = true;
+
+    try {
+      const offset = 0;
+      const data = await fetchClosedPositions(address, pageSize, offset, sortBy, sortDir);
+
+      // Only update state if we haven't fetched yet (avoid race with enabled becoming true)
+      if (!hasFetched) {
+        setPositions(data.positions);
+        setAllLoadedPositions(data.positions);
+        setHasMore(data.pagination.hasMore);
+        fetchedAddressRef.current = address;
+        setHasFetched(true);
+      }
+    } catch {
+      // Silently fail prefetch - user can retry by clicking
+    } finally {
+      prefetchingRef.current = false;
+    }
+  }, [address, hasFetched, loading, pageSize, sortBy, sortDir]);
+
   return {
     positions,
     loading,
@@ -194,5 +230,7 @@ export function useClosedPositions(
     loadMore,
     allLoadedPositions,
     reset,
+    prefetch,
+    hasFetched,
   };
 }

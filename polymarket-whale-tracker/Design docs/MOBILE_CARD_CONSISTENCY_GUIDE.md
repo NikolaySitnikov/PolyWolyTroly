@@ -270,6 +270,71 @@ return (
    - Made Active, Redeemable, All filter buttons use consistent white styling
    - All filters now use `textSecondary` border and `textPrimary` text when selected
 
+4. **Updated:** `frontend/src/hooks/useClosedPositions.ts`
+   - Added `prefetch()` function for hover-triggered data loading
+   - Added `hasFetched` state to track if data has been loaded
+   - Enables smooth filter switching without scroll jump
+
+5. **Updated:** `frontend/src/components/WalletProfile.tsx`
+   - Added `onMouseEnter` and `onFocus` handlers to Closed button
+   - Triggers prefetch when user hovers, ensuring data is ready before click
+   - Fixes scroll position jump when switching Active→Closed
+
+---
+
+## Hover Prefetch Pattern
+
+When lazy-loading data that's triggered by user interaction (like filter buttons), use hover prefetch to ensure smooth transitions.
+
+### The Problem
+
+Lazy loading data on click causes:
+1. Loading state shown after click
+2. Content height changes when data loads
+3. Browser auto-scrolls when content is shorter than scroll position
+
+### The Solution
+
+Prefetch data when user hovers (shows intent before clicking):
+
+```typescript
+// In the hook
+const prefetch = useCallback(async () => {
+  if (hasFetched || loading || prefetchingRef.current) return;
+
+  prefetchingRef.current = true;
+  try {
+    const data = await fetchData();
+    setData(data);
+    setHasFetched(true);
+  } catch {
+    // Silently fail - user can retry by clicking
+  } finally {
+    prefetchingRef.current = false;
+  }
+}, [hasFetched, loading]);
+
+// In the component
+<button
+  onClick={() => setFilter('closed')}
+  onMouseEnter={prefetch}
+  onFocus={prefetch}
+>
+  Closed
+</button>
+```
+
+### Benefits
+
+- **Efficient**: Only fetches when user shows intent (hover/focus)
+- **No wasted requests**: If user never hovers, no API call
+- **Smooth UX**: Data ready by click time, no scroll jump
+- **Accessible**: `onFocus` ensures keyboard users get same benefit
+
+**Files:**
+- `frontend/src/hooks/useClosedPositions.ts` (prefetch function)
+- `frontend/src/components/WalletProfile.tsx` (hover handlers on Closed button)
+
 ---
 
 ## Lessons Learned

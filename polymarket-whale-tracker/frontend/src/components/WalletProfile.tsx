@@ -128,7 +128,9 @@ export function WalletProfile({
   // Fetch trading data (profile, live status, positions, etc.)
   const { profile, isLive, metrics, positions, getPnl, loading: tradingLoading, error: tradingError, refetch: refetchTrading, totalPositionsCount } = usePolymarketTrading(wallet.address);
 
-  // Fetch closed/historical positions (only when 'closed' filter is active)
+  // Fetch closed/historical positions (lazy-loaded, with hover prefetch for smooth UX)
+  // Data is fetched when user hovers over "Closed" button OR when they click it.
+  // This prevents scroll jump by ensuring data is ready before the filter switch.
   const {
     positions: closedPositions,
     loading: closedLoading,
@@ -137,6 +139,8 @@ export function WalletProfile({
     loadMore: loadMoreClosed,
     page: closedPage,
     setPage: setClosedPage,
+    prefetch: prefetchClosedPositions,
+    hasFetched: closedHasFetched,
   } = useClosedPositions(wallet.address, {
     enabled: positionStatusFilter === 'closed',
     pageSize: 25,
@@ -625,6 +629,8 @@ export function WalletProfile({
                 <button
                   type="button"
                   onClick={() => setPositionStatusFilter('closed')}
+                  onMouseEnter={prefetchClosedPositions}
+                  onFocus={prefetchClosedPositions}
                   data-testid="position-filter-closed"
                   style={{
                     display: 'inline-flex',
