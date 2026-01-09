@@ -168,15 +168,19 @@ export function WalletProfile({
   });
 
   // Fetch activity history (lazy-loaded when Activity tab is selected)
+  // Live WebSocket updates are automatically integrated
   const [activityFilter, setActivityFilter] = useState<ActivityFilterOption>('all');
   const {
     allActivities,
     loading: activityLoading,
     error: activityError,
+    liveConnected: activityLiveConnected,
+    newTradesCount: activityNewTradesCount,
   } = useActivity(wallet.address, {
     enabled: activeTab === 'activity',
     pageSize: 50,
     filter: activityFilter,
+    enableLiveUpdates: true,
   });
 
   // Filter activities based on selected filter
@@ -1199,6 +1203,8 @@ export function WalletProfile({
                       window.open(`https://polymarket.com/event/${activity.slug}`, '_blank');
                     }
                   }}
+                  liveConnected={activityLiveConnected}
+                  newTradesCount={activityNewTradesCount}
                 />
               )}
             </>

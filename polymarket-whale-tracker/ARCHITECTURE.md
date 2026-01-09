@@ -618,7 +618,8 @@ frontend/src/
 │   ├── useTrendingMarkets.ts  # Markets data
 │   ├── useWebSocket.ts        # Real-time updates
 │   ├── usePositions.ts        # Trading positions with sorting/filtering
-│   ├── useActivity.ts         # Trading activity with type filtering
+│   ├── useActivity.ts         # Trading activity with type filtering + live updates
+│   ├── usePolymarketRTDS.ts   # Polymarket Real-Time Data Socket for live trades
 │   ├── useProfile.ts          # Polymarket Gamma API profile
 │   └── usePolymarketTrading.ts # Combined trading data hook
 ├── styles/
@@ -702,6 +703,111 @@ The whale profile trading metrics update in real-time using a dual strategy:
     │    2. Previous data cleared immediately (prevents stale data)      │
     │    3. New data fetched for correct wallet                          │
     │    4. UI shows fresh data (not cached from previous whale)         │
+    └────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Polymarket RTDS (Real-Time Data Socket) Integration
+
+Live activity updates in wallet profiles use Polymarket's Real-Time Data Socket for instant trade notifications:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    POLYMARKET RTDS ARCHITECTURE                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    WebSocket URL: wss://ws-live-data.polymarket.com
+
+    ┌────────────────────────────────────────────────────────────────────┐
+    │  CONNECTION FLOW                                                    │
+    │                                                                     │
+    │    1. Connect to RTDS WebSocket                                    │
+    │    2. Subscribe to trades: {                                        │
+    │         action: "subscribe",                                        │
+    │         subscriptions: [{topic: "activity", type: "trades"}]       │
+    │       }                                                             │
+    │    3. Send PING every 5 seconds to maintain connection             │
+    │    4. Filter incoming trades by proxyWallet (client-side)          │
+    └────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────┐
+    │  TRADE MESSAGE FORMAT                                               │
+    │                                                                     │
+    │    {                                                                │
+    │      topic: "activity",                                             │
+    │      type: "trades",                                                │
+    │      timestamp: 1736390400000,                                      │
+    │      payload: {                                                     │
+    │        asset: "0x...",                                              │
+    │        conditionId: "0x...",                                        │
+    │        eventSlug: "presidential-election-2024",                    │
+    │        outcome: "Yes",                                              │
+    │        price: 0.65,                                                 │
+    │        proxyWallet: "0xABC...",  ◀── Filter by this address        │
+    │        side: "BUY" | "SELL",                                        │
+    │        size: 1000,                                                  │
+    │        slug: "will-trump-win",                                      │
+    │        timestamp: 1736390400,                                       │
+    │        title: "Will Trump win?",                                    │
+    │        transactionHash: "0x...",                                    │
+    │        usdcSize: 650,                                               │
+    │        fee: 1.30                                                    │
+    │      }                                                              │
+    │    }                                                                │
+    └────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────┐
+    │  HOOK: usePolymarketRTDS                                            │
+    │                                                                     │
+    │    Input:                                                           │
+    │      • walletAddress: string (to filter trades)                    │
+    │      • enabled: boolean                                             │
+    │      • onNewTrade: callback                                         │
+    │                                                                     │
+    │    Output:                                                          │
+    │      • connected: boolean (WebSocket status)                        │
+    │      • error: string | null                                         │
+    │      • recentTrades: PolymarketActivity[] (newest first, max 100)  │
+    │                                                                     │
+    │    Features:                                                        │
+    │      • Module-level singleton (React StrictMode safe)              │
+    │      • Exponential backoff reconnection (1s → 16s)                 │
+    │      • Deduplication by transactionHash                            │
+    │      • Auto-disconnect when no subscribers                         │
+    └────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────┐
+    │  INTEGRATION: useActivity + RTDS                                    │
+    │                                                                     │
+    │    ┌─────────────────┐      ┌─────────────────┐                   │
+    │    │ API Fetch       │      │ RTDS WebSocket  │                   │
+    │    │ (Initial load)  │      │ (Live updates)  │                   │
+    │    └────────┬────────┘      └────────┬────────┘                   │
+    │             │                         │                            │
+    │             └─────────────┬───────────┘                            │
+    │                           ▼                                        │
+    │             ┌─────────────────────────┐                           │
+    │             │  Merge & Deduplicate    │                           │
+    │             │  (by transactionHash)   │                           │
+    │             └─────────────┬───────────┘                           │
+    │                           ▼                                        │
+    │             ┌─────────────────────────┐                           │
+    │             │  Combined Activities    │                           │
+    │             │  (Live trades first)    │                           │
+    │             └─────────────────────────┘                           │
+    └────────────────────────────────────────────────────────────────────┘
+
+    UI Indicator:
+    ┌────────────────────────────────────────────────────────────────────┐
+    │  Activity Tab Header                                                │
+    │                                                                     │
+    │    [All] [Trades] [Buys] [Sells]              ● LIVE               │
+    │                                                  ↑                  │
+    │                                          Pulsing green dot         │
+    │                                          when connected            │
+    │                                                                     │
+    │    Shows "Connecting..." when reconnecting                         │
     └────────────────────────────────────────────────────────────────────┘
 ```
 

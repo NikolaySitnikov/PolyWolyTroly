@@ -171,7 +171,7 @@ export function getActivityConfig(type: ActivityType): ActivityTypeConfig {
 /**
  * Filter options for activity list
  */
-export type ActivityFilterOption = 'all' | 'deposits' | 'trades' | 'buys' | 'sells';
+export type ActivityFilterOption = 'all' | 'trades' | 'buys' | 'sells';
 
 /**
  * Activity filter configuration
@@ -183,10 +183,6 @@ export const ACTIVITY_FILTER_OPTIONS: Record<ActivityFilterOption, {
   all: {
     label: 'All',
     types: ['deposit', 'withdrawal', 'buy', 'sell', 'redeem', 'claim', 'transfer', 'unknown'],
-  },
-  deposits: {
-    label: 'Deposits',
-    types: ['deposit', 'withdrawal'],
   },
   trades: {
     label: 'Trades',

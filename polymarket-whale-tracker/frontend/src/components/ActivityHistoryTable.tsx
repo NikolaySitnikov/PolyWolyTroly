@@ -34,6 +34,10 @@ interface ActivityHistoryTableProps {
   onFilterChange?: (filter: ActivityFilterOption) => void;
   /** Callback when an activity is clicked */
   onActivityClick?: (activity: Activity) => void;
+  /** Whether live WebSocket is connected */
+  liveConnected?: boolean;
+  /** Number of new trades received via WebSocket */
+  newTradesCount?: number;
 }
 
 const DEFAULT_ITEMS_PER_PAGE = 20;
@@ -170,14 +174,53 @@ function ActivityTypeBadge({ activity }: { activity: Activity }) {
 }
 
 /**
+ * Live status indicator
+ */
+function LiveIndicator({ connected }: { connected: boolean }) {
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '4px 10px',
+        background: connected ? `${tokens.colors.profit}15` : `${tokens.colors.textMuted}10`,
+        border: `1px solid ${connected ? tokens.colors.profit : tokens.colors.border}`,
+        borderRadius: '12px',
+        fontSize: '11px',
+        fontFamily: tokens.fonts.mono,
+        fontWeight: 500,
+        color: connected ? tokens.colors.profit : tokens.colors.textMuted,
+        whiteSpace: 'nowrap',
+      }}
+      title={connected ? 'Live updates active - new trades appear instantly' : 'Connecting to live feed...'}
+    >
+      <span
+        style={{
+          width: '6px',
+          height: '6px',
+          borderRadius: '50%',
+          background: connected ? tokens.colors.profit : tokens.colors.textMuted,
+          boxShadow: connected ? `0 0 8px ${tokens.colors.profit}` : 'none',
+          animation: connected ? 'pulse 2s ease-in-out infinite' : 'none',
+        }}
+      />
+      {connected ? 'LIVE' : 'Connecting...'}
+    </div>
+  );
+}
+
+/**
  * Filter pills component
  */
 function FilterPills({
   activeFilter,
   onChange,
+  liveConnected,
 }: {
   activeFilter: ActivityFilterOption;
   onChange: (filter: ActivityFilterOption) => void;
+  liveConnected?: boolean;
 }) {
   const filters: ActivityFilterOption[] = ['all', 'trades', 'buys', 'sells'];
 
@@ -185,6 +228,8 @@ function FilterPills({
     <div
       style={{
         display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         gap: '8px',
         padding: '12px 16px',
         borderBottom: `1px solid ${tokens.colors.border}`,
@@ -194,6 +239,7 @@ function FilterPills({
         msOverflowStyle: 'none',
       }}
     >
+      <div style={{ display: 'flex', gap: '8px' }}>
       {filters.map((filter) => {
         const isActive = activeFilter === filter;
         const config = ACTIVITY_FILTER_OPTIONS[filter];
@@ -225,6 +271,10 @@ function FilterPills({
           </button>
         );
       })}
+      </div>
+      {liveConnected !== undefined && (
+        <LiveIndicator connected={liveConnected} />
+      )}
     </div>
   );
 }
@@ -356,6 +406,8 @@ export function ActivityHistoryTable({
   filter: externalFilter,
   onFilterChange,
   onActivityClick,
+  liveConnected,
+  newTradesCount,
 }: ActivityHistoryTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<ActivitySortField>('timestamp');
@@ -430,7 +482,7 @@ export function ActivityHistoryTable({
   if (!loading && activities.length === 0) {
     return (
       <div style={containerStyle} data-testid="activity-table-empty">
-        <FilterPills activeFilter={filter} onChange={handleFilterChange} />
+        <FilterPills activeFilter={filter} onChange={handleFilterChange} liveConnected={liveConnected} />
         <div
           style={{
             padding: '48px 24px',
@@ -475,7 +527,7 @@ export function ActivityHistoryTable({
   return (
     <div style={containerStyle} data-testid="activity-history-table">
       {/* Filter Pills */}
-      <FilterPills activeFilter={filter} onChange={handleFilterChange} />
+      <FilterPills activeFilter={filter} onChange={handleFilterChange} liveConnected={liveConnected} />
 
       <div style={{ overflowX: 'auto' }}>
         <table style={tableStyle}>
