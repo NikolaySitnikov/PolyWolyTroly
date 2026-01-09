@@ -39,10 +39,10 @@ export interface ActivityTypeConfig {
  * |------------|---------|--------------------------------------|
  * | Buy        | Green   | Acquiring assets - positive action   |
  * | Sell       | Red     | Liquidating assets                   |
- * | Redeem     | Cyan    | Cashing out resolved position        |
+ * | Redeem     | Gold    | Cashing out resolved position        |
  * | Deposit    | Green   | Adding funds                         |
  * | Withdrawal | Red     | Removing funds                       |
- * | Claim      | Gold    | Rewards/incentives                   |
+ * | Claim      | Purple  | Rewards/incentives                   |
  * | Transfer   | Neutral | Moving between wallets               |
  */
 export const ACTIVITY_TYPE_CONFIGS: Record<ActivityType, ActivityTypeConfig> = {
@@ -73,14 +73,14 @@ export const ACTIVITY_TYPE_CONFIGS: Record<ActivityType, ActivityTypeConfig> = {
   redeem: {
     icon: '✓',
     label: 'Redeem',
-    color: tokens.colors.cyan,
-    bgColor: `${tokens.colors.cyan}15`,
+    color: tokens.colors.gold,
+    bgColor: `${tokens.colors.gold}15`,
   },
   claim: {
     icon: '★',
     label: 'Claim',
-    color: tokens.colors.gold,
-    bgColor: `${tokens.colors.gold}15`,
+    color: tokens.colors.purple,
+    bgColor: `${tokens.colors.purple}15`,
   },
   transfer: {
     icon: '↔',
