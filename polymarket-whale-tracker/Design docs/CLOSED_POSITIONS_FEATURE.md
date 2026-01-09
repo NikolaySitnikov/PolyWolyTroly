@@ -48,7 +48,20 @@ Located at: `frontend/src/components/ClosedPositionCard.tsx`
 
 #### Layout
 - **Mobile**: Card layout with stacked information
-- **Desktop**: Row layout (table-like) for efficient scanning
+- **Desktop**: Row layout (table-like) for efficient scanning with column headers
+
+#### Desktop Table Header
+
+The closed positions list displays a table header on desktop to match the Active/Redeemable/All positions layouts:
+
+| Column | Width | Alignment | Description |
+|--------|-------|-----------|-------------|
+| Result | 48px | Left | WON/LOST badge column |
+| Market | flex | Left | Category tag + market title |
+| Position | 80px | Center | Outcome + entry price |
+| Invested | 90px | Right | Total amount invested |
+| P&L | 90px | Right | Realized profit/loss |
+| When | 80px | Right | Relative timestamp |
 
 #### Key Elements
 1. **WON/LOST Badge** - Green or red badge based on realizedPnl
@@ -233,3 +246,5 @@ Located at: `src/api/server.ts`
 3. **Sport emoji fallback**: Since we don't have `seriesSlug` for closed positions, we rely entirely on title keyword matching for sport emoji selection.
 
 4. **WON/LOST determination**: Based on `realizedPnl >= 0` rather than `curPrice`, which is more accurate for partial positions.
+
+5. **Filter button behavior**: All filter buttons (Active, Redeemable, All, Closed) use `type="button"` to prevent default form submission behavior, which would cause page scroll on click.
