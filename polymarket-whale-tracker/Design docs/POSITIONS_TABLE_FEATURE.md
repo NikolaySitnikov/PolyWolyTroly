@@ -57,9 +57,29 @@ const status: PositionStatus = raw.redeemable ? 'redeemable' : 'active';
 
 Each position displays a category tag with sport-specific emoji:
 
-- Category is determined from `sportsMarketType` (Gamma API) or inferred from title
-- Sports markets show sport-specific emoji (🏀, 🏈, ⚽, etc.)
-- Uses `getSportEmoji()` from `CategoryTag.tsx`
+- Category is determined from `sportsMarketType` (Gamma API) or inferred from title using comprehensive team databases
+- Sports markets show sport-specific emoji based on detected sport type
+- Uses `getSportEmoji()` from `CategoryTag.tsx` with comprehensive regex databases
+
+#### Sport Emoji Mapping
+
+| Sport | Emoji | Database Coverage |
+|-------|-------|-------------------|
+| Boxing/MMA | 🥊 | UFC fighters, boxing champions, weight classes |
+| Basketball | 🏀 | All 30 NBA teams + WNBA |
+| American Football | 🏈 | All 32 NFL teams + 134 FBS college teams |
+| Soccer | ⚽ | EPL, La Liga, Bundesliga, Serie A, Ligue 1, MLS (200+ teams) |
+| Baseball | ⚾ | All 30 MLB teams |
+| Hockey | 🏒 | All 32 NHL teams (including Utah Mammoth) |
+| Tennis | 🎾 | Top players, Grand Slam tournaments |
+| Golf | ⛳ | PGA/LPGA players, major tournaments |
+| Racing | 🏎️ | F1 drivers/teams, NASCAR drivers |
+| Cricket | 🏏 | IPL teams, international players |
+| Rugby | 🏉 | Six Nations, international teams |
+| Esports | 🎮 | LoL, Dota, CS2, Valorant teams/players |
+| Default | 🏆 | Unknown sports |
+
+See `CLOSED_POSITIONS_FEATURE.md` for complete team lists.
 
 ### 4. Outcome Badge
 

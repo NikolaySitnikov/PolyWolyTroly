@@ -6,6 +6,7 @@
  */
 
 import type { PolymarketPosition } from './polymarket';
+import { inferCategory as inferCategoryFromTitle } from '../components/CategoryTag';
 
 /**
  * Position outcome type
@@ -105,9 +106,10 @@ export function toPosition(raw: PolymarketPosition): Position {
     category = 'Sports';
     normalizedCategory = 'sports';
   } else {
-    // Fall back to title-based extraction
-    category = extractCategory(raw.title);
-    normalizedCategory = normalizeCategory(category);
+    // Fall back to comprehensive title-based inference from CategoryTag
+    // This uses the full team databases for accurate detection
+    normalizedCategory = inferCategoryFromTitle(raw.title);
+    category = normalizedCategory.charAt(0).toUpperCase() + normalizedCategory.slice(1);
   }
 
   return {
@@ -124,75 +126,8 @@ export function toPosition(raw: PolymarketPosition): Position {
   };
 }
 
-/**
- * Extract category from market title using heuristics.
- * Uses comprehensive pattern matching to detect sports betting markets.
- */
-function extractCategory(title: string): string {
-  if (!title) return 'other';
-  const lower = title.toLowerCase();
-
-  // Politics - elections, politicians, government
-  if (/trump|biden|election|president|congress|senate|governor|vote|democrat|republican|nominee|cabinet|administration/i.test(lower)) {
-    return 'Politics';
-  }
-
-  // Crypto - cryptocurrencies and blockchain
-  if (/bitcoin|btc|ethereum|eth\b|crypto|defi|blockchain|solana|altcoin/i.test(lower)) {
-    return 'Crypto';
-  }
-
-  // Sports - comprehensive detection for betting markets
-  // Includes: leagues, teams, betting patterns (vs., O/U, Spread), game outcomes
-  if (/nfl|nba|mlb|nhl|mls|ufc|pga|atp|wta|epl|world cup|championship|playoff|game\b|match|team|player|finals|super bowl|premier league|la liga|bundesliga|serie a|ligue 1|champions league/i.test(lower)) {
-    return 'Sports';
-  }
-  // Sports betting patterns: "vs." matchups, over/under, spreads, win predictions
-  if (/\bvs\.?\b|\bversus\b|\bo\/u\b|over\/under|spread|\bwin on\b|\bwin\s+\d|moneyline/i.test(lower)) {
-    return 'Sports';
-  }
-  // Sports team names (NBA, NFL, Soccer, etc.)
-  if (/mavericks|jazz|lakers|celtics|warriors|bulls|heat|nets|knicks|76ers|suns|bucks|nuggets|clippers|rockets|spurs|pistons|pacers|hawks|hornets|wizards|magic|raptors|grizzlies|pelicans|kings|thunder|timberwolves|blazers|cavaliers/i.test(lower)) {
-    return 'Sports';
-  }
-  if (/cowboys|eagles|chiefs|49ers|patriots|packers|bills|ravens|bengals|dolphins|lions|jets|broncos|chargers|raiders|steelers|saints|buccaneers|panthers|falcons|vikings|seahawks|cardinals|commanders|bears|browns|texans|colts|jaguars|titans/i.test(lower)) {
-    return 'Sports';
-  }
-  if (/arsenal|chelsea|liverpool|manchester|tottenham|barcelona|real madrid|juventus|bayern|psg|inter milan|ac milan|dortmund|atletico/i.test(lower)) {
-    return 'Sports';
-  }
-  // Generic sports keywords
-  if (/soccer|football|basketball|baseball|hockey|tennis|golf|boxing|mma|cricket|rugby|racing|formula|nascar/i.test(lower)) {
-    return 'Sports';
-  }
-
-  // Finance - markets, rates, economic indicators
-  if (/stock|fed\b|interest rate|inflation|gdp|earnings|ipo|s&p|nasdaq|dow|treasury|bond|bps/i.test(lower)) {
-    return 'Finance';
-  }
-
-  // Tech - companies, products, AI
-  if (/openai|apple|google|microsoft|ai\b|gpt|iphone|android|startup|meta|amazon|tesla/i.test(lower)) {
-    return 'Tech';
-  }
-
-  // Entertainment - shows, movies, music, awards
-  if (/movie|oscar|grammy|emmy|golden globe|film|album|award|netflix|disney|celebrity|season|episode/i.test(lower)) {
-    return 'Entertainment';
-  }
-
-  // Science - research, space, health
-  if (/nasa|spacex|space|climate|research|study|vaccine|species|discovery|mars|moon|rocket/i.test(lower)) {
-    return 'Science';
-  }
-
-  // World - geopolitics, conflicts, international affairs
-  if (/war|treaty|country|nation|international|un\b|nato|summit|invade|military|venezuela|ukraine|russia|china\b|iran|israel/i.test(lower)) {
-    return 'World';
-  }
-
-  return 'Other';
-}
+// Note: extractCategory has been replaced by inferCategoryFromTitle from CategoryTag.tsx
+// which uses comprehensive team databases for accurate sports detection
 
 /**
  * Normalize category string to MarketCategory

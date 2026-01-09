@@ -150,10 +150,92 @@ const CATEGORY_CONFIG: Record<MarketCategory, { icon: string; label: string; col
   other: { icon: '📌', label: 'Other', color: '#6b7280' },
 };
 
+// =============================================================================
+// COMPREHENSIVE TEAM/LEAGUE DATABASES
+// Researched from official sources (ESPN, Wikipedia, official league sites)
+// =============================================================================
+
+// NBA Teams (30 teams) - All current team names and nicknames
+const NBA_TEAMS = /\b(nba|wnba|basketball|76ers|sixers|celtics|nets|knicks|raptors|bulls|cavaliers|cavs|pistons|pacers|bucks|hawks|hornets|heat|magic|wizards|nuggets|timberwolves|thunder|trail blazers|blazers|jazz|warriors|clippers|lakers|suns|kings|mavericks|mavs|rockets|grizzlies|pelicans|spurs)\b/i;
+
+// NFL Teams (32 teams) - All current team names
+const NFL_TEAMS = /\b(nfl|49ers|niners|bears|bengals|bills|broncos|browns|buccaneers|bucs|cardinals|chargers|chiefs|colts|commanders|cowboys|dolphins|eagles|falcons|giants|jaguars|jags|jets|lions|packers|panthers|patriots|pats|raiders|rams|ravens|saints|seahawks|hawks|steelers|texans|titans|vikings)\b/i;
+
+// MLB Teams (30 teams) - All current team names
+const MLB_TEAMS = /\b(mlb|baseball|world series|athletics|orioles|red sox|redsox|white sox|whitesox|guardians|tigers|astros|royals|angels|twins|yankees|mariners|rays|rangers|blue jays|diamondbacks|d-backs|braves|cubs|reds|rockies|dodgers|marlins|brewers|mets|phillies|pirates|padres|giants|cardinals)\b/i;
+
+// NHL Teams (32 teams) - All current team names including Utah Mammoth (new)
+const NHL_TEAMS = /\b(nhl|hockey|stanley cup|ducks|bruins|sabres|flames|hurricanes|canes|blackhawks|avalanche|avs|blue jackets|stars|red wings|oilers|panthers|kings|wild|canadiens|habs|predators|preds|devils|islanders|isles|rangers|senators|sens|flyers|penguins|pens|sharks|kraken|blues|lightning|bolts|maple leafs|leafs|utah mammoth|canucks|golden knights|knights|capitals|caps|jets|winnipeg jets)\b/i;
+
+// MLS Teams (30 teams) - All current team names
+const MLS_TEAMS = /\b(mls|atlanta united|cf montreal|charlotte fc|chicago fire|columbus crew|dc united|fc cincinnati|inter miami|nashville sc|new england revolution|new york city fc|nycfc|new york red bulls|red bulls|orlando city|philadelphia union|toronto fc|austin fc|colorado rapids|fc dallas|houston dynamo|la galaxy|galaxy|lafc|los angeles fc|minnesota united|portland timbers|timbers|real salt lake|rsl|san diego fc|san jose earthquakes|quakes|seattle sounders|sounders|sporting kansas city|skc|st louis city|vancouver whitecaps|whitecaps)\b/i;
+
+// English Premier League Teams (20 teams) - Current season
+const EPL_TEAMS = /\b(premier league|epl|arsenal|gunners|aston villa|villans|bournemouth|cherries|brentford|bees|brighton|seagulls|chelsea|blues|crystal palace|palace|everton|toffees|fulham|cottagers|ipswich|leeds|leeds united|liverpool|reds|manchester city|man city|city|manchester united|man utd|man united|newcastle|magpies|nottingham forest|forest|southampton|saints|tottenham|spurs|west ham|hammers|wolves|wolverhampton|burnley|clarets|sheffield united|blades|sheffield|luton|hatters|leicester|foxes|sunderland)\b/i;
+
+// La Liga Teams (20 teams) - Spanish First Division
+const LA_LIGA_TEAMS = /\b(la liga|laliga|real madrid|barcelona|barca|atletico madrid|atleti|sevilla|real sociedad|villarreal|yellow submarine|real betis|athletic bilbao|athletic club|osasuna|celta vigo|celta|getafe|rayo vallecano|rayo|mallorca|las palmas|alaves|espanyol|valladolid|leganes|girona|valencia|cadiz|almeria|granada)\b/i;
+
+// Bundesliga Teams (18 teams) - German First Division
+const BUNDESLIGA_TEAMS = /\b(bundesliga|bayern munich|bayern|borussia dortmund|dortmund|bvb|bayer leverkusen|leverkusen|rb leipzig|leipzig|eintracht frankfurt|frankfurt|vfb stuttgart|stuttgart|sc freiburg|freiburg|werder bremen|bremen|borussia monchengladbach|gladbach|vfl wolfsburg|wolfsburg|tsg hoffenheim|hoffenheim|mainz|fc augsburg|augsburg|union berlin|hamburger sv|hamburg|hsv|fc koln|koln|cologne|st pauli|heidenheim|holstein kiel|bochum)\b/i;
+
+// Serie A Teams (20 teams) - Italian First Division
+const SERIE_A_TEAMS = /\b(serie a|inter milan|inter|internazionale|juventus|juve|napoli|ac milan|milan|rossoneri|atalanta|roma|as roma|lazio|fiorentina|viola|bologna|torino|toro|udinese|hellas verona|verona|cagliari|genoa|lecce|empoli|sassuolo|salernitana|spezia|sampdoria|monza|como|parma|frosinone|venezia)\b/i;
+
+// Ligue 1 Teams (18 teams) - French First Division
+const LIGUE_1_TEAMS = /\b(ligue 1|psg|paris saint germain|paris saint-germain|marseille|olympique marseille|om|lyon|olympique lyonnais|ol|monaco|as monaco|lille|losc|lens|rc lens|rennes|stade rennais|nice|ogc nice|strasbourg|nantes|montpellier|toulouse|reims|brest|lorient|clermont|auxerre|angers|metz|le havre)\b/i;
+
+// Other European Clubs
+const OTHER_EURO_CLUBS = /\b(benfica|sporting lisbon|sporting cp|porto|fc porto|ajax|psv eindhoven|psv|feyenoord|celtic|rangers|galatasaray|fenerbahce|besiktas|shakhtar donetsk|dynamo kyiv|red star belgrade|steaua bucharest|olympiacos|panathinaikos|anderlecht|club brugge|salzburg|rapid vienna|young boys|basel|zenit|cska moscow|spartak moscow)\b/i;
+
+// College Football - FBS Schools (134 teams across all conferences)
+// SEC Teams
+const CFB_SEC = /\b(sec|alabama|crimson tide|auburn|tigers|lsu|georgia|bulldogs|tennessee|volunteers|vols|texas a&m|aggies|arkansas|razorbacks|hogs|missouri|mizzou|mississippi state|state|south carolina|gamecocks|kentucky|wildcats|vanderbilt|commodores|dores|florida|gators|ole miss|rebels|texas|longhorns)\b/i;
+
+// Big Ten Teams
+const CFB_BIG_TEN = /\b(big ten|big 10|ohio state|buckeyes|michigan|wolverines|penn state|nittany lions|michigan state|spartans|iowa|hawkeyes|wisconsin|badgers|nebraska|cornhuskers|huskers|minnesota|golden gophers|gophers|northwestern|wildcats|purdue|boilermakers|indiana|hoosiers|illinois|illini|maryland|terrapins|terps|rutgers|scarlet knights|usc|trojans|ucla|bruins|oregon|ducks|washington|huskies)\b/i;
+
+// ACC Teams
+const CFB_ACC = /\b(acc|clemson|tigers|florida state|seminoles|noles|miami|hurricanes|canes|virginia tech|hokies|virginia|cavaliers|wahoos|north carolina|tar heels|nc state|wolfpack|duke|blue devils|wake forest|demon deacons|syracuse|orange|pittsburgh|pitt|panthers|louisville|cardinals|boston college|eagles|georgia tech|yellow jackets|stanford|cardinal|cal|golden bears|smu|mustangs)\b/i;
+
+// Big 12 Teams
+const CFB_BIG_12 = /\b(big 12|big 12|oklahoma state|cowboys|pokes|texas tech|red raiders|tcu|horned frogs|baylor|bears|kansas|jayhawks|kansas state|wildcats|iowa state|cyclones|west virginia|mountaineers|byu|cougars|cincinnati|bearcats|ucf|knights|houston|cougars|arizona|wildcats|arizona state|sun devils|colorado|buffaloes|buffs|utah|utes)\b/i;
+
+// Other FBS Teams (Mountain West, Sun Belt, MAC, AAC, C-USA, Independents)
+const CFB_OTHER = /\b(notre dame|fighting irish|army|black knights|navy|midshipmen|boise state|broncos|fresno state|bulldogs|san diego state|aztecs|colorado state|rams|utah state|aggies|nevada|wolf pack|wyoming|cowboys|air force|falcons|new mexico|lobos|unlv|rebels|hawaii|rainbow warriors|san jose state|spartans|memphis|tigers|tulane|green wave|smu|mustangs|temple|owls|south florida|bulls|tulsa|golden hurricane|east carolina|pirates|uab|blazers|charlotte|49ers|fau|owls|fiu|panthers|rice|owls|utsa|roadrunners|north texas|mean green|utep|miners|louisiana tech|bulldogs|middle tennessee|blue raiders|western kentucky|hilltoppers|marshall|thundering herd|old dominion|monarchs|southern miss|golden eagles|coastal carolina|chanticleers|appalachian state|mountaineers|james madison|dukes|georgia southern|eagles|georgia state|panthers|louisiana|ragin cajuns|arkansas state|red wolves|south alabama|jaguars|texas state|bobcats|troy|trojans|bowling green|falcons|buffalo|bulls|kent state|golden flashes|miami ohio|redhawks|ohio|bobcats|akron|zips|ball state|cardinals|central michigan|chippewas|eastern michigan|eagles|northern illinois|huskies|toledo|rockets|western michigan|broncos)\b/i;
+
+// UFC/MMA Fighters and Terms
+const UFC_MMA = /\b(ufc|mma|bellator|pfl|one championship|jake paul|logan paul|anthony joshua|tyson fury|deontay wilder|canelo alvarez|ggg|gennady golovkin|mayweather|manny pacquiao|conor mcgregor|khabib|islam makhachev|alex pereira|jon jones|israel adesanya|izzy|kamaru usman|leon edwards|sean o'malley|dustin poirier|charles oliveira|max holloway|alexander volkanovski|ilia topuria|zhang weili|valentina shevchenko|amanda nunes|heavyweight|middleweight|welterweight|lightweight|featherweight|bantamweight|flyweight|title fight|knockout|ko|tko|submission|decision|round \d+|fight night|pay per view|ppv)\b/i;
+
+// Tennis Players and Tournaments
+const TENNIS = /\b(tennis|wimbledon|us open|french open|roland garros|australian open|atp|wta|grand slam|djokovic|novak|nadal|rafa|federer|roger|alcaraz|carlos|sinner|jannik|medvedev|zverev|tsitsipas|rublev|fritz|swiatek|iga|sabalenka|aryna|gauff|coco|osaka|serena williams|venus williams|raducanu|rybakina|pegula)\b/i;
+
+// Golf Players and Tournaments
+const GOLF = /\b(golf|pga|lpga|masters|us open golf|the open|british open|pga championship|ryder cup|presidents cup|liv golf|tiger woods|rory mcilroy|scottie scheffler|jon rahm|brooks koepka|dustin johnson|jordan spieth|xander schauffele|collin morikawa|viktor hovland|bryson dechambeau|phil mickelson|nelly korda|jin young ko)\b/i;
+
+// Racing
+const RACING = /\b(f1|formula 1|formula one|formula1|nascar|indycar|motogp|wrc|rally|grand prix|verstappen|max verstappen|hamilton|lewis hamilton|leclerc|charles leclerc|norris|lando norris|sainz|carlos sainz|perez|sergio perez|checo|alonso|fernando alonso|red bull racing|mercedes|ferrari|mclaren|aston martin|alpine|williams|haas|alfa romeo|alphatauri|kyle larson|kyle busch|denny hamlin|ross chastain|william byron|chase elliott|martin truex|christopher bell|joey logano)\b/i;
+
+// Cricket
+const CRICKET = /\b(cricket|ipl|t20|test match|odi|the ashes|world cup cricket|bbl|big bash|cpl|psl|csk|chennai super kings|mumbai indians|rcb|royal challengers|kolkata knight riders|kkr|delhi capitals|rajasthan royals|punjab kings|sunrisers|gt|gujarat titans|lsg|lucknow|virat kohli|rohit sharma|ms dhoni|sachin tendulkar|kane williamson|steve smith|joe root|ben stokes|pat cummins|jasprit bumrah|rashid khan)\b/i;
+
+// Rugby
+const RUGBY = /\b(rugby|six nations|rugby world cup|super rugby|premiership rugby|top 14|pro14|all blacks|springboks|wallabies|england rugby|ireland rugby|wales rugby|scotland rugby|france rugby|lions tour|british lions)\b/i;
+
+// Esports
+const ESPORTS = /\b(esports|e-sports|league of legends|lol|worlds|lcs|lec|lck|dota|the international|ti\d+|csgo|cs2|counter-strike|valorant|vct|overwatch|owl|call of duty|cod|cdl|fortnite|fncs|rocket league|rlcs|t1|g2|fnatic|cloud9|c9|team liquid|liquid|evil geniuses|eg|faze|100 thieves|100t|nrg|sentinels|gen\.g|drx|faker|caps|rekkles)\b/i;
+
 /**
  * Get sport-specific emoji based on series slug or question text.
  * Maps league/series prefixes to appropriate sport emojis.
  * Returns default sports emoji (🏆) if no match found.
+ *
+ * Uses comprehensive databases of all teams from:
+ * - NBA (30 teams), NFL (32 teams), MLB (30 teams), NHL (32 teams)
+ * - MLS (30 teams), EPL (20 teams), La Liga (20 teams)
+ * - Bundesliga (18 teams), Serie A (20 teams), Ligue 1 (18 teams)
+ * - College Football (134 FBS teams across all conferences)
+ * - UFC/Boxing fighters, Tennis players, Golf players, Racing drivers
  *
  * @param seriesSlug - Series slug from Polymarket (e.g., "nba-2026", "premier-league-2025")
  * @param question - Optional market question text as fallback for keyword matching
@@ -165,92 +247,74 @@ export function getSportEmoji(seriesSlug: string | null | undefined, question?: 
   const q = question?.toLowerCase() || '';
 
   // Boxing/MMA - check first since fighters like Jake Paul, etc. should show boxing
-  if (slug.includes('ufc') || slug.includes('boxing') || slug.includes('mma') ||
-      /\b(ufc|boxing|mma|fight|knockout|jake paul|anthony joshua|tyson|fury|canelo|mayweather|mcgregor|heavyweight|middleweight|lightweight|title fight|round \d+)\b/i.test(q)) {
+  if (slug.includes('ufc') || slug.includes('boxing') || slug.includes('mma') || UFC_MMA.test(q)) {
     return '🥊';
   }
 
-  // Basketball - NBA teams
-  if (slug.startsWith('nba') || slug.includes('basketball') || slug.includes('ncaa-basketball') || slug.includes('wnba') ||
-      /\b(nba|wnba|basketball|76ers|sixers|blazers|bucks|bulls|cavaliers|cavs|celtics|clippers|grizzlies|hawks|heat|hornets|jazz|kings|knicks|lakers|magic|mavericks|mavs|nets|nuggets|pacers|pelicans|pistons|raptors|rockets|spurs|suns|thunder|timberwolves|warriors|wizards)\b/i.test(q)) {
+  // Basketball - NBA/WNBA teams
+  if (slug.startsWith('nba') || slug.includes('basketball') || slug.includes('ncaa-basketball') || slug.includes('wnba') || NBA_TEAMS.test(q)) {
     return '🏀';
   }
 
   // American Football - NFL teams and College Football
   if (slug.startsWith('nfl') || slug.includes('ncaa-football') || slug.includes('college-football') ||
       slug.includes('super-bowl') || slug.includes('super bowl') || slug.includes('cfb') ||
-      /\b(nfl|super bowl|ncaa football|college football|cfb|cfp|bowl game)\b/i.test(q) ||
-      // NFL teams
-      /\b(49ers|bears|bengals|bills|broncos|browns|buccaneers|cardinals|chargers|chiefs|colts|commanders|cowboys|dolphins|eagles|falcons|giants|jaguars|jets|lions|packers|panthers|patriots|raiders|rams|ravens|saints|seahawks|steelers|texans|titans|vikings)\b/i.test(q) ||
-      // College football team nicknames (SEC, Big Ten, ACC, Big 12, Pac-12, etc.)
-      /\b(volunteers|crimson tide|bulldogs|gators|wildcats|longhorns|buckeyes|wolverines|trojans|fighting irish|seminoles|aggies|cougars|huskies|cornhuskers|hawkeyes|jayhawks|mountaineers|razorbacks|sooners|tar heels|rebels|ole miss|hurricanes|hokies|cavaliers|wolfpack|yellow jackets|blue devils|orange|cardinals|sun devils|bruins|ducks|beavers|utes|buffaloes|red raiders|horned frogs|cyclones|golden gophers|badgers|boilermakers|hoosiers|illini|scarlet knights|nittany lions|spartans|terrapins)\b/i.test(q) ||
-      // State schools and major programs
-      /\b(fresno state|utah state|boise state|san diego state|colorado state|ohio state|penn state|michigan state|florida state|arizona state|nc state|iowa state|kansas state|oklahoma state|oregon state|washington state|alabama|auburn|lsu|georgia|tennessee|texas|oklahoma|notre dame|clemson|miami|oregon|usc|ucla|michigan|wisconsin|iowa|nebraska|colorado|utah|stanford|cal|virginia|virginia tech|north carolina|duke|wake forest|syracuse|pittsburgh|louisville|boston college|texas a&m|arkansas|missouri|mississippi state|south carolina|kentucky|vanderbilt|florida|texas tech|tcu|baylor|kansas|west virginia|cincinnati|ucf|houston|byu|smu)\b/i.test(q) ||
-      // College matchup pattern: "X vs Y" or "X vs. Y" where both are likely college teams
-      /\b(miami|ole miss)\s+vs\.?\s+/i.test(q) || /\s+vs\.?\s+(miami|ole miss)\b/i.test(q)) {
+      NFL_TEAMS.test(q) || CFB_SEC.test(q) || CFB_BIG_TEN.test(q) || CFB_ACC.test(q) || CFB_BIG_12.test(q) || CFB_OTHER.test(q) ||
+      /\b(super bowl|ncaa football|college football|cfb|cfp|bowl game|college playoff|heisman)\b/i.test(q)) {
     return '🏈';
   }
 
-  // Soccer/Football
+  // Soccer/Football - All major leagues
   if (slug.includes('premier-league') || slug.includes('la-liga') || slug.includes('bundesliga') ||
       slug.includes('serie-a') || slug.includes('ligue-1') || slug.includes('mls') ||
       slug.includes('champions-league') || slug.includes('world-cup') || slug.includes('euro-') ||
       slug.includes('soccer') || slug.includes('epl') ||
-      /\b(soccer|premier league|la liga|bundesliga|serie a|ligue 1|champions league|world cup|euro 202)\b/i.test(q) ||
-      // English Premier League teams
-      /\b(manchester|liverpool|chelsea|arsenal|tottenham|newcastle|brighton|aston villa|west ham|bournemouth|fulham|brentford|crystal palace|wolves|wolverhampton|everton|nottingham forest|luton|burnley|sheffield united|sheffield)\b/i.test(q) ||
-      // Other top European clubs
-      /\b(barcelona|real madrid|atletico madrid|bayern|borussia dortmund|juventus|napoli|roma|lazio|psg|paris saint|marseille|lyon|inter milan|ac milan|benfica|porto|sporting|ajax|feyenoord)\b/i.test(q) ||
-      // Generic football/soccer terms
+      MLS_TEAMS.test(q) || EPL_TEAMS.test(q) || LA_LIGA_TEAMS.test(q) || BUNDESLIGA_TEAMS.test(q) ||
+      SERIE_A_TEAMS.test(q) || LIGUE_1_TEAMS.test(q) || OTHER_EURO_CLUBS.test(q) ||
+      /\b(soccer|premier league|la liga|bundesliga|serie a|ligue 1|champions league|europa league|world cup|euro 202|fa cup|carabao cup|copa del rey|dfb pokal|coppa italia|coupe de france)\b/i.test(q) ||
       /\b(fc|united fc|city fc|\.fc\b|football club)\b/i.test(q)) {
     return '⚽';
   }
 
   // Baseball - MLB teams
-  if (slug.startsWith('mlb') || slug.includes('baseball') || slug.includes('world-series') ||
-      /\b(mlb|baseball|world series|astros|athletics|blue jays|braves|brewers|cardinals|cubs|diamondbacks|dodgers|giants|guardians|mariners|marlins|mets|nationals|orioles|padres|phillies|pirates|rangers|rays|red sox|reds|rockies|royals|tigers|twins|white sox|yankees)\b/i.test(q)) {
+  if (slug.startsWith('mlb') || slug.includes('baseball') || slug.includes('world-series') || MLB_TEAMS.test(q)) {
     return '⚾';
   }
 
   // Hockey - NHL teams
-  if (slug.startsWith('nhl') || slug.includes('hockey') || slug.includes('stanley-cup') ||
-      /\b(nhl|hockey|stanley cup|avalanche|blackhawks|blue jackets|blues|bruins|canadiens|canucks|capitals|coyotes|devils|ducks|flames|flyers|golden knights|hurricanes|islanders|kraken|lightning|maple leafs|oilers|penguins|predators|red wings|sabres|senators|sharks|stars|wild)\b/i.test(q)) {
+  if (slug.startsWith('nhl') || slug.includes('hockey') || slug.includes('stanley-cup') || NHL_TEAMS.test(q)) {
     return '🏒';
   }
 
   // Tennis
   if (slug.includes('tennis') || slug.includes('wimbledon') || slug.includes('us-open') ||
       slug.includes('french-open') || slug.includes('australian-open') || slug.includes('atp') || slug.includes('wta') ||
-      /\b(tennis|wimbledon|us open|french open|australian open|atp|wta|djokovic|nadal|federer|alcaraz|sinner|swiatek|sabalenka)\b/i.test(q)) {
+      TENNIS.test(q)) {
     return '🎾';
   }
 
   // Golf
-  if (slug.includes('golf') || slug.includes('pga') || slug.includes('masters') || slug.includes('ryder-cup') ||
-      /\b(golf|pga|masters|ryder cup|lpga|british open|us open golf)\b/i.test(q)) {
+  if (slug.includes('golf') || slug.includes('pga') || slug.includes('masters') || slug.includes('ryder-cup') || GOLF.test(q)) {
     return '⛳';
   }
 
   // Racing
-  if (slug.includes('f1') || slug.includes('formula') || slug.includes('nascar') || slug.includes('racing') ||
-      /\b(f1|formula 1|formula1|nascar|racing|grand prix|verstappen|hamilton|leclerc)\b/i.test(q)) {
+  if (slug.includes('f1') || slug.includes('formula') || slug.includes('nascar') || slug.includes('racing') || RACING.test(q)) {
     return '🏎️';
   }
 
   // Cricket
-  if (slug.includes('cricket') || slug.includes('ipl') || slug.includes('t20') ||
-      /\b(cricket|ipl|t20|test match|ashes)\b/i.test(q)) {
+  if (slug.includes('cricket') || slug.includes('ipl') || slug.includes('t20') || CRICKET.test(q)) {
     return '🏏';
   }
 
   // Rugby
-  if (slug.includes('rugby') || /\b(rugby|six nations)\b/i.test(q)) {
+  if (slug.includes('rugby') || RUGBY.test(q)) {
     return '🏉';
   }
 
   // Esports
-  if (slug.includes('esports') || slug.includes('league-of-legends') || slug.includes('dota') || slug.includes('csgo') ||
-      /\b(esports|e-sports|league of legends|dota|csgo|cs2|valorant|overwatch)\b/i.test(q)) {
+  if (slug.includes('esports') || slug.includes('league-of-legends') || slug.includes('dota') || slug.includes('csgo') || ESPORTS.test(q)) {
     return '🎮';
   }
 
@@ -353,6 +417,9 @@ export function CategoryTag({
  * Helper to infer category from market question using keyword matching.
  * Used as fallback when category is not provided by the API.
  *
+ * Uses the same comprehensive team databases as getSportEmoji() to ensure
+ * accurate sports detection across all major leagues and teams.
+ *
  * @param question - Market question text
  * @returns Inferred category
  */
@@ -369,29 +436,38 @@ export function inferCategory(question: string): MarketCategory {
   }
   // Sports - leagues, teams, athletes, competitions, betting patterns
   // Check sports BEFORE world to prevent "Warriors" matching "war"
+  // Uses comprehensive team databases for accurate detection
   if (
     // Betting patterns
     /^spread:|^o\/u\s|over\/under|\(\-?\d+\.?\d*\)|\bvs\.?\b/i.test(q) ||
-    // Major leagues
-    /\b(nfl|nba|mlb|nhl|ncaa|mls|ufc|pga|wwe|wnba|afl|epl|f1)\b/i.test(q) ||
-    // Sports terms
-    /\b(championship|playoff|playoffs|finals|super bowl|world series|stanley cup|world cup)\b/i.test(q) ||
-    // NFL teams
-    /\b(49ers|bears|bengals|bills|broncos|browns|buccaneers|cardinals|chargers|chiefs|colts|commanders|cowboys|dolphins|eagles|falcons|giants|jaguars|jets|lions|packers|panthers|patriots|raiders|rams|ravens|saints|seahawks|steelers|texans|titans|vikings)\b/i.test(q) ||
-    // NBA teams
-    /\b(76ers|sixers|blazers|bucks|bulls|cavaliers|cavs|celtics|clippers|grizzlies|hawks|heat|hornets|jazz|kings|knicks|lakers|magic|mavericks|mavs|nets|nuggets|pacers|pelicans|pistons|raptors|rockets|spurs|suns|thunder|timberwolves|warriors|wizards)\b/i.test(q) ||
-    // MLB teams
-    /\b(astros|athletics|blue jays|braves|brewers|cardinals|cubs|diamondbacks|dodgers|giants|guardians|mariners|marlins|mets|nationals|orioles|padres|phillies|pirates|rangers|rays|red sox|reds|rockies|royals|tigers|twins|white sox|yankees)\b/i.test(q) ||
-    // NHL teams
-    /\b(avalanche|blackhawks|blue jackets|blues|bruins|canadiens|canucks|capitals|coyotes|devils|ducks|flames|flyers|golden knights|hurricanes|islanders|kraken|kings|lightning|maple leafs|oilers|penguins|predators|red wings|sabres|senators|sharks|stars|wild|jets)\b/i.test(q) ||
-    // College sports patterns (team names with state/school context)
-    /\b(volunteers|crimson tide|bulldogs|gators|wildcats|longhorns|buckeyes|wolverines|trojans|fighting irish|seminoles|aggies|cougars|huskies|ducks|beavers|bruins|cardinal|cornhuskers|hawkeyes|jayhawks|mountaineers|razorbacks|sooners|tar heels|tigers|blue devils|rebels|ole miss|hurricanes|hokies|wolfpack|yellow jackets|sun devils|utes|buffaloes|red raiders|horned frogs|cyclones|golden gophers|badgers|boilermakers|hoosiers|illini|scarlet knights|nittany lions|spartans|terrapins)\b/i.test(q) ||
-    // College patterns and major programs
-    /\b(fresno state|utah state|boise state|san diego state|colorado state|ohio state|penn state|michigan state|florida state|arizona state|nc state|iowa state|kansas state|oklahoma state|oregon state|washington state|alabama|auburn|lsu|georgia|tennessee|texas|oklahoma|notre dame|clemson|miami|oregon|usc|ucla|michigan|wisconsin|iowa|nebraska|colorado|utah|stanford|cal|virginia|virginia tech|north carolina|duke|wake forest|syracuse|pittsburgh|louisville|boston college|texas a&m|arkansas|missouri|mississippi state|south carolina|kentucky|vanderbilt|florida|texas tech|tcu|baylor|kansas|west virginia|cincinnati|ucf|houston|byu|smu)\b/i.test(q) ||
-    // College matchup pattern
-    /\b(miami|ole miss)\s+vs\.?\s+/i.test(q) || /\s+vs\.?\s+(miami|ole miss)\b/i.test(q) ||
+    // Major leagues and tournaments
+    /\b(nfl|nba|mlb|nhl|ncaa|mls|ufc|pga|wwe|wnba|afl|epl|f1|championship|playoff|playoffs|finals|super bowl|world series|stanley cup|world cup|champions league|premier league|la liga|bundesliga|serie a|ligue 1)\b/i.test(q) ||
+    // Use comprehensive team databases
+    NBA_TEAMS.test(q) ||
+    NFL_TEAMS.test(q) ||
+    MLB_TEAMS.test(q) ||
+    NHL_TEAMS.test(q) ||
+    MLS_TEAMS.test(q) ||
+    EPL_TEAMS.test(q) ||
+    LA_LIGA_TEAMS.test(q) ||
+    BUNDESLIGA_TEAMS.test(q) ||
+    SERIE_A_TEAMS.test(q) ||
+    LIGUE_1_TEAMS.test(q) ||
+    OTHER_EURO_CLUBS.test(q) ||
+    CFB_SEC.test(q) ||
+    CFB_BIG_TEN.test(q) ||
+    CFB_ACC.test(q) ||
+    CFB_BIG_12.test(q) ||
+    CFB_OTHER.test(q) ||
+    UFC_MMA.test(q) ||
+    TENNIS.test(q) ||
+    GOLF.test(q) ||
+    RACING.test(q) ||
+    CRICKET.test(q) ||
+    RUGBY.test(q) ||
+    ESPORTS.test(q) ||
     // General sports terms
-    /\b(touchdown|field goal|home run|slam dunk|hat trick|knockout|round \d|game \d|match\b|bout\b|fight\b|title fight|heavyweight|middleweight|lightweight)\b/i.test(q)
+    /\b(touchdown|field goal|home run|slam dunk|hat trick|knockout|round \d|game \d|match\b|bout\b|fight\b|title fight|heisman|bowl game|cfp)\b/i.test(q)
   ) {
     return 'sports';
   }

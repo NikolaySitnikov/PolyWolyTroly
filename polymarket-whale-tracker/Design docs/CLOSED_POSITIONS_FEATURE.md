@@ -85,55 +85,74 @@ function getOutcomeColor(outcome: string): string {
 
 Since closed positions don't include enriched data from Gamma API, categories are inferred from market titles using `inferCategory()` in `CategoryTag.tsx`.
 
-### Sports Detection Patterns
+### Comprehensive Team Databases
 
-The sports category is detected using comprehensive regex patterns:
+As of January 2026, the system uses comprehensive regex databases for accurate sports detection:
 
-1. **Betting Patterns**: `Spread:`, `O/U`, point spreads like `(-9.5)`, `vs.` matchups
-2. **Major Leagues**: NFL, NBA, MLB, NHL, NCAA, MLS, UFC, PGA, WWE, WNBA, AFL, EPL, F1
-3. **All Team Names**:
-   - NFL: 49ers, Bears, Broncos, Chiefs, Cowboys, Eagles, Lions, Packers, Patriots, Ravens, etc.
-   - NBA: 76ers, Bulls, Celtics, Lakers, Warriors, Nuggets, Heat, etc.
-   - MLB: Yankees, Dodgers, Red Sox, etc.
-   - NHL: Penguins, Bruins, Lightning, etc.
-   - College: Volunteers, Bulldogs, Cougars, Wildcats, etc.
-   - State schools: Ohio State, Penn State, Fresno State, etc.
+#### Major Professional Leagues (Complete Team Coverage)
+| League | Teams | Examples |
+|--------|-------|----------|
+| **NBA** | 30 teams | Celtics, Nets, Knicks, 76ers, Raptors, Bulls, Cavaliers, Pistons, Pacers, Bucks, Hawks, Hornets, Heat, Magic, Wizards, Nuggets, Timberwolves, Thunder, Trail Blazers, Jazz, Warriors, Clippers, Lakers, Suns, Kings, Mavericks, Rockets, Grizzlies, Pelicans, Spurs |
+| **NFL** | 32 teams | 49ers, Bears, Bengals, Bills, Broncos, Browns, Buccaneers, Cardinals, Chargers, Chiefs, Colts, Commanders, Cowboys, Dolphins, Eagles, Falcons, Giants, Jaguars, Jets, Lions, Packers, Panthers, Patriots, Raiders, Rams, Ravens, Saints, Seahawks, Steelers, Texans, Titans, Vikings |
+| **MLB** | 30 teams | Athletics, Orioles, Red Sox, White Sox, Guardians, Tigers, Astros, Royals, Angels, Twins, Yankees, Mariners, Rays, Rangers, Blue Jays, Diamondbacks, Braves, Cubs, Reds, Rockies, Dodgers, Marlins, Brewers, Mets, Phillies, Pirates, Padres, Giants, Cardinals |
+| **NHL** | 32 teams | Ducks, Bruins, Sabres, Flames, Hurricanes, Blackhawks, Avalanche, Blue Jackets, Stars, Red Wings, Oilers, Panthers, Kings, Wild, Canadiens, Predators, Devils, Islanders, Rangers, Senators, Flyers, Penguins, Sharks, Kraken, Blues, Lightning, Maple Leafs, Utah Mammoth, Canucks, Golden Knights, Capitals, Jets |
+| **MLS** | 30 teams | Atlanta United, CF Montreal, Charlotte FC, Chicago Fire, Columbus Crew, DC United, FC Cincinnati, Inter Miami, Nashville SC, New England Revolution, NYCFC, Red Bulls, Orlando City, Philadelphia Union, Toronto FC, Austin FC, Colorado Rapids, FC Dallas, Houston Dynamo, LA Galaxy, LAFC, Minnesota United, Portland Timbers, Real Salt Lake, San Diego FC, San Jose Earthquakes, Seattle Sounders, Sporting KC, St. Louis City, Vancouver Whitecaps |
 
-4. **Important**: Sports patterns are checked BEFORE world patterns to prevent "Warriors" from matching "war"
+#### European Soccer Leagues (Complete Team Coverage)
+| League | Teams | Examples |
+|--------|-------|----------|
+| **Premier League** | 20 teams | Arsenal, Aston Villa, Bournemouth, Brentford, Brighton, Chelsea, Crystal Palace, Everton, Fulham, Ipswich, Leeds, Leicester, Liverpool, Manchester City, Manchester United, Newcastle, Nottingham Forest, Southampton, Tottenham, West Ham, Wolves, Burnley, Sheffield United, Luton, Sunderland |
+| **La Liga** | 20 teams | Real Madrid, Barcelona, Atletico Madrid, Sevilla, Real Sociedad, Villarreal, Real Betis, Athletic Bilbao, Osasuna, Celta Vigo, Getafe, Rayo Vallecano, Mallorca, Las Palmas, Alaves, Espanyol, Valladolid, Leganes, Girona, Valencia |
+| **Bundesliga** | 18 teams | Bayern Munich, Borussia Dortmund, Bayer Leverkusen, RB Leipzig, Eintracht Frankfurt, VfB Stuttgart, SC Freiburg, Werder Bremen, Borussia Mönchengladbach, VfL Wolfsburg, TSG Hoffenheim, Mainz, FC Augsburg, Union Berlin, Hamburger SV, FC Köln, St. Pauli, Heidenheim |
+| **Serie A** | 20 teams | Inter Milan, Juventus, Napoli, AC Milan, Atalanta, Roma, Lazio, Fiorentina, Bologna, Torino, Udinese, Hellas Verona, Cagliari, Genoa, Lecce, Empoli, Sassuolo, Monza, Como, Parma |
+| **Ligue 1** | 18 teams | PSG, Marseille, Lyon, Monaco, Lille, Lens, Rennes, Nice, Strasbourg, Nantes, Montpellier, Toulouse, Reims, Brest, Lorient, Clermont, Auxerre, Le Havre |
+| **Other European** | 30+ clubs | Benfica, Sporting Lisbon, Porto, Ajax, PSV, Feyenoord, Celtic, Rangers, Galatasaray, Fenerbahce, Besiktas, Shakhtar, Olympiacos, Anderlecht, Club Brugge, Salzburg, etc. |
+
+#### College Football (134 FBS Teams)
+| Conference | Teams |
+|------------|-------|
+| **SEC** | Alabama, Auburn, LSU, Georgia, Tennessee, Texas A&M, Arkansas, Missouri, Mississippi State, South Carolina, Kentucky, Vanderbilt, Florida, Ole Miss, Texas |
+| **Big Ten** | Ohio State, Michigan, Penn State, Michigan State, Iowa, Wisconsin, Nebraska, Minnesota, Northwestern, Purdue, Indiana, Illinois, Maryland, Rutgers, USC, UCLA, Oregon, Washington |
+| **ACC** | Clemson, Florida State, Miami, Virginia Tech, Virginia, North Carolina, NC State, Duke, Wake Forest, Syracuse, Pittsburgh, Louisville, Boston College, Georgia Tech, Stanford, Cal, SMU |
+| **Big 12** | Oklahoma State, Texas Tech, TCU, Baylor, Kansas, Kansas State, Iowa State, West Virginia, BYU, Cincinnati, UCF, Houston, Arizona, Arizona State, Colorado, Utah |
+| **Other FBS** | Notre Dame, Army, Navy, Boise State, Fresno State, San Diego State, Memphis, Tulane, Coastal Carolina, Appalachian State, James Madison, and 80+ more |
+
+#### Combat Sports (UFC/Boxing)
+- **UFC Fighters**: Islam Makhachev, Alex Pereira, Jon Jones, Israel Adesanya, Kamaru Usman, Leon Edwards, Sean O'Malley, Max Holloway, Ilia Topuria, Zhang Weili, Valentina Shevchenko, Amanda Nunes
+- **Boxing**: Jake Paul, Logan Paul, Anthony Joshua, Tyson Fury, Deontay Wilder, Canelo Alvarez, GGG, Mayweather, Manny Pacquiao
+- **Weight Classes**: Heavyweight, Middleweight, Welterweight, Lightweight, Featherweight, Bantamweight, Flyweight
+
+#### Other Sports
+| Sport | Key Terms/Players |
+|-------|-------------------|
+| **Tennis** | Djokovic, Nadal, Federer, Alcaraz, Sinner, Medvedev, Swiatek, Sabalenka, Gauff, Wimbledon, US Open, French Open, Australian Open |
+| **Golf** | Tiger Woods, Rory McIlroy, Scottie Scheffler, Jon Rahm, Brooks Koepka, Masters, PGA Championship, Ryder Cup, LIV Golf |
+| **Racing** | Verstappen, Hamilton, Leclerc, Norris, Sainz, Alonso, Red Bull, Mercedes, Ferrari, McLaren, F1, NASCAR, IndyCar |
+| **Cricket** | IPL teams (CSK, Mumbai Indians, RCB, KKR), Virat Kohli, MS Dhoni, Pat Cummins, The Ashes |
+| **Rugby** | Six Nations, All Blacks, Springboks, Wallabies, Rugby World Cup |
+| **Esports** | League of Legends, Dota, CS2, Valorant, T1, G2, Fnatic, Cloud9, Team Liquid, Faker |
 
 ### Sport Emoji Detection
 
-`getSportEmoji()` returns sport-specific emojis:
+`getSportEmoji()` returns sport-specific emojis based on the comprehensive databases:
 
-| Sport | Emoji | Detection Examples |
-|-------|-------|-------------------|
-| Boxing/MMA | 🥊 | Jake Paul, Anthony Joshua, UFC, Tyson, Fury |
-| Basketball | 🏀 | Warriors, Lakers, 76ers, NBA, WNBA |
-| Football | 🏈 | Packers, Bears, Cowboys, NFL, Super Bowl, college teams (Ole Miss, Miami, Alabama, etc.) |
-| Baseball | ⚾ | Yankees, Dodgers, MLB, World Series |
-| Hockey | 🏒 | Penguins, NHL, Stanley Cup |
-| Soccer | ⚽ | Premier League, Champions League, World Cup, EPL teams (Sheffield United, Manchester, Liverpool, etc.) |
-| Tennis | 🎾 | Wimbledon, US Open, ATP |
-| Golf | ⛳ | PGA, Masters, Ryder Cup |
-| Racing | 🏎️ | F1, NASCAR, Grand Prix |
+| Sport | Emoji | Detection Method |
+|-------|-------|------------------|
+| Boxing/MMA | 🥊 | UFC_MMA database (fighters, weight classes, fight terms) |
+| Basketball | 🏀 | NBA_TEAMS database (all 30 NBA teams + WNBA) |
+| Football | 🏈 | NFL_TEAMS + CFB_SEC/BIG_TEN/ACC/BIG_12/OTHER databases |
+| Soccer | ⚽ | EPL_TEAMS + LA_LIGA + BUNDESLIGA + SERIE_A + LIGUE_1 + MLS + OTHER_EURO_CLUBS |
+| Baseball | ⚾ | MLB_TEAMS database (all 30 teams) |
+| Hockey | 🏒 | NHL_TEAMS database (all 32 teams including Utah Mammoth) |
+| Tennis | 🎾 | TENNIS database (players, tournaments) |
+| Golf | ⛳ | GOLF database (players, tournaments) |
+| Racing | 🏎️ | RACING database (F1, NASCAR, drivers, teams) |
+| Cricket | 🏏 | CRICKET database (IPL, international) |
+| Rugby | 🏉 | RUGBY database (Six Nations, teams) |
+| Esports | 🎮 | ESPORTS database (games, teams, players) |
 | Default | 🏆 | Unknown sports |
 
-### College Football Detection
-
-Comprehensive detection for CFB including:
-- **SEC**: Ole Miss (Rebels), Alabama, Auburn, LSU, Georgia, Tennessee, Arkansas, etc.
-- **Big Ten**: Michigan, Ohio State, Penn State, Wisconsin, Iowa, Nebraska, etc.
-- **ACC**: Miami (Hurricanes), Clemson, Virginia Tech, Duke, NC State, etc.
-- **Big 12**: Texas, Oklahoma, TCU, Baylor, Kansas, West Virginia, etc.
-- **Pac-12/Other**: Oregon, USC, UCLA, Utah, Colorado, Stanford, etc.
-- **Team nicknames**: Rebels, Hurricanes, Hokies, Wolfpack, Yellow Jackets, etc.
-
-### Soccer/European Football Detection
-
-Expanded detection for soccer including:
-- **English Premier League**: Manchester, Liverpool, Chelsea, Arsenal, Tottenham, Sheffield United, Newcastle, Brighton, etc.
-- **Top European Clubs**: Barcelona, Real Madrid, Bayern, Juventus, PSG, Inter Milan, AC Milan, Napoli, Dortmund, etc.
-- **Generic patterns**: "FC", "United FC", "City FC", "football club"
+**Important**: Sports patterns are checked BEFORE world patterns to prevent "Warriors" from matching "war"
 
 ## Access Pattern
 
