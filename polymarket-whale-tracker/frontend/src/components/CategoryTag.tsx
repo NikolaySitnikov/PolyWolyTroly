@@ -176,12 +176,18 @@ export function getSportEmoji(seriesSlug: string | null | undefined, question?: 
     return '🏀';
   }
 
-  // American Football - NFL teams
+  // American Football - NFL teams and College Football
   if (slug.startsWith('nfl') || slug.includes('ncaa-football') || slug.includes('college-football') ||
-      slug.includes('super-bowl') || slug.includes('super bowl') ||
-      /\b(nfl|super bowl|ncaa football|college football|49ers|bears|bengals|bills|broncos|browns|buccaneers|cardinals|chargers|chiefs|colts|commanders|cowboys|dolphins|eagles|falcons|giants|jaguars|jets|lions|packers|panthers|patriots|raiders|rams|ravens|saints|seahawks|steelers|texans|titans|vikings)\b/i.test(q) ||
-      /\b(volunteers|crimson tide|bulldogs|gators|wildcats|longhorns|buckeyes|wolverines|trojans|fighting irish|seminoles|aggies|cougars|huskies|cornhuskers|hawkeyes|jayhawks|mountaineers|razorbacks|sooners|tar heels)\b/i.test(q) ||
-      /\b(fresno state|utah state|boise state|san diego state|colorado state|ohio state|penn state|michigan state|florida state|arizona state|nc state|iowa state|kansas state|oklahoma state|oregon state|washington state)\b/i.test(q)) {
+      slug.includes('super-bowl') || slug.includes('super bowl') || slug.includes('cfb') ||
+      /\b(nfl|super bowl|ncaa football|college football|cfb|cfp|bowl game)\b/i.test(q) ||
+      // NFL teams
+      /\b(49ers|bears|bengals|bills|broncos|browns|buccaneers|cardinals|chargers|chiefs|colts|commanders|cowboys|dolphins|eagles|falcons|giants|jaguars|jets|lions|packers|panthers|patriots|raiders|rams|ravens|saints|seahawks|steelers|texans|titans|vikings)\b/i.test(q) ||
+      // College football team nicknames (SEC, Big Ten, ACC, Big 12, Pac-12, etc.)
+      /\b(volunteers|crimson tide|bulldogs|gators|wildcats|longhorns|buckeyes|wolverines|trojans|fighting irish|seminoles|aggies|cougars|huskies|cornhuskers|hawkeyes|jayhawks|mountaineers|razorbacks|sooners|tar heels|rebels|ole miss|hurricanes|hokies|cavaliers|wolfpack|yellow jackets|blue devils|orange|cardinals|sun devils|bruins|ducks|beavers|utes|buffaloes|red raiders|horned frogs|cyclones|golden gophers|badgers|boilermakers|hoosiers|illini|scarlet knights|nittany lions|spartans|terrapins)\b/i.test(q) ||
+      // State schools and major programs
+      /\b(fresno state|utah state|boise state|san diego state|colorado state|ohio state|penn state|michigan state|florida state|arizona state|nc state|iowa state|kansas state|oklahoma state|oregon state|washington state|alabama|auburn|lsu|georgia|tennessee|texas|oklahoma|notre dame|clemson|miami|oregon|usc|ucla|michigan|wisconsin|iowa|nebraska|colorado|utah|stanford|cal|virginia|virginia tech|north carolina|duke|wake forest|syracuse|pittsburgh|louisville|boston college|texas a&m|arkansas|missouri|mississippi state|south carolina|kentucky|vanderbilt|florida|texas tech|tcu|baylor|kansas|west virginia|cincinnati|ucf|houston|byu|smu)\b/i.test(q) ||
+      // College matchup pattern: "X vs Y" or "X vs. Y" where both are likely college teams
+      /\b(miami|ole miss)\s+vs\.?\s+/i.test(q) || /\s+vs\.?\s+(miami|ole miss)\b/i.test(q)) {
     return '🏈';
   }
 
@@ -379,9 +385,11 @@ export function inferCategory(question: string): MarketCategory {
     // NHL teams
     /\b(avalanche|blackhawks|blue jackets|blues|bruins|canadiens|canucks|capitals|coyotes|devils|ducks|flames|flyers|golden knights|hurricanes|islanders|kraken|kings|lightning|maple leafs|oilers|penguins|predators|red wings|sabres|senators|sharks|stars|wild|jets)\b/i.test(q) ||
     // College sports patterns (team names with state/school context)
-    /\b(volunteers|crimson tide|bulldogs|gators|wildcats|longhorns|buckeyes|wolverines|trojans|fighting irish|seminoles|aggies|cougars|huskies|ducks|beavers|bruins|cardinal|cornhuskers|hawkeyes|jayhawks|mountaineers|razorbacks|sooners|tar heels|tigers|blue devils)\b/i.test(q) ||
-    // College patterns
-    /\b(fresno state|utah state|boise state|san diego state|colorado state|ohio state|penn state|michigan state|florida state|arizona state|nc state|iowa state|kansas state|oklahoma state|oregon state|washington state)\b/i.test(q) ||
+    /\b(volunteers|crimson tide|bulldogs|gators|wildcats|longhorns|buckeyes|wolverines|trojans|fighting irish|seminoles|aggies|cougars|huskies|ducks|beavers|bruins|cardinal|cornhuskers|hawkeyes|jayhawks|mountaineers|razorbacks|sooners|tar heels|tigers|blue devils|rebels|ole miss|hurricanes|hokies|wolfpack|yellow jackets|sun devils|utes|buffaloes|red raiders|horned frogs|cyclones|golden gophers|badgers|boilermakers|hoosiers|illini|scarlet knights|nittany lions|spartans|terrapins)\b/i.test(q) ||
+    // College patterns and major programs
+    /\b(fresno state|utah state|boise state|san diego state|colorado state|ohio state|penn state|michigan state|florida state|arizona state|nc state|iowa state|kansas state|oklahoma state|oregon state|washington state|alabama|auburn|lsu|georgia|tennessee|texas|oklahoma|notre dame|clemson|miami|oregon|usc|ucla|michigan|wisconsin|iowa|nebraska|colorado|utah|stanford|cal|virginia|virginia tech|north carolina|duke|wake forest|syracuse|pittsburgh|louisville|boston college|texas a&m|arkansas|missouri|mississippi state|south carolina|kentucky|vanderbilt|florida|texas tech|tcu|baylor|kansas|west virginia|cincinnati|ucf|houston|byu|smu)\b/i.test(q) ||
+    // College matchup pattern
+    /\b(miami|ole miss)\s+vs\.?\s+/i.test(q) || /\s+vs\.?\s+(miami|ole miss)\b/i.test(q) ||
     // General sports terms
     /\b(touchdown|field goal|home run|slam dunk|hat trick|knockout|round \d|game \d|match\b|bout\b|fight\b|title fight|heavyweight|middleweight|lightweight)\b/i.test(q)
   ) {
