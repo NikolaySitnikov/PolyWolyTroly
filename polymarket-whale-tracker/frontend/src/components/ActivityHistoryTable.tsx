@@ -51,14 +51,33 @@ function TruncatedText({ text, style }: { text: string; style?: CSSProperties })
 
   const checkTruncation = useCallback(() => {
     if (textRef.current) {
-      setIsTruncated(textRef.current.scrollWidth > textRef.current.clientWidth);
+      // Check if text is truncated (scrollWidth > clientWidth means overflow)
+      const truncated = textRef.current.scrollWidth > textRef.current.clientWidth;
+      setIsTruncated(truncated);
     }
   }, []);
 
   useEffect(() => {
+    // Check immediately
     checkTruncation();
+
+    // Check again after a short delay to handle table layout settling
+    const timeoutId = setTimeout(checkTruncation, 100);
+
+    // Use ResizeObserver for reliable size change detection
+    const resizeObserver = new ResizeObserver(checkTruncation);
+    if (textRef.current) {
+      resizeObserver.observe(textRef.current);
+    }
+
+    // Also listen to window resize
     window.addEventListener('resize', checkTruncation);
-    return () => window.removeEventListener('resize', checkTruncation);
+
+    return () => {
+      clearTimeout(timeoutId);
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', checkTruncation);
+    };
   }, [checkTruncation, text]);
 
   const textElement = (
@@ -70,6 +89,7 @@ function TruncatedText({ text, style }: { text: string; style?: CSSProperties })
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: 'nowrap',
+        maxWidth: '100%',
         ...style,
       }}
     >
