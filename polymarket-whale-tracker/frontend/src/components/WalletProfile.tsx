@@ -169,6 +169,17 @@ export function WalletProfile({
     return result;
   }, [positions, positionStatusFilter, positionSearchFilter]);
 
+  // Filter closed positions by search term
+  const filteredClosedPositions = useMemo(() => {
+    if (!positionSearchFilter.trim()) {
+      return closedPositions;
+    }
+    const searchLower = positionSearchFilter.toLowerCase().trim();
+    return closedPositions.filter((position) =>
+      position.title.toLowerCase().includes(searchLower)
+    );
+  }, [closedPositions, positionSearchFilter]);
+
   // Count active and redeemable positions for filter badges
   const activePositionsInList = useMemo(() =>
     positions.filter((p) => p.curPrice > 0 && !p.redeemable).length,
@@ -693,6 +704,27 @@ export function WalletProfile({
                       </div>
                       <p style={{ margin: 0 }}>This whale hasn't closed any positions yet</p>
                     </div>
+                  ) : filteredClosedPositions.length === 0 && positionSearchFilter ? (
+                    /* No matching closed positions */
+                    <div
+                      style={{
+                        padding: '48px 20px',
+                        textAlign: 'center',
+                        color: tokens.colors.textMuted,
+                        fontFamily: tokens.fonts.body,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: '16px',
+                          fontWeight: 500,
+                          marginBottom: '8px',
+                        }}
+                      >
+                        No matching positions
+                      </div>
+                      <p style={{ margin: 0 }}>No closed positions match "{positionSearchFilter}"</p>
+                    </div>
                   ) : (
                     <>
                       {/* Desktop: Table header for closed positions */}
@@ -797,7 +829,7 @@ export function WalletProfile({
                         </div>
                       )}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '12px' : '0' }}>
-                        {closedPositions.map((position) => (
+                        {filteredClosedPositions.map((position) => (
                           <ClosedPositionCard
                             key={`${position.conditionId}-${position.timestamp}`}
                             position={position}
