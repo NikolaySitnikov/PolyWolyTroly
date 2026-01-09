@@ -158,6 +158,7 @@ function OutcomeBadge({ outcome }: { outcome: string }) {
         fontSize: '11px',
         fontWeight: 600,
         color,
+        whiteSpace: 'nowrap',
       }}
     >
       {outcome}
