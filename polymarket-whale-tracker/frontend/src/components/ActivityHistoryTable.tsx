@@ -179,7 +179,7 @@ function FilterPills({
   activeFilter: ActivityFilterOption;
   onChange: (filter: ActivityFilterOption) => void;
 }) {
-  const filters: ActivityFilterOption[] = ['all', 'deposits', 'trades', 'buys', 'sells'];
+  const filters: ActivityFilterOption[] = ['all', 'trades', 'buys', 'sells'];
 
   return (
     <div

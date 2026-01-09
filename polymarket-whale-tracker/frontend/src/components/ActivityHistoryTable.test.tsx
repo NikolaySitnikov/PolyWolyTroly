@@ -92,7 +92,6 @@ describe('ActivityHistoryTable', () => {
       render(<ActivityHistoryTable activities={activities} />);
 
       expect(screen.getByText('All')).toBeInTheDocument();
-      expect(screen.getByText('Deposits')).toBeInTheDocument();
       expect(screen.getByText('Trades')).toBeInTheDocument();
       expect(screen.getByText('Buys')).toBeInTheDocument();
       expect(screen.getByText('Sells')).toBeInTheDocument();

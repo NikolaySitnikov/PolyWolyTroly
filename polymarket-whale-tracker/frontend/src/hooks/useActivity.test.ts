@@ -129,13 +129,13 @@ describe('useActivity Hook', () => {
       expect(result.current.loading).toBe(false);
     });
 
-    // Filter to deposits only
+    // Filter to trades only
     act(() => {
-      result.current.setFilter('deposits');
+      result.current.setFilter('trades');
     });
 
     expect(result.current.allActivities.every((a) =>
-      ['deposit', 'withdrawal'].includes(a.normalizedType)
+      ['buy', 'sell'].includes(a.normalizedType)
     )).toBe(true);
   });
 

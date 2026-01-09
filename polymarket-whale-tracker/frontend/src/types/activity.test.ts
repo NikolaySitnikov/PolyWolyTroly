@@ -198,12 +198,6 @@ describe('Activity Types', () => {
       expect(result.every(a => a.normalizedType === 'buy' || a.normalizedType === 'sell')).toBe(true);
     });
 
-    it('should filter to deposits only', () => {
-      const result = filterActivities(mockActivities, 'deposits');
-      expect(result).toHaveLength(2);
-      expect(result.every(a => a.normalizedType === 'deposit' || a.normalizedType === 'withdrawal')).toBe(true);
-    });
-
     it('should filter to buys only', () => {
       const result = filterActivities(mockActivities, 'buys');
       expect(result).toHaveLength(1);
