@@ -569,13 +569,16 @@ export function ActivityHistoryTable({
                 <SkeletonRow />
               </>
             ) : (
-              paginatedActivities.map((activity) => {
+              paginatedActivities.map((activity, index) => {
                 const isTradeActivity = activity.normalizedType === 'buy' || activity.normalizedType === 'sell';
                 const hasMarket = Boolean(activity.title);
+                // Create stable unique key using multiple fields + index
+                // Index is needed because same tx can have multiple activities (batch redemptions)
+                const uniqueKey = `${activity.timestamp}-${activity.transactionHash || ''}-${activity.conditionId || ''}-${index}`;
 
                 return (
                   <tr
-                    key={`${activity.timestamp}-${activity.transactionHash || Math.random()}`}
+                    key={uniqueKey}
                     data-testid={`activity-row-${activity.timestamp}`}
                     style={rowStyle}
                     onClick={() => onActivityClick?.(activity)}
