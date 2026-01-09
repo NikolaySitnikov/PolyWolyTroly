@@ -35,6 +35,52 @@ Then access the frontend from other devices at `http://<your-ip>:5173`
 
 ---
 
+## Configuration
+
+### Environment Variables
+
+Key environment variables in `.env`:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MIN_DEPOSIT_AMOUNT` | Minimum deposit amount (USD) to trigger Telegram alerts | `14500` |
+| `ALCHEMY_WSS_URL` | Alchemy WebSocket URL for Polygon | Required |
+| `ALCHEMY_HTTP_URL` | Alchemy HTTP URL for Polygon | Required |
+| `DATABASE_URL` | PostgreSQL connection string | Required |
+| `REDIS_URL` | Redis connection string | Required |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot token for alerts | Required |
+| `TELEGRAM_CHAT_ID` | Telegram chat ID for alerts | Required |
+
+### Changing Alert Threshold
+
+To change the minimum deposit amount for Telegram alerts:
+
+1. Edit `.env` file:
+   ```
+   MIN_DEPOSIT_AMOUNT=14500
+   ```
+
+2. **Restart the blockchain listener** - the process must be restarted to pick up `.env` changes:
+   ```bash
+   # Kill existing processes
+   pkill -f "src/index.ts"
+
+   # Restart
+   npm run dev
+   ```
+
+3. Verify the threshold is loaded:
+   ```bash
+   node -e "require('dotenv/config'); console.log('Threshold:', process.env.MIN_DEPOSIT_AMOUNT)"
+   ```
+
+**Important**: Multiple stale processes can cause alerts with old thresholds. Always verify only one blockchain listener is running:
+```bash
+ps aux | grep "src/index.ts" | grep -v grep
+```
+
+---
+
 ## UI Components
 
 ### PositionsTable
