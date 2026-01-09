@@ -173,7 +173,10 @@ export function WalletProfile({
   const {
     allActivities,
     loading: activityLoading,
+    loadingMore: activityLoadingMore,
     error: activityError,
+    hasMore: activityHasMore,
+    loadMore: loadMoreActivity,
   } = useActivity(wallet.address, {
     enabled: activeTab === 'activity',
     pageSize: 50,
@@ -1191,6 +1194,42 @@ export function WalletProfile({
                           } : undefined}
                         />
                       ))}
+                      {/* Load More button for mobile */}
+                      {activityHasMore && (
+                        <button
+                          onClick={loadMoreActivity}
+                          disabled={activityLoadingMore}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            padding: '12px 24px',
+                            marginTop: '8px',
+                            background: 'transparent',
+                            border: `1px solid ${tokens.colors.border}`,
+                            borderRadius: '8px',
+                            fontFamily: tokens.fonts.body,
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            color: tokens.colors.textSecondary,
+                            cursor: activityLoadingMore ? 'wait' : 'pointer',
+                            transition: 'all 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!activityLoadingMore) {
+                              e.currentTarget.style.borderColor = tokens.colors.cyan;
+                              e.currentTarget.style.color = tokens.colors.cyan;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = tokens.colors.border;
+                            e.currentTarget.style.color = tokens.colors.textSecondary;
+                          }}
+                        >
+                          {activityLoadingMore ? 'Loading...' : 'Load More'}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1207,6 +1246,9 @@ export function WalletProfile({
                       window.open(`https://polymarket.com/event/${activity.slug}`, '_blank');
                     }
                   }}
+                  hasMore={activityHasMore}
+                  loadingMore={activityLoadingMore}
+                  onLoadMore={loadMoreActivity}
                 />
               )}
             </>

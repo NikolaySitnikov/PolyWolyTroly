@@ -470,6 +470,50 @@ export async function fetchTradingData(address: string, timeoutMs = 5000): Promi
 }
 
 /**
+ * Activity response from API
+ */
+export interface ActivityResponse {
+  activity: import('../types/polymarket').PolymarketActivity[];
+  pagination: {
+    limit: number;
+    offset: number;
+    count: number;
+    hasMore: boolean;
+  };
+}
+
+/**
+ * Fetches paginated activity history for a wallet.
+ *
+ * @param address - Ethereum wallet address
+ * @param limit - Number of activities per page (max 100)
+ * @param offset - Offset for pagination
+ * @returns Promise resolving to activity with pagination info
+ */
+export async function fetchActivity(
+  address: string,
+  limit = 50,
+  offset = 0
+): Promise<ActivityResponse> {
+  const normalizedAddress = address.toLowerCase();
+
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+
+  const response = await fetch(
+    `${api.baseUrl}/api/wallets/${normalizedAddress}/activity?${params.toString()}`
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch activity: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
  * Closed positions response from API
  */
 export interface ClosedPositionsResponse {

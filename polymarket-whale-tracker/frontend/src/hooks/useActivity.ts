@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { fetchTradingData } from '../services/api';
+import { fetchTradingData, fetchActivity as fetchActivityApi } from '../services/api';
 import {
   toActivity,
   filterActivities,
@@ -37,6 +37,8 @@ interface UseActivityResult {
   allActivities: Activity[];
   /** Loading state */
   loading: boolean;
+  /** Loading state for "load more" operation */
+  loadingMore: boolean;
   /** Error message if fetch failed */
   error: string | null;
   /** Total number of activities matching filter */
@@ -53,9 +55,9 @@ interface UseActivityResult {
   setFilter: (filter: ActivityFilterOption) => void;
   /** Refetch activities */
   refetch: () => void;
-  /** Whether there are more pages */
+  /** Whether there are more activities to load from API */
   hasMore: boolean;
-  /** Load next page (appends to current) */
+  /** Load more activities from API */
   loadMore: () => void;
   /** Items loaded so far (for load more pattern) */
   loadedCount: number;
@@ -65,7 +67,8 @@ interface UseActivityResult {
   newTradesCount: number;
 }
 
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 50;
+const LOAD_MORE_PAGE_SIZE = 50;
 
 export function useActivity(
   address: string | undefined,
@@ -81,10 +84,11 @@ export function useActivity(
   const [allRawActivities, setAllRawActivities] = useState<Activity[]>([]);
   const [liveActivities, setLiveActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<ActivityFilterOption>(initialFilter);
-  const [loadedPages, setLoadedPages] = useState(1);
+  const [hasMoreFromApi, setHasMoreFromApi] = useState(true);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const fetchedAddressRef = useRef<string | null>(null);
@@ -166,8 +170,9 @@ export function useActivity(
   useEffect(() => {
     if (address !== fetchedAddressRef.current) {
       setPage(1);
-      setLoadedPages(1);
+      setHasMoreFromApi(true);
       setLiveActivities([]);
+      setAllRawActivities([]);
     }
     fetchData();
 
@@ -181,8 +186,34 @@ export function useActivity(
   // Reset page when filter changes
   useEffect(() => {
     setPage(1);
-    setLoadedPages(1);
   }, [filter]);
+
+  // Load more activities from API
+  const loadMore = useCallback(async () => {
+    if (!address || loadingMore || !hasMoreFromApi) return;
+
+    setLoadingMore(true);
+    try {
+      const newOffset = allRawActivities.length;
+      const response = await fetchActivityApi(address, LOAD_MORE_PAGE_SIZE, newOffset);
+
+      if (response.activity.length > 0) {
+        const newActivities = response.activity.map(toActivity);
+        setAllRawActivities((prev) => {
+          // Dedupe by transactionHash
+          const existingHashes = new Set(prev.map((a) => a.transactionHash));
+          const unique = newActivities.filter((a) => !a.transactionHash || !existingHashes.has(a.transactionHash));
+          return [...prev, ...unique];
+        });
+      }
+
+      setHasMoreFromApi(response.pagination.hasMore);
+    } catch (err) {
+      console.error('Failed to load more activities:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [address, loadingMore, hasMoreFromApi, allRawActivities.length]);
 
   // Combine live and fetched activities, dedupe and sort
   const combinedActivities = useMemo(() => {
@@ -215,28 +246,18 @@ export function useActivity(
   const filteredActivities = filterActivities(combinedActivities, filter);
   const allActivities = sortActivitiesByTime(filteredActivities, 'desc');
 
-  // Calculate pagination
+  // Calculate pagination for display
   const total = allActivities.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const startIndex = (page - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const activities = allActivities.slice(startIndex, endIndex);
-  const hasMore = page < totalPages;
-
-  // For "load more" pattern - show all items up to loadedPages
-  const loadedCount = Math.min(loadedPages * pageSize, total);
-
-  const loadMore = useCallback(() => {
-    if (loadedPages < totalPages) {
-      setLoadedPages((prev) => prev + 1);
-      setPage((prev) => prev + 1);
-    }
-  }, [loadedPages, totalPages]);
 
   return {
     activities,
     allActivities,
     loading,
+    loadingMore,
     error,
     total,
     page,
@@ -245,9 +266,9 @@ export function useActivity(
     filter,
     setFilter,
     refetch: fetchData,
-    hasMore,
+    hasMore: hasMoreFromApi,
     loadMore,
-    loadedCount,
+    loadedCount: allActivities.length,
     liveConnected,
     newTradesCount: liveActivities.length,
   };

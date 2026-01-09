@@ -34,6 +34,12 @@ interface ActivityHistoryTableProps {
   onFilterChange?: (filter: ActivityFilterOption) => void;
   /** Callback when an activity is clicked */
   onActivityClick?: (activity: Activity) => void;
+  /** Whether there are more activities to load from API */
+  hasMore?: boolean;
+  /** Loading state for "load more" operation */
+  loadingMore?: boolean;
+  /** Callback to load more activities */
+  onLoadMore?: () => void;
 }
 
 const DEFAULT_ITEMS_PER_PAGE = 20;
@@ -376,6 +382,9 @@ export function ActivityHistoryTable({
   filter: externalFilter,
   onFilterChange,
   onActivityClick,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
 }: ActivityHistoryTableProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<ActivitySortField>('timestamp');
@@ -746,6 +755,51 @@ export function ActivityHistoryTable({
           onPageChange={handlePageChange}
           entityName="activities"
         />
+      )}
+
+      {/* Load More button */}
+      {hasMore && onLoadMore && (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            padding: '16px',
+            borderTop: `1px solid ${tokens.colors.border}`,
+          }}
+        >
+          <button
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '10px 32px',
+              background: 'transparent',
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: '8px',
+              fontFamily: tokens.fonts.body,
+              fontSize: '14px',
+              fontWeight: 500,
+              color: tokens.colors.textSecondary,
+              cursor: loadingMore ? 'wait' : 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              if (!loadingMore) {
+                e.currentTarget.style.borderColor = tokens.colors.cyan;
+                e.currentTarget.style.color = tokens.colors.cyan;
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = tokens.colors.border;
+              e.currentTarget.style.color = tokens.colors.textSecondary;
+            }}
+          >
+            {loadingMore ? 'Loading...' : 'Load More Activity'}
+          </button>
+        </div>
       )}
     </div>
   );

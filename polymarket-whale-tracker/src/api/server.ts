@@ -198,6 +198,42 @@ export function createApp(): Express {
     }
   });
 
+  // Wallet activity endpoint - fetches paginated activity history
+  app.get("/api/wallets/:address/activity", async (req: Request, res: Response) => {
+    try {
+      const { address } = req.params;
+
+      // Validate Ethereum address format
+      const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+      if (!ethAddressRegex.test(address)) {
+        res.status(400).json({
+          error: "Invalid wallet address format",
+        });
+        return;
+      }
+
+      // Parse pagination parameters
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      const activity = await polymarketApi.getActivity(address, limit + offset);
+      const paginatedActivity = activity.slice(offset, offset + limit);
+
+      res.json({
+        activity: paginatedActivity,
+        pagination: {
+          limit,
+          offset,
+          count: paginatedActivity.length,
+          hasMore: paginatedActivity.length === limit,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching activity:", error);
+      res.status(500).json({ error: "Failed to fetch activity" });
+    }
+  });
+
   // Wallet closed positions endpoint - fetches historical settled positions
   app.get("/api/wallets/:address/closed-positions", async (req: Request, res: Response) => {
     try {
