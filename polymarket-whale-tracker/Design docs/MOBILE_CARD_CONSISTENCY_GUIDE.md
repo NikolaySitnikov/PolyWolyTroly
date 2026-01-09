@@ -280,6 +280,103 @@ return (
    - Triggers prefetch when user hovers, ensuring data is ready before click
    - Fixes scroll position jump when switching Active→Closed
 
+6. **Updated:** `frontend/src/components/PositionCard.tsx`
+   - Added `PositionCardSkeleton` component for loading states
+   - Skeleton matches PositionCard layout (header, title, 3-col metrics, footer)
+   - Uses shimmer animation with gradient background
+
+7. **Updated:** `frontend/src/components/WalletProfile.tsx`
+   - Replaced emoji loading state ("📊 Loading positions...") with skeleton cards
+   - Shows 3 skeleton cards during position loading
+   - Changed default position filter from 'all' to 'active'
+
+8. **Updated:** `frontend/src/components/WhaleTable.tsx`
+   - Removed emojis from sort pills (Volume, Count, Date)
+
+9. **Updated:** `frontend/src/components/AlertFeed.tsx`
+   - Removed emojis from sort pills (Amount, Time)
+
+10. **Updated:** `frontend/src/components/WalletProfile.tsx`
+    - Added sort pills for mobile positions view (P&L, Size, Market)
+    - Matches desktop table's 3 sortable columns
+    - Sort pills have no emojis (clean design)
+
+---
+
+## Skeleton Loading Pattern
+
+When loading data that will display as cards, use skeleton cards instead of text/emoji loading indicators.
+
+### The Problem
+
+Text-based loading states like "📊 Loading positions..." are:
+1. Visually jarring compared to final content
+2. Don't indicate what the content will look like
+3. Create layout shift when real content loads
+
+### The Solution
+
+Create skeleton versions of cards that match the real card layout:
+
+```typescript
+export function PositionCardSkeleton() {
+  const shimmerStyle: React.CSSProperties = {
+    background: `linear-gradient(90deg, ${tokens.colors.void} 25%, ${tokens.colors.surface} 50%, ${tokens.colors.void} 75%)`,
+    backgroundSize: '200% 100%',
+    animation: 'shimmer 1.5s infinite',
+  };
+
+  return (
+    <div style={{ /* same container styles as real card */ }}>
+      {/* Placeholder elements matching card structure */}
+      <div style={{ width: '60px', height: '20px', ...shimmerStyle }} />
+      {/* ... more skeleton elements ... */}
+    </div>
+  );
+}
+```
+
+### Usage
+
+```typescript
+{loading && items.length === 0 ? (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+    {[1, 2, 3].map((i) => (
+      <PositionCardSkeleton key={i} />
+    ))}
+  </div>
+) : (
+  // Real content
+)}
+```
+
+**Files:**
+- `frontend/src/components/PositionCard.tsx` (PositionCardSkeleton)
+- `frontend/src/components/WalletProfile.tsx` (usage in positions loading)
+
+---
+
+## Sort Pills Without Emojis
+
+Mobile sort pills should use text labels only, no emojis. This keeps the UI clean and consistent.
+
+### Before (wrong)
+```typescript
+{ field: 'pnl', label: '💰 P&L' }
+{ field: 'amount', label: '💰 Amount' }
+```
+
+### After (correct)
+```typescript
+{ field: 'pnl', label: 'P&L' }
+{ field: 'amount', label: 'Amount' }
+```
+
+**Files affected:**
+- `frontend/src/components/WalletProfile.tsx` - Positions sort pills
+- `frontend/src/components/WhaleTable.tsx` - Whale sort pills
+- `frontend/src/components/AlertFeed.tsx` - Alert sort pills
+
 ---
 
 ## Hover Prefetch Pattern

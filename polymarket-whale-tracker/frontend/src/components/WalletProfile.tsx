@@ -21,10 +21,11 @@ import { TradingMetricsGridSkeleton } from './TradingMetricsGridSkeleton';
 import { PnlToggle } from './PnlToggle';
 import { ProfileTabs, type ProfileTabId } from './ProfileTabs';
 import { PositionsTable } from './PositionsTable';
-import { PositionCard } from './PositionCard';
+import { PositionCard, PositionCardSkeleton } from './PositionCard';
 import { ClosedPositionCard } from './ClosedPositionCard';
 import { usePolymarketTrading } from '../hooks/usePolymarketTrading';
 import { useClosedPositions } from '../hooks/useClosedPositions';
+import { sortPositions, type PositionSortField } from '../types/position';
 import type { WalletData, WalletDeposit } from '../hooks/useWallet';
 import type { PnlTimeWindow } from '../types/polymarket';
 
@@ -120,7 +121,11 @@ export function WalletProfile({
   // - Redeemable: curPrice = 0, market resolved, can claim winnings
   // - All: both active and redeemable positions
   // - Closed: historical fully settled positions (from separate API)
-  const [positionStatusFilter, setPositionStatusFilter] = useState<'active' | 'redeemable' | 'all' | 'closed'>('all');
+  const [positionStatusFilter, setPositionStatusFilter] = useState<'active' | 'redeemable' | 'all' | 'closed'>('active');
+
+  // Position sort state (for mobile cards - desktop table has its own internal sorting)
+  const [positionSortField, setPositionSortField] = useState<PositionSortField>('pnl');
+  const [positionSortDir, setPositionSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Clear search when switching wallets
   // Note: This effect would need useEffect, but for simplicity we rely on component remount
@@ -137,10 +142,7 @@ export function WalletProfile({
     error: closedError,
     hasMore: closedHasMore,
     loadMore: loadMoreClosed,
-    page: closedPage,
-    setPage: setClosedPage,
     prefetch: prefetchClosedPositions,
-    hasFetched: closedHasFetched,
   } = useClosedPositions(wallet.address, {
     enabled: positionStatusFilter === 'closed',
     pageSize: 25,
@@ -170,8 +172,11 @@ export function WalletProfile({
       );
     }
 
+    // Apply sorting (used by both mobile cards and ensures consistency)
+    result = sortPositions(result, positionSortField, positionSortDir);
+
     return result;
-  }, [positions, positionStatusFilter, positionSearchFilter]);
+  }, [positions, positionStatusFilter, positionSearchFilter, positionSortField, positionSortDir]);
 
   // Filter closed positions by search term
   const filteredClosedPositions = useMemo(() => {
@@ -901,24 +906,82 @@ export function WalletProfile({
                     display: positionStatusFilter !== 'closed' ? 'block' : 'none',
                     padding: '16px',
                   }}>
+                  {/* Sort Pills for Mobile */}
+                  {positions.length > 0 && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '8px',
+                        overflowX: 'auto',
+                        paddingBottom: '12px',
+                        marginBottom: '4px',
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+                      }}
+                    >
+                      {[
+                        { field: 'pnl' as PositionSortField, label: 'P&L' },
+                        { field: 'currentValue' as PositionSortField, label: 'Size' },
+                        { field: 'title' as PositionSortField, label: 'Market' },
+                      ].map((option) => {
+                        const isActive = positionSortField === option.field;
+                        return (
+                          <button
+                            key={option.field}
+                            onClick={() => {
+                              if (positionSortField === option.field) {
+                                // Toggle direction
+                                setPositionSortDir(positionSortDir === 'desc' ? 'asc' : 'desc');
+                              } else {
+                                // New field, default to desc
+                                setPositionSortField(option.field);
+                                setPositionSortDir('desc');
+                              }
+                            }}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '10px 16px',
+                              background: isActive ? `${tokens.colors.cyan}20` : tokens.colors.surface,
+                              border: `1px solid ${isActive ? tokens.colors.cyan : tokens.colors.border}`,
+                              borderRadius: '20px',
+                              fontFamily: tokens.fonts.body,
+                              fontSize: '13px',
+                              fontWeight: isActive ? 600 : 500,
+                              color: isActive ? tokens.colors.cyan : tokens.colors.textSecondary,
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease',
+                              whiteSpace: 'nowrap',
+                              boxShadow: isActive ? `0 0 15px ${tokens.colors.cyanGlow}` : 'none',
+                              minHeight: '44px',
+                              flexShrink: 0,
+                              touchAction: 'manipulation',
+                              WebkitTapHighlightColor: 'transparent',
+                            }}
+                          >
+                            <span>{option.label}</span>
+                            {isActive && (
+                              <span style={{ fontSize: '12px', opacity: 0.8 }}>
+                                {positionSortDir === 'desc' ? '↓' : '↑'}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                   {tradingLoading && positions.length === 0 ? (
                     <div
                       style={{
-                        padding: '48px 20px',
-                        textAlign: 'center',
-                        color: tokens.colors.textMuted,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px',
                       }}
                     >
-                      <div
-                        style={{
-                          fontSize: '24px',
-                          marginBottom: '12px',
-                          animation: 'pulse 2s ease-in-out infinite',
-                        }}
-                      >
-                        📊
-                      </div>
-                      Loading positions...
+                      {[1, 2, 3].map((i) => (
+                        <PositionCardSkeleton key={i} />
+                      ))}
                     </div>
                   ) : positions.length === 0 ? (
                     <div

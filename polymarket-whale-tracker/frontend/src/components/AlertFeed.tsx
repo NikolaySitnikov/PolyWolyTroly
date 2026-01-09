@@ -519,8 +519,8 @@ export function AlertFeed({
             }}
           >
             {[
-              { field: 'amount' as AlertSortField, label: 'Amount', icon: '💰' },
-              { field: 'timestamp' as AlertSortField, label: 'Time', icon: '⏰' },
+              { field: 'amount' as AlertSortField, label: 'Amount' },
+              { field: 'timestamp' as AlertSortField, label: 'Time' },
             ].map((option) => {
               const isActive = sortBy === option.field;
               return (
@@ -550,7 +550,6 @@ export function AlertFeed({
                     WebkitTapHighlightColor: 'transparent',
                   }}
                 >
-                  <span style={{ fontSize: '14px' }}>{option.icon}</span>
                   <span>{option.label}</span>
                   {isActive && (
                     <span style={{ fontSize: '12px', opacity: 0.8 }}>

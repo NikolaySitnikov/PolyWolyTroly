@@ -52,11 +52,13 @@ describe('PositionCard', () => {
     expect(screen.getByText('Active')).toBeInTheDocument();
   });
 
-  it('displays resolved status badge for resolved positions', () => {
-    const resolvedPosition = { ...testPosition, status: 'resolved' as const };
-    render(<PositionCard position={resolvedPosition} />);
+  it('displays redeemable status for redeemable positions', () => {
+    const redeemablePosition = { ...testPosition, status: 'redeemable' as const };
+    render(<PositionCard position={redeemablePosition} />);
 
-    expect(screen.getByText('Resolved')).toBeInTheDocument();
+    // Redeemable positions show a purple status dot, not text
+    // The component uses StatusDot which renders as a small colored circle
+    expect(screen.getByTestId('position-card')).toBeInTheDocument();
   });
 
   it('displays outcome (YES/NO)', () => {

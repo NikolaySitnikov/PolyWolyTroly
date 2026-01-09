@@ -149,6 +149,145 @@ function MetricBox({
 /**
  * PositionCard - Mobile card for displaying a trading position
  */
+/**
+ * Skeleton loader for PositionCard - used during loading state
+ */
+export function PositionCardSkeleton() {
+  const shimmerStyle: React.CSSProperties = {
+    background: `linear-gradient(90deg, ${tokens.colors.void} 25%, ${tokens.colors.surface} 50%, ${tokens.colors.void} 75%)`,
+    backgroundSize: '200% 100%',
+    animation: 'shimmer 1.5s infinite',
+  };
+
+  return (
+    <div
+      style={{
+        background: tokens.colors.surface,
+        border: `1px solid ${tokens.colors.border}`,
+        borderRadius: '12px',
+        padding: '16px',
+      }}
+    >
+      {/* Header skeleton: Category + Status */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '12px',
+        }}
+      >
+        <div
+          style={{
+            width: '60px',
+            height: '20px',
+            borderRadius: '4px',
+            ...shimmerStyle,
+          }}
+        />
+        <div
+          style={{
+            width: '6px',
+            height: '6px',
+            borderRadius: '50%',
+            ...shimmerStyle,
+          }}
+        />
+      </div>
+
+      {/* Title skeleton - 2 lines */}
+      <div style={{ marginBottom: '12px' }}>
+        <div
+          style={{
+            width: '100%',
+            height: '14px',
+            borderRadius: '4px',
+            marginBottom: '6px',
+            ...shimmerStyle,
+          }}
+        />
+        <div
+          style={{
+            width: '75%',
+            height: '14px',
+            borderRadius: '4px',
+            ...shimmerStyle,
+          }}
+        />
+      </div>
+
+      {/* Metrics grid skeleton */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '8px',
+          marginTop: '12px',
+        }}
+      >
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            style={{
+              flex: 1,
+              padding: '8px 10px',
+              background: tokens.colors.void,
+              borderRadius: '6px',
+            }}
+          >
+            <div
+              style={{
+                width: '40px',
+                height: '9px',
+                borderRadius: '2px',
+                marginBottom: '6px',
+                ...shimmerStyle,
+              }}
+            />
+            <div
+              style={{
+                width: '50px',
+                height: '14px',
+                borderRadius: '3px',
+                ...shimmerStyle,
+              }}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Footer skeleton */}
+      <div
+        style={{
+          marginTop: '12px',
+          paddingTop: '12px',
+          borderTop: `1px solid ${tokens.colors.border}`,
+          display: 'flex',
+          justifyContent: 'flex-end',
+        }}
+      >
+        <div
+          style={{
+            width: '120px',
+            height: '11px',
+            borderRadius: '3px',
+            ...shimmerStyle,
+          }}
+        />
+      </div>
+
+      {/* Shimmer keyframes - injected via style tag */}
+      <style>
+        {`
+          @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+          }
+        `}
+      </style>
+    </div>
+  );
+}
+
 export function PositionCard({ position, onClick }: PositionCardProps) {
   // Infer category from title if not provided
   const category: MarketCategory = position.normalizedCategory || inferCategory(position.title);

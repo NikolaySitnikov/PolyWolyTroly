@@ -385,9 +385,9 @@ export function WhaleTable({
             }}
           >
             {[
-              { field: 'totalDeposited' as WhaleSortField, label: 'Volume', icon: '💰' },
-              { field: 'depositCount' as WhaleSortField, label: 'Count', icon: '📊' },
-              { field: 'firstSeenAt' as WhaleSortField, label: 'Date', icon: '📅' },
+              { field: 'totalDeposited' as WhaleSortField, label: 'Volume' },
+              { field: 'depositCount' as WhaleSortField, label: 'Count' },
+              { field: 'firstSeenAt' as WhaleSortField, label: 'Date' },
             ].map((option) => {
               const isActive = sortBy === option.field;
               return (
@@ -417,7 +417,6 @@ export function WhaleTable({
                     WebkitTapHighlightColor: 'transparent',
                   }}
                 >
-                  <span style={{ fontSize: '14px' }}>{option.icon}</span>
                   <span>{option.label}</span>
                   {isActive && (
                     <span style={{ fontSize: '12px', opacity: 0.8 }}>

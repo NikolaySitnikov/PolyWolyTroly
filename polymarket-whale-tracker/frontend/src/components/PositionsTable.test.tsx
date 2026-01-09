@@ -55,7 +55,7 @@ describe('PositionsTable', () => {
       pnl: 75,
       redeemable: true,
       isActive: false,
-      status: 'resolved',
+      status: 'redeemable',
       normalizedCategory: 'finance',
     }),
   ];
