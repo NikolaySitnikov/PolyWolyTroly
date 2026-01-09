@@ -54,7 +54,7 @@ export const CATEGORY_CONFIGS: Record<MarketCategory, CategoryConfig> = {
   tech: { label: 'Tech', color: '#a855f7', icon: '💻' },
   entertainment: { label: 'Entertainment', color: '#ec4899', icon: '🎬' },
   science: { label: 'Science', color: '#06b6d4', icon: '🔬' },
-  world: { label: 'World', color: '#64748b', icon: '🌍' },
+  world: { label: 'World', color: '#ef4444', icon: '🌍' },  // Red for conflict/geopolitics
   other: { label: 'Other', color: '#6b7280', icon: '📊' },
 } as const;
 

@@ -146,7 +146,7 @@ const CATEGORY_CONFIG: Record<MarketCategory, { icon: string; label: string; col
   tech: { icon: '💻', label: 'Tech', color: '#a855f7' },
   entertainment: { icon: '🎬', label: 'Entertainment', color: '#ec4899' },
   science: { icon: '🔬', label: 'Science', color: '#06b6d4' },
-  world: { icon: '🌍', label: 'World', color: '#64748b' },
+  world: { icon: '🌍', label: 'World', color: '#ef4444' },  // Red for conflict/geopolitics - distinct from Other
   other: { icon: '📌', label: 'Other', color: '#6b7280' },
 };
 
@@ -430,8 +430,9 @@ export function inferCategory(question: string): MarketCategory {
   if (/trump|biden|election|president|congress|senate|governor|vote|democrat|republican|nominee|cabinet|administration/i.test(q)) {
     return 'politics';
   }
-  // Crypto - cryptocurrencies and blockchain
-  if (/bitcoin|btc|ethereum|eth|crypto|defi|blockchain|solana|altcoin/i.test(q)) {
+  // Crypto - cryptocurrencies, blockchain, and crypto projects
+  // Includes: major coins, DeFi, prediction markets, L1/L2 chains, token sales
+  if (/bitcoin|btc|ethereum|eth\b|crypto|defi|blockchain|solana|altcoin|polymarket|token|airdrop|ico|ido|public sale|fdv|market cap|tge|mainnet|testnet|l1|l2|layer 1|layer 2|nft|dao|staking|liquidity|dex|cex|binance|coinbase|arbitrum|optimism|polygon|avalanche|cardano|polkadot|cosmos|near|aptos|sui|sei|monad|berachain|eclipse|movement|zksync|starknet|scroll|linea|base|blast|manta|mantle|hyperliquid|jupiter|raydium|uniswap|aave|compound|maker|lido|eigenlayer|celestia|worldcoin|pyth|jito|tensor|magic eden|opensea|blur|pudgy|azuki|bayc|degen|farcaster|lens|friend\.tech|pump\.fun|meme coin|memecoin|shib|doge|pepe|bonk|wif|floki|solomon|lighter|parcl|drift|vertex|gmx/i.test(q)) {
     return 'crypto';
   }
   // Sports - leagues, teams, athletes, competitions, betting patterns
