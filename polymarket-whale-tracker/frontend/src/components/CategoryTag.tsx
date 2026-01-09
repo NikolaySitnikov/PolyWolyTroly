@@ -190,7 +190,13 @@ export function getSportEmoji(seriesSlug: string | null | undefined, question?: 
       slug.includes('serie-a') || slug.includes('ligue-1') || slug.includes('mls') ||
       slug.includes('champions-league') || slug.includes('world-cup') || slug.includes('euro-') ||
       slug.includes('soccer') || slug.includes('epl') ||
-      /\b(soccer|premier league|la liga|bundesliga|serie a|ligue 1|champions league|world cup|euro 202|manchester|liverpool|chelsea|arsenal|tottenham|barcelona|real madrid|bayern|juventus|psg|inter milan|ac milan)\b/i.test(q)) {
+      /\b(soccer|premier league|la liga|bundesliga|serie a|ligue 1|champions league|world cup|euro 202)\b/i.test(q) ||
+      // English Premier League teams
+      /\b(manchester|liverpool|chelsea|arsenal|tottenham|newcastle|brighton|aston villa|west ham|bournemouth|fulham|brentford|crystal palace|wolves|wolverhampton|everton|nottingham forest|luton|burnley|sheffield united|sheffield)\b/i.test(q) ||
+      // Other top European clubs
+      /\b(barcelona|real madrid|atletico madrid|bayern|borussia dortmund|juventus|napoli|roma|lazio|psg|paris saint|marseille|lyon|inter milan|ac milan|benfica|porto|sporting|ajax|feyenoord)\b/i.test(q) ||
+      // Generic football/soccer terms
+      /\b(fc|united fc|city fc|\.fc\b|football club)\b/i.test(q)) {
     return '⚽';
   }
 
