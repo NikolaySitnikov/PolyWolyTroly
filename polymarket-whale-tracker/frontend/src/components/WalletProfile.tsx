@@ -646,9 +646,11 @@ export function WalletProfile({
                 </button>
               </div>
 
-              {/* Closed positions view */}
-              {positionStatusFilter === 'closed' ? (
-                <div style={{ padding: isMobile ? '16px' : '0' }}>
+              {/* Positions content - stable container prevents layout shift when switching filters */}
+              <div style={{ minHeight: '200px' }}>
+                {/* Closed positions view */}
+                {positionStatusFilter === 'closed' ? (
+                  <div style={{ padding: isMobile ? '16px' : '0' }}>
                   {closedLoading && closedPositions.length === 0 ? (
                     <div
                       style={{
@@ -973,6 +975,7 @@ export function WalletProfile({
                   />
                 </div>
               )}
+              </div>
             </>
           )}
 
