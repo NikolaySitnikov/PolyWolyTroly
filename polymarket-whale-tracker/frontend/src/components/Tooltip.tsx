@@ -206,7 +206,7 @@ export function Tooltip({
         onFocus={show}
         onBlur={hide}
         aria-describedby={isVisible ? tooltipId : undefined}
-        style={{ display: 'inline-flex' }}
+        style={{ display: 'inline-flex', maxWidth: '100%', overflow: 'hidden' }}
       >
         {children}
       </span>
