@@ -393,7 +393,7 @@ export interface TradingMetrics {
 
 // Re-export trading types from polymarket.ts for consistency with backend response
 // The backend returns these exact types from Polymarket APIs
-export type { PolymarketPosition, PolymarketActivity, PolymarketUserProfile } from '../types/polymarket';
+export type { PolymarketPosition, PolymarketActivity, PolymarketUserProfile, PolymarketClosedPosition } from '../types/polymarket';
 
 // Legacy type aliases for backwards compatibility
 // TODO: Migrate all usages to use Polymarket* types directly
@@ -467,4 +467,60 @@ export async function fetchTradingData(address: string, timeoutMs = 5000): Promi
   } finally {
     clearTimeout(timeoutId);
   }
+}
+
+/**
+ * Closed positions response from API
+ */
+export interface ClosedPositionsResponse {
+  positions: import('../types/polymarket').PolymarketClosedPosition[];
+  pagination: {
+    limit: number;
+    offset: number;
+    count: number;
+    hasMore: boolean;
+  };
+}
+
+/**
+ * Sort field options for closed positions
+ */
+export type ClosedPositionSortField = 'realizedpnl' | 'timestamp' | 'avgprice' | 'totalbought';
+
+/**
+ * Fetches closed/historical positions for a wallet.
+ * These are fully settled positions that have been redeemed.
+ *
+ * @param address - Ethereum wallet address
+ * @param limit - Number of positions per page (max 50)
+ * @param offset - Offset for pagination
+ * @param sortBy - Field to sort by (default 'realizedpnl')
+ * @param sortDir - Sort direction (default 'DESC')
+ * @returns Promise resolving to closed positions with pagination info
+ */
+export async function fetchClosedPositions(
+  address: string,
+  limit = 50,
+  offset = 0,
+  sortBy: ClosedPositionSortField = 'realizedpnl',
+  sortDir: 'ASC' | 'DESC' = 'DESC'
+): Promise<ClosedPositionsResponse> {
+  const normalizedAddress = address.toLowerCase();
+
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+    sortBy,
+    sortDir,
+  });
+
+  const response = await fetch(
+    `${api.baseUrl}/api/wallets/${normalizedAddress}/closed-positions?${params.toString()}`
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch closed positions: ${response.status}`);
+  }
+
+  return response.json();
 }

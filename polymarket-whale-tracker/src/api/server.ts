@@ -14,6 +14,7 @@ import { db } from "../services/database.js";
 import { trendingMarketsService } from "../services/trendingMarkets.js";
 import { blockchain } from "../services/blockchain.js";
 import { tradingCache } from "../services/polymarketTradingCache.js";
+import { polymarketApi } from "../services/polymarketApi.js";
 
 /**
  * Creates and configures the Express application.
@@ -194,6 +195,55 @@ export function createApp(): Express {
     } catch (error) {
       console.error("Error fetching trending markets:", error);
       res.status(500).json({ error: "Failed to fetch trending markets" });
+    }
+  });
+
+  // Wallet closed positions endpoint - fetches historical settled positions
+  app.get("/api/wallets/:address/closed-positions", async (req: Request, res: Response) => {
+    try {
+      const { address } = req.params;
+
+      // Validate Ethereum address format
+      const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+      if (!ethAddressRegex.test(address)) {
+        res.status(400).json({
+          error: "Invalid wallet address format",
+        });
+        return;
+      }
+
+      // Parse pagination parameters
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 50);
+      const offset = parseInt(req.query.offset as string) || 0;
+
+      // Parse sort parameters
+      const validSortFields = ['realizedpnl', 'timestamp', 'avgprice', 'totalbought'];
+      const sortByParam = (req.query.sortBy as string || 'realizedpnl').toLowerCase();
+      const sortBy = validSortFields.includes(sortByParam) ? sortByParam : 'realizedpnl';
+
+      const sortDirParam = (req.query.sortDir as string || 'DESC').toUpperCase();
+      const sortDirection = sortDirParam === 'ASC' ? 'ASC' : 'DESC';
+
+      const positions = await polymarketApi.getClosedPositions(
+        address,
+        limit,
+        offset,
+        sortBy,
+        sortDirection as 'ASC' | 'DESC'
+      );
+
+      res.json({
+        positions,
+        pagination: {
+          limit,
+          offset,
+          count: positions.length,
+          hasMore: positions.length === limit,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching closed positions:", error);
+      res.status(500).json({ error: "Failed to fetch closed positions" });
     }
   });
 

@@ -22,7 +22,9 @@ import { PnlToggle } from './PnlToggle';
 import { ProfileTabs, type ProfileTabId } from './ProfileTabs';
 import { PositionsTable } from './PositionsTable';
 import { PositionCard } from './PositionCard';
+import { ClosedPositionCard } from './ClosedPositionCard';
 import { usePolymarketTrading } from '../hooks/usePolymarketTrading';
+import { useClosedPositions } from '../hooks/useClosedPositions';
 import type { WalletData, WalletDeposit } from '../hooks/useWallet';
 import type { PnlTimeWindow } from '../types/polymarket';
 
@@ -113,22 +115,69 @@ export function WalletProfile({
   // Position search filter
   const [positionSearchFilter, setPositionSearchFilter] = useState('');
 
+  // Position status filter: 'active' | 'redeemable' | 'all' | 'closed'
+  // - Active: curPrice > 0, market still live
+  // - Redeemable: curPrice = 0, market resolved, can claim winnings
+  // - All: both active and redeemable positions
+  // - Closed: historical fully settled positions (from separate API)
+  const [positionStatusFilter, setPositionStatusFilter] = useState<'active' | 'redeemable' | 'all' | 'closed'>('all');
+
   // Clear search when switching wallets
   // Note: This effect would need useEffect, but for simplicity we rely on component remount
 
   // Fetch trading data (profile, live status, positions, etc.)
   const { profile, isLive, metrics, positions, getPnl, loading: tradingLoading, error: tradingError, refetch: refetchTrading, totalPositionsCount } = usePolymarketTrading(wallet.address);
 
-  // Filter positions by search term (matches market title)
+  // Fetch closed/historical positions (only when 'closed' filter is active)
+  const {
+    positions: closedPositions,
+    loading: closedLoading,
+    error: closedError,
+    hasMore: closedHasMore,
+    loadMore: loadMoreClosed,
+    page: closedPage,
+    setPage: setClosedPage,
+  } = useClosedPositions(wallet.address, {
+    enabled: positionStatusFilter === 'closed',
+    pageSize: 25,
+  });
+
+  // Filter positions by status (active/redeemable) and search term
+  // Active: curPrice > 0 (market still live, can trade)
+  // Redeemable: redeemable === true (market resolved, can claim winnings)
   const filteredPositions = useMemo(() => {
-    if (!positionSearchFilter.trim()) {
-      return positions;
+    let result = positions;
+
+    // First filter by status
+    if (positionStatusFilter === 'active') {
+      // Active positions: market still live (curPrice > 0, not redeemable)
+      result = result.filter((p) => p.curPrice > 0 && !p.redeemable);
+    } else if (positionStatusFilter === 'redeemable') {
+      // Redeemable positions: market resolved, waiting to claim (redeemable = true)
+      result = result.filter((p) => p.redeemable);
     }
-    const searchLower = positionSearchFilter.toLowerCase().trim();
-    return positions.filter((position) =>
-      position.title.toLowerCase().includes(searchLower)
-    );
-  }, [positions, positionSearchFilter]);
+    // 'all' shows everything
+
+    // Then filter by search term
+    if (positionSearchFilter.trim()) {
+      const searchLower = positionSearchFilter.toLowerCase().trim();
+      result = result.filter((position) =>
+        position.title.toLowerCase().includes(searchLower)
+      );
+    }
+
+    return result;
+  }, [positions, positionStatusFilter, positionSearchFilter]);
+
+  // Count active and redeemable positions for filter badges
+  const activePositionsInList = useMemo(() =>
+    positions.filter((p) => p.curPrice > 0 && !p.redeemable).length,
+    [positions]
+  );
+  const redeemablePositionsInList = useMemo(() =>
+    positions.filter((p) => p.redeemable).length,
+    [positions]
+  );
 
   // Determine if trading metrics are in a loading state (no data yet)
   const isMetricsLoading = tradingLoading && metrics === null;
@@ -435,8 +484,264 @@ export function WalletProfile({
           {/* Positions Tab */}
           {activeTab === 'positions' && (
             <>
-              {isMobile ? (
-                /* Mobile: Card list */
+              {/* Position Status Filter - Active/Closed toggle */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: isMobile ? '12px 16px' : '12px 20px',
+                  borderBottom: `1px solid ${tokens.colors.border}`,
+                  background: tokens.colors.void,
+                }}
+              >
+                {/* Active filter button */}
+                <button
+                  onClick={() => setPositionStatusFilter('active')}
+                  data-testid="position-filter-active"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    background: positionStatusFilter === 'active' ? `${tokens.colors.cyan}15` : 'transparent',
+                    border: `1px solid ${positionStatusFilter === 'active' ? tokens.colors.cyan : tokens.colors.border}`,
+                    borderRadius: '8px',
+                    fontFamily: tokens.fonts.body,
+                    fontSize: '13px',
+                    fontWeight: positionStatusFilter === 'active' ? 600 : 500,
+                    color: positionStatusFilter === 'active' ? tokens.colors.cyan : tokens.colors.textSecondary,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Active
+                  <span
+                    style={{
+                      fontFamily: tokens.fonts.mono,
+                      fontSize: '11px',
+                      opacity: 0.8,
+                    }}
+                  >
+                    ({activePositionsInList})
+                  </span>
+                </button>
+
+                {/* Redeemable filter button */}
+                <button
+                  onClick={() => setPositionStatusFilter('redeemable')}
+                  data-testid="position-filter-redeemable"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    background: positionStatusFilter === 'redeemable' ? `${tokens.colors.profit}15` : 'transparent',
+                    border: `1px solid ${positionStatusFilter === 'redeemable' ? tokens.colors.profit : tokens.colors.border}`,
+                    borderRadius: '8px',
+                    fontFamily: tokens.fonts.body,
+                    fontSize: '13px',
+                    fontWeight: positionStatusFilter === 'redeemable' ? 600 : 500,
+                    color: positionStatusFilter === 'redeemable' ? tokens.colors.profit : tokens.colors.textSecondary,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  Redeemable
+                  <span
+                    style={{
+                      fontFamily: tokens.fonts.mono,
+                      fontSize: '11px',
+                      opacity: 0.8,
+                    }}
+                  >
+                    ({redeemablePositionsInList})
+                  </span>
+                </button>
+
+                {/* All filter button */}
+                <button
+                  onClick={() => setPositionStatusFilter('all')}
+                  data-testid="position-filter-all"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    background: positionStatusFilter === 'all' ? `${tokens.colors.textSecondary}15` : 'transparent',
+                    border: `1px solid ${positionStatusFilter === 'all' ? tokens.colors.textSecondary : tokens.colors.border}`,
+                    borderRadius: '8px',
+                    fontFamily: tokens.fonts.body,
+                    fontSize: '13px',
+                    fontWeight: positionStatusFilter === 'all' ? 600 : 500,
+                    color: positionStatusFilter === 'all' ? tokens.colors.textPrimary : tokens.colors.textSecondary,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  All
+                  <span
+                    style={{
+                      fontFamily: tokens.fonts.mono,
+                      fontSize: '11px',
+                      opacity: 0.8,
+                    }}
+                  >
+                    ({totalPositionsCount})
+                  </span>
+                </button>
+
+                {/* Divider */}
+                <div
+                  style={{
+                    width: '1px',
+                    height: '20px',
+                    background: tokens.colors.border,
+                    margin: '0 4px',
+                  }}
+                />
+
+                {/* Closed/Historical filter button */}
+                <button
+                  onClick={() => setPositionStatusFilter('closed')}
+                  data-testid="position-filter-closed"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    background: positionStatusFilter === 'closed' ? `${tokens.colors.textMuted}20` : 'transparent',
+                    border: `1px solid ${positionStatusFilter === 'closed' ? tokens.colors.textMuted : tokens.colors.border}`,
+                    borderRadius: '8px',
+                    fontFamily: tokens.fonts.body,
+                    fontSize: '13px',
+                    fontWeight: positionStatusFilter === 'closed' ? 600 : 500,
+                    color: positionStatusFilter === 'closed' ? tokens.colors.textSecondary : tokens.colors.textMuted,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  📜 Closed
+                </button>
+              </div>
+
+              {/* Closed positions view */}
+              {positionStatusFilter === 'closed' ? (
+                <div style={{ padding: isMobile ? '16px' : '0' }}>
+                  {closedLoading && closedPositions.length === 0 ? (
+                    <div
+                      style={{
+                        padding: '48px 20px',
+                        textAlign: 'center',
+                        color: tokens.colors.textMuted,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: '24px',
+                          marginBottom: '12px',
+                          animation: 'pulse 2s ease-in-out infinite',
+                        }}
+                      >
+                        📜
+                      </div>
+                      Loading closed positions...
+                    </div>
+                  ) : closedError ? (
+                    <div
+                      style={{
+                        padding: '48px 20px',
+                        textAlign: 'center',
+                        color: tokens.colors.textMuted,
+                      }}
+                    >
+                      <div style={{ fontSize: '32px', marginBottom: '16px' }}>⚠️</div>
+                      <div
+                        style={{
+                          fontFamily: tokens.fonts.display,
+                          fontSize: '18px',
+                          color: tokens.colors.textPrimary,
+                          marginBottom: '8px',
+                        }}
+                      >
+                        Error loading closed positions
+                      </div>
+                      <p style={{ margin: 0 }}>{closedError}</p>
+                    </div>
+                  ) : closedPositions.length === 0 ? (
+                    <div
+                      style={{
+                        padding: '48px 20px',
+                        textAlign: 'center',
+                        color: tokens.colors.textMuted,
+                      }}
+                    >
+                      <div style={{ fontSize: '32px', marginBottom: '16px' }}>📜</div>
+                      <div
+                        style={{
+                          fontFamily: tokens.fonts.display,
+                          fontSize: '18px',
+                          color: tokens.colors.textPrimary,
+                          marginBottom: '8px',
+                        }}
+                      >
+                        No closed positions
+                      </div>
+                      <p style={{ margin: 0 }}>This whale hasn't closed any positions yet</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '12px' : '0' }}>
+                        {closedPositions.map((position) => (
+                          <ClosedPositionCard
+                            key={`${position.conditionId}-${position.timestamp}`}
+                            position={position}
+                            isMobile={isMobile}
+                            onClick={() => {
+                              window.open(`https://polymarket.com/event/${position.eventSlug}`, '_blank');
+                            }}
+                          />
+                        ))}
+                      </div>
+                      {/* Load More button for closed positions */}
+                      {closedHasMore && (
+                        <div
+                          style={{
+                            padding: '16px 20px',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            borderTop: `1px solid ${tokens.colors.border}`,
+                          }}
+                        >
+                          <button
+                            onClick={loadMoreClosed}
+                            disabled={closedLoading}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '10px 24px',
+                              background: tokens.colors.surface,
+                              border: `1px solid ${tokens.colors.border}`,
+                              borderRadius: '8px',
+                              fontFamily: tokens.fonts.body,
+                              fontSize: '14px',
+                              fontWeight: 500,
+                              color: tokens.colors.textSecondary,
+                              cursor: closedLoading ? 'wait' : 'pointer',
+                              opacity: closedLoading ? 0.7 : 1,
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            {closedLoading ? 'Loading...' : 'Load More'}
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              ) : isMobile ? (
+                /* Mobile: Card list for active/redeemable/all */
                 <div style={{ padding: '16px' }}>
                   {tradingLoading && positions.length === 0 ? (
                     <div
@@ -514,7 +819,7 @@ export function WalletProfile({
                   )}
                 </div>
               ) : (
-                /* Desktop: Table */
+                /* Desktop: Table for active/redeemable/all */
                 <div style={{ padding: '0' }}>
                   <PositionsTable
                     positions={filteredPositions}

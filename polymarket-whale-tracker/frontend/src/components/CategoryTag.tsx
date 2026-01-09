@@ -153,7 +153,7 @@ const CATEGORY_CONFIG: Record<MarketCategory, { icon: string; label: string; col
 /**
  * Get sport-specific emoji based on series slug or question text.
  * Maps league/series prefixes to appropriate sport emojis.
- * Returns default sports emoji (⚽) if no match found.
+ * Returns default sports emoji (🏆) if no match found.
  *
  * @param seriesSlug - Series slug from Polymarket (e.g., "nba-2026", "premier-league-2025")
  * @param question - Optional market question text as fallback for keyword matching
@@ -161,65 +161,88 @@ const CATEGORY_CONFIG: Record<MarketCategory, { icon: string; label: string; col
  */
 export function getSportEmoji(seriesSlug: string | null | undefined, question?: string): string {
   // Build slug from seriesSlug or question for matching
-  const slug = seriesSlug?.toLowerCase() || question?.toLowerCase() || '';
+  const slug = seriesSlug?.toLowerCase() || '';
+  const q = question?.toLowerCase() || '';
 
-  // Basketball
-  if (slug.startsWith('nba') || slug.includes('basketball') || slug.includes('ncaa-basketball') || slug.includes('wnba')) {
+  // Boxing/MMA - check first since fighters like Jake Paul, etc. should show boxing
+  if (slug.includes('ufc') || slug.includes('boxing') || slug.includes('mma') ||
+      /\b(ufc|boxing|mma|fight|knockout|jake paul|anthony joshua|tyson|fury|canelo|mayweather|mcgregor|heavyweight|middleweight|lightweight|title fight|round \d+)\b/i.test(q)) {
+    return '🥊';
+  }
+
+  // Basketball - NBA teams
+  if (slug.startsWith('nba') || slug.includes('basketball') || slug.includes('ncaa-basketball') || slug.includes('wnba') ||
+      /\b(nba|wnba|basketball|76ers|sixers|blazers|bucks|bulls|cavaliers|cavs|celtics|clippers|grizzlies|hawks|heat|hornets|jazz|kings|knicks|lakers|magic|mavericks|mavs|nets|nuggets|pacers|pelicans|pistons|raptors|rockets|spurs|suns|thunder|timberwolves|warriors|wizards)\b/i.test(q)) {
     return '🏀';
   }
-  // American Football
+
+  // American Football - NFL teams
   if (slug.startsWith('nfl') || slug.includes('ncaa-football') || slug.includes('college-football') ||
-      slug.includes('super-bowl') || slug.includes('super bowl') || slug.includes('panthers') ||
-      slug.includes('cowboys') || slug.includes('patriots') || slug.includes('chiefs') ||
-      slug.includes('eagles') || slug.includes('49ers') || slug.includes('packers')) {
+      slug.includes('super-bowl') || slug.includes('super bowl') ||
+      /\b(nfl|super bowl|ncaa football|college football|49ers|bears|bengals|bills|broncos|browns|buccaneers|cardinals|chargers|chiefs|colts|commanders|cowboys|dolphins|eagles|falcons|giants|jaguars|jets|lions|packers|panthers|patriots|raiders|rams|ravens|saints|seahawks|steelers|texans|titans|vikings)\b/i.test(q) ||
+      /\b(volunteers|crimson tide|bulldogs|gators|wildcats|longhorns|buckeyes|wolverines|trojans|fighting irish|seminoles|aggies|cougars|huskies|cornhuskers|hawkeyes|jayhawks|mountaineers|razorbacks|sooners|tar heels)\b/i.test(q) ||
+      /\b(fresno state|utah state|boise state|san diego state|colorado state|ohio state|penn state|michigan state|florida state|arizona state|nc state|iowa state|kansas state|oklahoma state|oregon state|washington state)\b/i.test(q)) {
     return '🏈';
   }
+
   // Soccer/Football
   if (slug.includes('premier-league') || slug.includes('la-liga') || slug.includes('bundesliga') ||
       slug.includes('serie-a') || slug.includes('ligue-1') || slug.includes('mls') ||
       slug.includes('champions-league') || slug.includes('world-cup') || slug.includes('euro-') ||
-      slug.includes('soccer') || slug.includes('epl')) {
+      slug.includes('soccer') || slug.includes('epl') ||
+      /\b(soccer|premier league|la liga|bundesliga|serie a|ligue 1|champions league|world cup|euro 202|manchester|liverpool|chelsea|arsenal|tottenham|barcelona|real madrid|bayern|juventus|psg|inter milan|ac milan)\b/i.test(q)) {
     return '⚽';
   }
-  // Baseball
-  if (slug.startsWith('mlb') || slug.includes('baseball') || slug.includes('world-series')) {
+
+  // Baseball - MLB teams
+  if (slug.startsWith('mlb') || slug.includes('baseball') || slug.includes('world-series') ||
+      /\b(mlb|baseball|world series|astros|athletics|blue jays|braves|brewers|cardinals|cubs|diamondbacks|dodgers|giants|guardians|mariners|marlins|mets|nationals|orioles|padres|phillies|pirates|rangers|rays|red sox|reds|rockies|royals|tigers|twins|white sox|yankees)\b/i.test(q)) {
     return '⚾';
   }
-  // Hockey
-  if (slug.startsWith('nhl') || slug.includes('hockey') || slug.includes('stanley-cup')) {
+
+  // Hockey - NHL teams
+  if (slug.startsWith('nhl') || slug.includes('hockey') || slug.includes('stanley-cup') ||
+      /\b(nhl|hockey|stanley cup|avalanche|blackhawks|blue jackets|blues|bruins|canadiens|canucks|capitals|coyotes|devils|ducks|flames|flyers|golden knights|hurricanes|islanders|kraken|lightning|maple leafs|oilers|penguins|predators|red wings|sabres|senators|sharks|stars|wild)\b/i.test(q)) {
     return '🏒';
   }
+
   // Tennis
   if (slug.includes('tennis') || slug.includes('wimbledon') || slug.includes('us-open') ||
-      slug.includes('french-open') || slug.includes('australian-open') || slug.includes('atp') || slug.includes('wta')) {
+      slug.includes('french-open') || slug.includes('australian-open') || slug.includes('atp') || slug.includes('wta') ||
+      /\b(tennis|wimbledon|us open|french open|australian open|atp|wta|djokovic|nadal|federer|alcaraz|sinner|swiatek|sabalenka)\b/i.test(q)) {
     return '🎾';
   }
+
   // Golf
-  if (slug.includes('golf') || slug.includes('pga') || slug.includes('masters') || slug.includes('ryder-cup')) {
+  if (slug.includes('golf') || slug.includes('pga') || slug.includes('masters') || slug.includes('ryder-cup') ||
+      /\b(golf|pga|masters|ryder cup|lpga|british open|us open golf)\b/i.test(q)) {
     return '⛳';
   }
-  // Boxing/MMA
-  if (slug.includes('ufc') || slug.includes('boxing') || slug.includes('mma') || slug.includes('fight')) {
-    return '🥊';
-  }
+
   // Racing
-  if (slug.includes('f1') || slug.includes('formula') || slug.includes('nascar') || slug.includes('racing')) {
+  if (slug.includes('f1') || slug.includes('formula') || slug.includes('nascar') || slug.includes('racing') ||
+      /\b(f1|formula 1|formula1|nascar|racing|grand prix|verstappen|hamilton|leclerc)\b/i.test(q)) {
     return '🏎️';
   }
+
   // Cricket
-  if (slug.includes('cricket') || slug.includes('ipl') || slug.includes('t20')) {
+  if (slug.includes('cricket') || slug.includes('ipl') || slug.includes('t20') ||
+      /\b(cricket|ipl|t20|test match|ashes)\b/i.test(q)) {
     return '🏏';
   }
+
   // Rugby
-  if (slug.includes('rugby')) {
+  if (slug.includes('rugby') || /\b(rugby|six nations)\b/i.test(q)) {
     return '🏉';
   }
+
   // Esports
-  if (slug.includes('esports') || slug.includes('league-of-legends') || slug.includes('dota') || slug.includes('csgo')) {
+  if (slug.includes('esports') || slug.includes('league-of-legends') || slug.includes('dota') || slug.includes('csgo') ||
+      /\b(esports|e-sports|league of legends|dota|csgo|cs2|valorant|overwatch)\b/i.test(q)) {
     return '🎮';
   }
 
-  return '⚽'; // Default to soccer ball for unknown sports
+  return '🏆'; // Default to trophy for unknown sports
 }
 
 /** Size configuration for different tag variants */
@@ -332,8 +355,30 @@ export function inferCategory(question: string): MarketCategory {
   if (/bitcoin|btc|ethereum|eth|crypto|defi|blockchain|solana|altcoin/i.test(q)) {
     return 'crypto';
   }
-  // Sports - leagues, teams, athletes, competitions
-  if (/nfl|nba|mlb|nhl|world cup|championship|playoff|game|match|team|player|finals|super bowl|lakers|pacers|yankees|cowboys/i.test(q)) {
+  // Sports - leagues, teams, athletes, competitions, betting patterns
+  // Check sports BEFORE world to prevent "Warriors" matching "war"
+  if (
+    // Betting patterns
+    /^spread:|^o\/u\s|over\/under|\(\-?\d+\.?\d*\)|\bvs\.?\b/i.test(q) ||
+    // Major leagues
+    /\b(nfl|nba|mlb|nhl|ncaa|mls|ufc|pga|wwe|wnba|afl|epl|f1)\b/i.test(q) ||
+    // Sports terms
+    /\b(championship|playoff|playoffs|finals|super bowl|world series|stanley cup|world cup)\b/i.test(q) ||
+    // NFL teams
+    /\b(49ers|bears|bengals|bills|broncos|browns|buccaneers|cardinals|chargers|chiefs|colts|commanders|cowboys|dolphins|eagles|falcons|giants|jaguars|jets|lions|packers|panthers|patriots|raiders|rams|ravens|saints|seahawks|steelers|texans|titans|vikings)\b/i.test(q) ||
+    // NBA teams
+    /\b(76ers|sixers|blazers|bucks|bulls|cavaliers|cavs|celtics|clippers|grizzlies|hawks|heat|hornets|jazz|kings|knicks|lakers|magic|mavericks|mavs|nets|nuggets|pacers|pelicans|pistons|raptors|rockets|spurs|suns|thunder|timberwolves|warriors|wizards)\b/i.test(q) ||
+    // MLB teams
+    /\b(astros|athletics|blue jays|braves|brewers|cardinals|cubs|diamondbacks|dodgers|giants|guardians|mariners|marlins|mets|nationals|orioles|padres|phillies|pirates|rangers|rays|red sox|reds|rockies|royals|tigers|twins|white sox|yankees)\b/i.test(q) ||
+    // NHL teams
+    /\b(avalanche|blackhawks|blue jackets|blues|bruins|canadiens|canucks|capitals|coyotes|devils|ducks|flames|flyers|golden knights|hurricanes|islanders|kraken|kings|lightning|maple leafs|oilers|penguins|predators|red wings|sabres|senators|sharks|stars|wild|jets)\b/i.test(q) ||
+    // College sports patterns (team names with state/school context)
+    /\b(volunteers|crimson tide|bulldogs|gators|wildcats|longhorns|buckeyes|wolverines|trojans|fighting irish|seminoles|aggies|cougars|huskies|ducks|beavers|bruins|cardinal|cornhuskers|hawkeyes|jayhawks|mountaineers|razorbacks|sooners|tar heels|tigers|blue devils)\b/i.test(q) ||
+    // College patterns
+    /\b(fresno state|utah state|boise state|san diego state|colorado state|ohio state|penn state|michigan state|florida state|arizona state|nc state|iowa state|kansas state|oklahoma state|oregon state|washington state)\b/i.test(q) ||
+    // General sports terms
+    /\b(touchdown|field goal|home run|slam dunk|hat trick|knockout|round \d|game \d|match\b|bout\b|fight\b|title fight|heavyweight|middleweight|lightweight)\b/i.test(q)
+  ) {
     return 'sports';
   }
   // Finance - markets, rates, economic indicators
@@ -353,7 +398,8 @@ export function inferCategory(question: string): MarketCategory {
     return 'science';
   }
   // World - geopolitics, conflicts, international affairs
-  if (/war|treaty|country|nation|international|un\b|nato|summit|invade|military|custody|venezuela|ukraine|russia|china|iran|israel/i.test(q)) {
+  // Use word boundary for "war" to prevent matching "Warriors"
+  if (/\bwar\b|treaty|country|nation|international|un\b|nato|summit|invade|military|custody|venezuela|ukraine|russia|china|iran|israel/i.test(q)) {
     return 'world';
   }
 

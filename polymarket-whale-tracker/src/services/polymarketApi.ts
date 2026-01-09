@@ -1,6 +1,7 @@
 import type {
   PolymarketPosition,
   PolymarketActivity as PolymarketActivityType,
+  PolymarketClosedPosition,
   PolymarketTrade,
   PolymarketValue,
   PolymarketUserProfile,
@@ -227,6 +228,45 @@ export const polymarketApi = {
       return allPositions;
     } catch (error) {
       console.error("Error fetching all positions:", error);
+      return [];
+    }
+  },
+
+  /**
+   * Fetch closed/historical positions for a wallet from Polymarket Data API
+   * GET /v1/closed-positions?user={address}
+   *
+   * These are fully settled/redeemed positions (historical trades)
+   * Supports pagination and sorting.
+   *
+   * @param walletAddress The user's wallet address
+   * @param limit Number of positions to fetch (max 50 per request)
+   * @param offset Pagination offset
+   * @param sortBy Field to sort by (default: realizedpnl)
+   * @param sortDirection Sort direction (default: DESC)
+   */
+  async getClosedPositions(
+    walletAddress: string,
+    limit: number = 50,
+    offset: number = 0,
+    sortBy: string = "realizedpnl",
+    sortDirection: "ASC" | "DESC" = "DESC"
+  ): Promise<PolymarketClosedPosition[]> {
+    try {
+      const address = walletAddress.toLowerCase();
+      const url = `${POLYMARKET_DATA_API}/v1/closed-positions?user=${address}&sortBy=${sortBy}&sortDirection=${sortDirection}&limit=${limit}&offset=${offset}`;
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        console.error(`Closed positions API error: ${response.status}`);
+        return [];
+      }
+
+      const positions = await response.json();
+      return Array.isArray(positions) ? positions : [];
+    } catch (error) {
+      console.error("Error fetching closed positions:", error);
       return [];
     }
   },

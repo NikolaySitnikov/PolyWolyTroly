@@ -54,6 +54,36 @@ export interface PolymarketPosition {
 }
 
 /**
+ * Closed position data from Polymarket Data API
+ * GET /v1/closed-positions?user={address}
+ *
+ * These are fully settled/redeemed positions (historical)
+ * Field names match actual API response (verified against live API 2026-01-08)
+ */
+export interface PolymarketClosedPosition {
+  proxyWallet: string;
+  asset: string;
+  conditionId: string;
+  avgPrice: number;
+  totalBought: number;
+  /** Realized P&L from this closed position */
+  realizedPnl: number;
+  /** Final price (1 = won, 0 = lost) */
+  curPrice: number;
+  title: string;
+  slug: string;
+  icon: string;
+  eventSlug: string;
+  outcome: string;
+  outcomeIndex: number;
+  oppositeOutcome: string;
+  oppositeAsset: string;
+  endDate: string;
+  /** Timestamp when position was closed */
+  timestamp: number;
+}
+
+/**
  * Activity data from Polymarket Data API
  */
 export interface PolymarketActivity {
