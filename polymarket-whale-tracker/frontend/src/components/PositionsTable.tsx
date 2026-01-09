@@ -116,11 +116,34 @@ function getPnlColor(pnl: number): string {
 }
 
 /**
- * Outcome badge component (YES/NO)
+ * Get outcome color based on the type of outcome
+ * - Yes/Over outcomes → Green
+ * - No/Under outcomes → Red
+ * - Team names and other outcomes → Gold (warm accent)
  */
-function OutcomeBadge({ outcome }: { outcome: 'YES' | 'NO' }) {
-  const isYes = outcome === 'YES';
-  const color = isYes ? tokens.colors.profit : tokens.colors.loss;
+function getOutcomeColor(outcome: string): string {
+  const normalized = outcome?.toUpperCase()?.trim() || '';
+
+  // Yes/Over outcomes → Green
+  if (normalized === 'YES' || normalized === 'OVER') {
+    return tokens.colors.profit;
+  }
+
+  // No/Under outcomes → Red
+  if (normalized === 'NO' || normalized === 'UNDER') {
+    return tokens.colors.loss;
+  }
+
+  // All other outcomes (team names, player names, etc.) → Gold accent
+  return '#f59e0b'; // Amber/gold color for team names etc.
+}
+
+/**
+ * Outcome badge component - supports all outcome types
+ * (Yes, No, Over, Under, team names, etc.)
+ */
+function OutcomeBadge({ outcome }: { outcome: string }) {
+  const color = getOutcomeColor(outcome);
 
   return (
     <span
@@ -135,7 +158,12 @@ function OutcomeBadge({ outcome }: { outcome: 'YES' | 'NO' }) {
         fontSize: '11px',
         fontWeight: 600,
         color,
+        maxWidth: '120px',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
       }}
+      title={outcome}
     >
       {outcome}
     </span>

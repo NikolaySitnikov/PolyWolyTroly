@@ -57,6 +57,29 @@ function getPnlColor(pnl: number): string {
 }
 
 /**
+ * Get outcome color based on the type of outcome
+ * - Yes/Over outcomes → Green
+ * - No/Under outcomes → Red
+ * - Team names and other outcomes → Gold (warm accent)
+ */
+function getOutcomeColor(outcome: string): string {
+  const normalized = outcome?.toUpperCase()?.trim() || '';
+
+  // Yes/Over outcomes → Green
+  if (normalized === 'YES' || normalized === 'OVER') {
+    return tokens.colors.profit;
+  }
+
+  // No/Under outcomes → Red
+  if (normalized === 'NO' || normalized === 'UNDER') {
+    return tokens.colors.loss;
+  }
+
+  // All other outcomes (team names, player names, etc.) → Gold accent
+  return '#f59e0b'; // Amber/gold color for team names etc.
+}
+
+/**
  * Status dot component - matches desktop StatusDot
  * Just a colored dot with glow, no text label
  */
@@ -373,7 +396,7 @@ export function PositionCard({ position, onClick }: PositionCardProps) {
           label="Position"
           value={position.normalizedOutcome}
           subValue={formatUSD(position.currentValue)}
-          valueColor={position.normalizedOutcome === 'YES' ? tokens.colors.profit : tokens.colors.loss}
+          valueColor={getOutcomeColor(position.normalizedOutcome)}
         />
         <MetricBox
           label="Avg Price"

@@ -9,9 +9,10 @@ import type { PolymarketPosition } from './polymarket';
 import { inferCategory as inferCategoryFromTitle } from '../components/CategoryTag';
 
 /**
- * Position outcome type
+ * Position outcome type - can be any string from Polymarket
+ * Examples: Yes, No, Over, Under, team names like "Ole Miss", "Mavericks", etc.
  */
-export type PositionOutcome = 'YES' | 'NO';
+export type PositionOutcome = string;
 
 /**
  * Position status
@@ -63,7 +64,7 @@ export const CATEGORY_CONFIGS: Record<MarketCategory, CategoryConfig> = {
  * Adds computed properties and UI helpers
  */
 export interface Position extends PolymarketPosition {
-  /** Normalized outcome (YES/NO) */
+  /** Actual outcome from Polymarket (Yes, No, Over, Under, team names, etc.) */
   normalizedOutcome: PositionOutcome;
   /** Current status */
   status: PositionStatus;
@@ -88,8 +89,8 @@ export interface Position extends PolymarketPosition {
  * Convert raw Polymarket position to UI Position
  */
 export function toPosition(raw: PolymarketPosition): Position {
-  const normalizedOutcome: PositionOutcome =
-    raw.outcome?.toUpperCase() === 'YES' ? 'YES' : 'NO';
+  // Use the actual outcome from Polymarket (Yes, No, Over, Under, team names, etc.)
+  const normalizedOutcome: PositionOutcome = raw.outcome || 'Unknown';
 
   // Position is active if it's not redeemable (market still live)
   // Position is redeemable if the market has resolved and can be claimed
