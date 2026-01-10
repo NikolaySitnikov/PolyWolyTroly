@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { WhaleTable } from './WhaleTable';
-import type { Whale } from '../types/whale';
+import type { Whale, WhaleWithTrading } from '../types/whale';
 
 describe('WhaleTable Component', () => {
   const mockWhales: Whale[] = [
@@ -364,6 +364,101 @@ describe('WhaleTable Component', () => {
         />
       );
       expect(screen.getByText(/no whales/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('LiveBadge Display', () => {
+    const mockWhalesWithTrading: WhaleWithTrading[] = [
+      {
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        firstSeenAt: '2026-01-01T00:00:00.000Z',
+        totalDeposited: 150000,
+        depositCount: 5,
+        pnl: 25000,
+        pnl7d: 5000,
+        pnl30d: 15000,
+        winRate: 68,
+        portfolioValue: 125000,
+        totalTrades: 42,
+        lastActivityAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+        isLive: true,
+      },
+      {
+        address: '0xabcdef1234567890abcdef1234567890abcdef12',
+        firstSeenAt: '2026-01-02T00:00:00.000Z',
+        totalDeposited: 75000,
+        depositCount: 3,
+        pnl: -5000,
+        pnl7d: -2000,
+        pnl30d: -3000,
+        winRate: 35,
+        portfolioValue: 50000,
+        totalTrades: 20,
+        lastActivityAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(), // 48 hours ago
+        isLive: false,
+      },
+    ];
+
+    it('should display LiveBadge for live whales on desktop', () => {
+      render(
+        <WhaleTable
+          whales={mockWhalesWithTrading}
+          isMobile={false}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      // LiveBadge should be present for the live whale
+      const liveBadges = screen.getAllByLabelText(/Active.*ago on Polymarket/);
+      expect(liveBadges).toHaveLength(1);
+    });
+
+    it('should display LiveBadge for live whales on mobile', () => {
+      render(
+        <WhaleTable
+          whales={mockWhalesWithTrading}
+          isMobile={true}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      // LiveBadge should be present for the live whale
+      const liveBadges = screen.getAllByLabelText(/Active.*ago on Polymarket/);
+      expect(liveBadges).toHaveLength(1);
+    });
+
+    it('should not display LiveBadge for non-live whales', () => {
+      const nonLiveWhales: WhaleWithTrading[] = [
+        {
+          ...mockWhalesWithTrading[1],
+          isLive: false,
+        },
+      ];
+      render(
+        <WhaleTable
+          whales={nonLiveWhales}
+          isMobile={false}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      // No LiveBadge should be present
+      const liveBadges = screen.queryAllByLabelText(/Active.*ago on Polymarket/);
+      expect(liveBadges).toHaveLength(0);
+    });
+
+    it('should work with mixed Whale and WhaleWithTrading types', () => {
+      const mixedWhales = [
+        mockWhales[1], // Regular Whale without trading data (different address)
+        mockWhalesWithTrading[0], // WhaleWithTrading that is live
+      ];
+      render(
+        <WhaleTable
+          whales={mixedWhales}
+          isMobile={false}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      // Only one LiveBadge for the whale with trading data
+      const liveBadges = screen.getAllByLabelText(/Active.*ago on Polymarket/);
+      expect(liveBadges).toHaveLength(1);
     });
   });
 

@@ -306,7 +306,7 @@ This document breaks down the "sonnet Integration Plan" into 10 discrete impleme
 
 ---
 
-## Step 9: WhaleTable Enhancements - Filters, Sorts & Live Status
+## Step 9: WhaleTable Enhancements - Filters, Sorts & Live Status (IN PROGRESS)
 **Goal:** Add trading performance sorting/filtering and live badges to whale list
 
 ### Tasks:
@@ -319,7 +319,7 @@ This document breaks down the "sonnet Integration Plan" into 10 discrete impleme
 2. Update `frontend/src/components/WhaleTable.tsx`:
    - Add new sort options: P&L, Win Rate, Portfolio, Last Active
    - Integrate FilterPills component
-   - Add LiveBadge next to whale address (size='sm')
+   - Add LiveBadge next to whale address (size='sm') ✅ DONE
    - Mobile cards: Add 2x2 stats grid with P&L and Win Rate
    - Desktop rows: Add new columns (P&L, Win Rate, Positions, Last Active)
    - Red left border on cards for losing whales
@@ -337,10 +337,51 @@ This document breaks down the "sonnet Integration Plan" into 10 discrete impleme
 - [ ] Test "Losing" filter - only losing whales show
 - [ ] Test "Live" filter - only active whales show
 - [ ] Stack filters: Profitable + Live
-- [ ] Verify LiveBadge appears on active whale cards
+- [x] Verify LiveBadge appears on active whale cards
 - [ ] Verify P&L colours on cards (green/red)
 - [ ] Check losing whales have red left border
 - [ ] Compare mobile vs desktop views
+
+### Implementation Progress (Step 9.1):
+
+**Subtask 9.1a: Add LiveBadge to WhaleTable ✅ COMPLETED**
+
+Files Modified:
+- `frontend/src/components/WhaleTable.tsx`
+  - Added `LiveBadge` import
+  - Added `hasTrading()` type guard to check if whale has trading data
+  - Updated `WhaleTableProps.whales` type to accept `(Whale | WhaleWithTrading)[]`
+  - Added LiveBadge display next to wallet address in both mobile cards and desktop table rows
+- `frontend/src/components/WhaleTable.test.tsx`
+  - Added `LiveBadge Display` test suite with 4 tests:
+    - should display LiveBadge for live whales on desktop
+    - should display LiveBadge for live whales on mobile
+    - should not display LiveBadge for non-live whales
+    - should work with mixed Whale and WhaleWithTrading types
+
+**Subtask 9.1b: Create useWhalesWithTrading hook ✅ COMPLETED**
+
+Files Created:
+- `frontend/src/hooks/useWhalesWithTrading.ts`
+  - Enriches whale list with trading data from Polymarket API
+  - Parallel fetching for visible whales (configurable concurrency, default: 5)
+  - In-memory cache with 1-minute TTL to avoid redundant API calls
+  - Graceful fallback - returns original whale if fetch fails
+
+Files Modified:
+- `frontend/src/App.tsx`
+  - Added import for `useWhalesWithTrading` hook
+  - Integrated enrichment: whales from `useWhales` are enriched via `useWhalesWithTrading`
+  - Enriched whales (with trading data) passed to `WhaleTable`
+  - Enrichment only enabled when on Whales view
+
+**How LiveBadge is Determined:**
+- `isLive` = true if the whale has any Polymarket activity (trade, buy, sell, redeem) within the last 24 hours
+- `lastActivityAt` = timestamp of most recent activity on Polymarket
+- Backend calculates this from the activity feed returned by Polymarket Data API
+- LiveBadge shows pulsing green dot with tooltip "Active Xh ago on Polymarket"
+
+**Test Results:** All 28 WhaleTable tests pass
 
 ---
 

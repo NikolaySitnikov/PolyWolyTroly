@@ -22,11 +22,20 @@ import { Pagination } from './Pagination';
 import { SwipeableCard } from './SwipeableCard';
 import { CopyableAddress } from './CopyableAddress';
 import { AchievementBadges, getWhaleAchievements } from './AchievementBadge';
+import { LiveBadge } from './LiveBadge';
 import { useNewItemAnimation } from '../hooks/useNewItemAnimation';
-import type { Whale, WhaleSortField, SortDirection } from '../types/whale';
+import type { Whale, WhaleWithTrading, WhaleSortField, SortDirection } from '../types/whale';
+
+/**
+ * Type guard to check if a whale has trading data
+ */
+function hasTrading(whale: Whale | WhaleWithTrading): whale is WhaleWithTrading {
+  return 'isLive' in whale;
+}
 
 interface WhaleTableProps {
-  whales: Whale[];
+  /** Whales to display (may include trading data) */
+  whales: (Whale | WhaleWithTrading)[];
   isMobile: boolean;
   onWhaleClick: (address: string) => void;
   /** Current page (1-indexed) */
@@ -518,11 +527,20 @@ export function WhaleTable({
                       🐋
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      {/* Copyable wallet address - long press to copy */}
-                      <CopyableAddress
-                        address={whale.address}
-                        fontSize="13px"
-                      />
+                      {/* Copyable wallet address - long press to copy, with LiveBadge */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <CopyableAddress
+                          address={whale.address}
+                          fontSize="13px"
+                        />
+                        {hasTrading(whale) && (
+                          <LiveBadge
+                            isLive={whale.isLive}
+                            lastActivityAt={whale.lastActivityAt}
+                            size="sm"
+                          />
+                        )}
+                      </div>
                       {/* Achievement badges */}
                       <AchievementBadges
                         achievements={getWhaleAchievements(whale, whales)}
@@ -1063,6 +1081,14 @@ export function WhaleTable({
                         address={whale.address}
                         fontSize="11px"
                       />
+                      {/* LiveBadge for active whales */}
+                      {hasTrading(whale) && (
+                        <LiveBadge
+                          isLive={whale.isLive}
+                          lastActivityAt={whale.lastActivityAt}
+                          size="sm"
+                        />
+                      )}
                       {/* Achievement badges - show all on desktop */}
                       <AchievementBadges
                         achievements={getWhaleAchievements(whale, whales)}
