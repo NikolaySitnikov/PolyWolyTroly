@@ -4,16 +4,19 @@
  * React hook for fetching and managing whale wallet data.
  * Handles loading, error, pagination, and sorting states.
  *
+ * Now returns WhaleWithTrading when trading data is available from the backend.
+ * Trading metrics are fetched server-side and included in the API response.
+ *
  * Supports seamless live updates via updateWhale() - updates existing whale
  * data without triggering loading states or full re-renders.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWhales, type WalletsResponse, type WhaleSortField, type SortDirection } from '../services/api';
-import type { Whale } from '../types/whale';
+import type { Whale, WhaleWithTrading } from '../types/whale';
 
 interface UseWhalesResult {
-  whales: Whale[];
+  whales: (Whale | WhaleWithTrading)[];
   loading: boolean;
   error: string | null;
   total: number;
@@ -21,23 +24,43 @@ interface UseWhalesResult {
   setPage: (page: number) => void;
   refetch: () => void;
   /** Update a single whale's data seamlessly (no loading state) */
-  updateWhale: (address: string, updates: Partial<Whale>) => void;
+  updateWhale: (address: string, updates: Partial<Whale | WhaleWithTrading>) => void;
   /** Add a new whale seamlessly (no loading state) - only affects page 1 */
-  addWhale: (whale: Whale) => void;
+  addWhale: (whale: Whale | WhaleWithTrading) => void;
   /** Number of new whales detected while on other pages */
   pendingNewWhales: number;
 }
 
 /**
- * Transform raw API wallet data to Whale object
+ * Transform raw API wallet data to Whale or WhaleWithTrading object
+ * Always includes trading fields when present in API response (even if null)
+ * This allows frontend to distinguish between "loading" (null) and "no data"
  */
-function transformWallet(wallet: WalletsResponse['wallets'][0]): Whale {
-  return {
+function transformWallet(wallet: WalletsResponse['wallets'][0]): Whale | WhaleWithTrading {
+  const baseWhale: Whale = {
     address: wallet.address,
     firstSeenAt: wallet.first_seen_at,
     totalDeposited: parseFloat(wallet.total_deposited),
     depositCount: wallet.deposit_count,
   };
+
+  // If pnl field exists in API response (even if null), include trading fields
+  // This allows frontend to show shimmer for loading state (pnl === null)
+  if ('pnl' in wallet) {
+    return {
+      ...baseWhale,
+      pnl: wallet.pnl,
+      pnl7d: wallet.pnl7d ?? null,
+      pnl30d: wallet.pnl30d ?? null,
+      winRate: wallet.winRate ?? null,
+      portfolioValue: wallet.portfolioValue ?? null,
+      totalTrades: wallet.totalTrades ?? null,
+      lastActivityAt: wallet.lastActivityAt ?? null,
+      isLive: wallet.isLive ?? null,
+    } as WhaleWithTrading;
+  }
+
+  return baseWhale;
 }
 
 export function useWhales(
@@ -45,7 +68,7 @@ export function useWhales(
   sortBy: WhaleSortField = 'total_deposited',
   sortDir: SortDirection = 'desc'
 ): UseWhalesResult {
-  const [whales, setWhales] = useState<Whale[]>([]);
+  const [whales, setWhales] = useState<(Whale | WhaleWithTrading)[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
@@ -115,6 +138,35 @@ export function useWhales(
     };
   }, [fetchData]);
 
+  // Auto-refresh when whales have null trading data (showing shimmer)
+  // Backend warms cache in background, so we poll until data is ready
+  const retryCountRef = useRef(0);
+  const MAX_RETRIES = 5; // Max 5 retries (15 seconds total)
+
+  useEffect(() => {
+    // Check if any whales have null pnl (still loading)
+    const hasLoadingWhales = whales.some(
+      (whale) => 'pnl' in whale && (whale as WhaleWithTrading).pnl === null
+    );
+
+    if (!hasLoadingWhales || loading) {
+      retryCountRef.current = 0; // Reset on success or new page
+      return;
+    }
+
+    if (retryCountRef.current >= MAX_RETRIES) {
+      return; // Stop retrying after max attempts
+    }
+
+    // Refetch after 3 seconds to check if cache is ready
+    const timer = setTimeout(() => {
+      retryCountRef.current += 1;
+      fetchData();
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [whales, loading, fetchData]);
+
   /**
    * Update a single whale's data without triggering loading state.
    * Used for live WebSocket updates.
@@ -122,7 +174,7 @@ export function useWhales(
    * Only updates if the whale is in the current page's data.
    * If not found (whale is on a different page), silently ignores.
    */
-  const updateWhale = useCallback((address: string, updates: Partial<Whale>) => {
+  const updateWhale = useCallback((address: string, updates: Partial<Whale | WhaleWithTrading>) => {
     setWhales((prev) => {
       // Check if whale exists on current page
       const exists = prev.some(
@@ -147,7 +199,7 @@ export function useWhales(
    * IMPORTANT: Only adds to the visible list if on page 1 to prevent
    * corrupting paginated data. If on another page, increments pending count.
    */
-  const addWhale = useCallback((whale: Whale) => {
+  const addWhale = useCallback((whale: Whale | WhaleWithTrading) => {
     // Always update total count
     setTotal((prev) => prev + 1);
 

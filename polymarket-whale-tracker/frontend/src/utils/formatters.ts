@@ -29,6 +29,25 @@ export function formatPercent(num: number): string {
 }
 
 /**
+ * Format P&L (profit/loss) as USD with + or - sign.
+ * - Positive: +$X.XK
+ * - Negative: -$X.XK
+ * - Zero: $0
+ */
+export function formatPnl(num: number): string {
+  if (num === 0) return '$0';
+  const sign = num > 0 ? '+' : '-';
+  const absNum = Math.abs(num);
+  if (absNum >= 1000000) {
+    return `${sign}$${(absNum / 1000000).toFixed(2)}M`;
+  }
+  if (absNum >= 1000) {
+    return `${sign}$${(absNum / 1000).toFixed(1)}K`;
+  }
+  return `${sign}$${absNum.toFixed(0)}`;
+}
+
+/**
  * Shorten an Ethereum address for display.
  */
 export function shortenAddress(address: string, chars = 4): string {

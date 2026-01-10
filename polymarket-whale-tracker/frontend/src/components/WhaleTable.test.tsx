@@ -109,7 +109,9 @@ describe('WhaleTable Component', () => {
         />
       );
       expect(screen.getByText('Wallet')).toBeInTheDocument();
-      expect(screen.getByText(/Total Deposited/)).toBeInTheDocument();
+      expect(screen.getByText(/Deposited/)).toBeInTheDocument();
+      expect(screen.getByText('P&L')).toBeInTheDocument();
+      expect(screen.getByText('Win Rate')).toBeInTheDocument();
       expect(screen.getByText(/Deposits/)).toBeInTheDocument();
       expect(screen.getByText(/First Seen/)).toBeInTheDocument();
     });
@@ -459,6 +461,134 @@ describe('WhaleTable Component', () => {
       // Only one LiveBadge for the whale with trading data
       const liveBadges = screen.getAllByLabelText(/Active.*ago on Polymarket/);
       expect(liveBadges).toHaveLength(1);
+    });
+  });
+
+  describe('Trading Stats Display', () => {
+    const mockWhalesWithTrading: WhaleWithTrading[] = [
+      {
+        address: '0x1234567890abcdef1234567890abcdef12345678',
+        firstSeenAt: '2026-01-01T00:00:00.000Z',
+        totalDeposited: 150000,
+        depositCount: 5,
+        pnl: 25000,
+        pnl7d: 5000,
+        pnl30d: 15000,
+        winRate: 68,
+        portfolioValue: 125000,
+        totalTrades: 42,
+        lastActivityAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        isLive: true,
+      },
+      {
+        address: '0xabcdef1234567890abcdef1234567890abcdef12',
+        firstSeenAt: '2026-01-02T00:00:00.000Z',
+        totalDeposited: 75000,
+        depositCount: 3,
+        pnl: -5000,
+        pnl7d: -2000,
+        pnl30d: -3000,
+        winRate: 35,
+        portfolioValue: 50000,
+        totalTrades: 20,
+        lastActivityAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+        isLive: false,
+      },
+    ];
+
+    it('should display P&L for whales with trading data on desktop', () => {
+      render(
+        <WhaleTable
+          whales={mockWhalesWithTrading}
+          isMobile={false}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      // Should show P&L values - +$25K for profitable whale
+      expect(screen.getByText('+$25.0K')).toBeInTheDocument();
+      // Should show negative P&L - -$5K for losing whale
+      expect(screen.getByText('-$5.0K')).toBeInTheDocument();
+    });
+
+    it('should display Win Rate for whales with trading data on desktop', () => {
+      render(
+        <WhaleTable
+          whales={mockWhalesWithTrading}
+          isMobile={false}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      // Should show win rates
+      expect(screen.getByText('68%')).toBeInTheDocument();
+      expect(screen.getByText('35%')).toBeInTheDocument();
+    });
+
+    it('should display P&L in mobile cards', () => {
+      render(
+        <WhaleTable
+          whales={mockWhalesWithTrading}
+          isMobile={true}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      // Should show P&L values in cards
+      expect(screen.getByText('+$25.0K')).toBeInTheDocument();
+      expect(screen.getByText('-$5.0K')).toBeInTheDocument();
+    });
+
+    it('should display Win Rate in mobile cards', () => {
+      render(
+        <WhaleTable
+          whales={mockWhalesWithTrading}
+          isMobile={true}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      // Should show win rates in cards
+      expect(screen.getByText('68%')).toBeInTheDocument();
+      expect(screen.getByText('35%')).toBeInTheDocument();
+    });
+
+    it('should show dash for whales without trading data', () => {
+      const mixedWhales = [
+        mockWhales[0], // Regular whale without trading data
+      ];
+      render(
+        <WhaleTable
+          whales={mixedWhales}
+          isMobile={false}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      // P&L and Win Rate columns should show dash when no trading data
+      const dashCells = screen.getAllByText('—');
+      expect(dashCells.length).toBeGreaterThanOrEqual(2); // At least P&L and Win Rate
+    });
+
+    it('should use profit color for positive P&L', () => {
+      render(
+        <WhaleTable
+          whales={[mockWhalesWithTrading[0]]}
+          isMobile={false}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      const pnlElement = screen.getByText('+$25.0K');
+      // Check for profit color (green)
+      expect(pnlElement).toHaveStyle({ color: 'rgb(0, 255, 136)' });
+    });
+
+    it('should use loss color for negative P&L', () => {
+      render(
+        <WhaleTable
+          whales={[mockWhalesWithTrading[1]]}
+          isMobile={false}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      const pnlElement = screen.getByText('-$5.0K');
+      // Check for loss color (red)
+      expect(pnlElement).toHaveStyle({ color: 'rgb(255, 51, 102)' });
     });
   });
 

@@ -58,6 +58,7 @@ export function createApp(): Express {
 
   // Wallets list endpoint with pagination and sorting - connected to database
   // Market makers are automatically excluded via database query
+  // Trading metrics: fetched with timeout to ensure real data
   app.get("/api/wallets", async (req: Request, res: Response) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -78,7 +79,69 @@ export function createApp(): Express {
         : 'desc';
 
       const result = await db.getAllWallets(page, limit, sortBy, sortDir);
-      res.json(result);
+
+      // Fetch trading data for ALL wallets in parallel with 2s timeout per wallet
+      // This ensures we get real data, not just cache lookups
+      const TIMEOUT_MS = 2000;
+
+      const walletsWithTrading = await Promise.all(
+        result.wallets.map(async (wallet) => {
+          try {
+            const data = await Promise.race([
+              tradingCache.getOrFetchTradingData(wallet.address),
+              new Promise<null>((_, reject) =>
+                setTimeout(() => reject(new Error('timeout')), TIMEOUT_MS)
+              ),
+            ]);
+
+            if (data) {
+              return {
+                ...wallet,
+                pnl: data.metrics.pnl,
+                pnl7d: data.metrics.pnl7d,
+                pnl30d: data.metrics.pnl30d,
+                winRate: data.metrics.winRate,
+                portfolioValue: data.metrics.portfolioValue,
+                totalTrades: data.metrics.totalTrades,
+                lastActivityAt: data.metrics.lastActivityAt,
+                isLive: data.metrics.isLive,
+              };
+            }
+          } catch {
+            // Timeout - return without trading data
+          }
+
+          return {
+            ...wallet,
+            pnl: null,
+            pnl7d: null,
+            pnl30d: null,
+            winRate: null,
+            portfolioValue: null,
+            totalTrades: null,
+            lastActivityAt: null,
+            isLive: null,
+          };
+        })
+      );
+
+      res.json({
+        ...result,
+        wallets: walletsWithTrading,
+      });
+
+      // BACKGROUND: Prefetch adjacent pages for smooth navigation
+      const prefetchPages = [page - 2, page - 1, page + 1, page + 2].filter(p => p > 0);
+      for (const prefetchPage of prefetchPages) {
+        db.getAllWallets(prefetchPage, limit, sortBy, sortDir)
+          .then(prefetchResult => {
+            const addresses = prefetchResult.wallets.map(w => w.address);
+            import('../services/cacheWarmer.js').then(({ cacheWarmer }) => {
+              cacheWarmer.warmAddresses(addresses);
+            }).catch(() => {});
+          })
+          .catch(() => {});
+      }
     } catch (error) {
       console.error("Error fetching wallets:", error);
       res.status(500).json({ error: "Failed to fetch wallets" });
@@ -326,6 +389,17 @@ export async function startServer(port: number = 3001): Promise<void> {
   } catch (error) {
     console.error('Failed to start blockchain listener:', error);
     console.log('WebSocket will still work, but deposits won\'t push automatically');
+  }
+
+  // Start cache warmer for trading data (background)
+  try {
+    const { cacheWarmer } = await import('../services/cacheWarmer.js');
+    // Don't await - let it warm in background while server is ready
+    cacheWarmer.start();
+    console.log('Cache warmer started - trading data will be pre-fetched');
+  } catch (error) {
+    console.error('Failed to start cache warmer:', error);
+    console.log('Trading data will be fetched on-demand instead');
   }
 
   // Keep the process alive

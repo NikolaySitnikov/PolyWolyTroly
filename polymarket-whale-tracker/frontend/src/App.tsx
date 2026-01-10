@@ -19,7 +19,6 @@ import { LAYOUT } from './constants/layout';
 import { useMobile } from './hooks/useMobile';
 import { useStats } from './hooks/useStats';
 import { useWhales } from './hooks/useWhales';
-import { useWhalesWithTrading } from './hooks/useWhalesWithTrading';
 import { useAlerts } from './hooks/useAlerts';
 import { useWallet } from './hooks/useWallet';
 import { useTrendingMarkets } from './hooks/useTrendingMarkets';
@@ -171,12 +170,6 @@ function App() {
     page: whalesPage,
     setPage: setWhalesPage,
   } = useWhales(WHALES_PER_PAGE, mapSortFieldToApi(whaleSortBy), whaleSortDir);
-
-  // Enrich whales with trading data (P&L, live status, etc.)
-  // Note: tradingLoading could be used for a subtle loading indicator in future
-  const { whales: enrichedWhales } = useWhalesWithTrading(whales, {
-    enabled: currentView === 'whales' && !whalesLoading,
-  });
 
   const ALERTS_PER_PAGE = 20;
   const {
@@ -722,7 +715,7 @@ function App() {
         {/* Whale table */}
         {!whalesLoading && !whalesError && (
           <WhaleTable
-            whales={enrichedWhales}
+            whales={whales}
             isMobile={isMobile}
             onWhaleClick={handleWhaleClick}
             currentPage={whalesPage}

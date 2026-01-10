@@ -110,6 +110,111 @@ pkill -f "dist/index.js"
 
 ---
 
+## Trading Data System
+
+### Overview
+
+The whale table displays real-time P&L and Win Rate data for all whales. This data is fetched from the Polymarket API and cached in Redis for performance.
+
+### Architecture
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Frontend      │────▶│   Backend API   │────▶│   Redis Cache   │
+│   WhaleTable    │     │   /api/wallets  │     │   5-min TTL     │
+└─────────────────┘     └────────┬────────┘     └─────────────────┘
+                                 │
+                                 ▼
+                        ┌─────────────────┐
+                        │  Polymarket API │
+                        │  (if not cached)│
+                        └─────────────────┘
+```
+
+### Key Components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| Cache Warmer | `src/services/cacheWarmer.ts` | Pre-warms top 100 whales on startup |
+| Trading Cache | `src/services/polymarketTradingCache.ts` | Redis cache for trading data |
+| API Endpoint | `src/api/server.ts` | `/api/wallets` with sync fetch |
+| Frontend Hook | `frontend/src/hooks/useWhales.ts` | Auto-refresh for null data |
+| Table Component | `frontend/src/components/WhaleTable.tsx` | Shimmer placeholders |
+
+### How It Works
+
+1. **Server Startup**: Cache warmer pre-fetches trading data for top 100 whales (first 5 pages)
+   - Batch size: 10 wallets in parallel
+   - Delay between batches: 1.5 seconds
+   - Cache TTL: 5 minutes in Redis
+
+2. **API Request**: When `/api/wallets` is called:
+   - Fetches wallet list from PostgreSQL
+   - For each wallet, calls `getOrFetchTradingData()` with 2-second timeout
+   - Returns `pnl: null` for wallets that timeout (shows shimmer in UI)
+   - Prefetches adjacent pages (±2) in background
+
+3. **Frontend Auto-Refresh**: If any whales have `pnl === null`:
+   - Retries every 3 seconds
+   - Max 5 retries (15 seconds total)
+   - Stops when all data loaded
+
+4. **Shimmer Placeholders**: While `pnl === null`:
+   - Cyan/magenta gradient animation
+   - 1.5s loop duration
+   - Replaces P&L and Win Rate cells
+
+### Configuration
+
+```typescript
+// cacheWarmer.ts
+const TOP_WHALES_COUNT = 100;        // Warm top 100 on startup
+const BATCH_SIZE = 10;               // Parallel fetch batch size
+const DELAY_BETWEEN_BATCHES_MS = 1500; // Rate limiting
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // Re-warm every 5 min
+
+// server.ts
+const TIMEOUT_MS = 2000;             // Per-wallet fetch timeout
+
+// useWhales.ts
+const MAX_RETRIES = 5;               // Auto-refresh retry limit
+// Retry interval: 3000ms
+```
+
+### Shimmer Effect CSS
+
+The shimmer animation is defined inline in `WhaleTable.tsx`:
+
+```css
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+```
+
+### Type Guards
+
+```typescript
+// Check if whale has trading data loaded (not null)
+function hasTrading(whale: Whale | WhaleWithTrading): whale is WhaleWithTrading {
+  return 'pnl' in whale && whale.pnl !== null;
+}
+
+// Check if whale has trading fields but they're null (still loading)
+function isTradingLoading(whale: Whale | WhaleWithTrading): boolean {
+  return 'pnl' in whale && whale.pnl === null;
+}
+```
+
+### Performance Notes
+
+- **Pages 1-5**: Load instantly (pre-cached)
+- **Pages 6+**: Initial load may show shimmers briefly, then resolve via auto-refresh
+- **Prefetching**: Viewing any page warms adjacent ±2 pages in background
+- **Rate Limiting**: Polymarket API has rate limits; cache warmer respects ~1 req/sec
+
+---
+
 ## UI Components
 
 ### PositionsTable

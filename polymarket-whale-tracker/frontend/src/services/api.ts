@@ -62,7 +62,7 @@ export async function fetchStats(): Promise<StatsResponse> {
 }
 
 /**
- * Raw wallet data from API
+ * Raw wallet data from API (now includes trading metrics)
  */
 export interface WalletApiResponse {
   address: string;
@@ -74,6 +74,15 @@ export interface WalletApiResponse {
   is_notified: boolean;
   created_at: string;
   updated_at: string;
+  // Trading metrics (included in /api/wallets response, null if fetch failed)
+  pnl: number | null;
+  pnl7d: number | null;
+  pnl30d: number | null;
+  winRate: number | null;
+  portfolioValue: number | null;
+  totalTrades: number | null;
+  lastActivityAt: string | null;
+  isLive: boolean | null;
 }
 
 /**

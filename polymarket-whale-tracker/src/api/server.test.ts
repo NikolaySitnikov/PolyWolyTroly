@@ -31,6 +31,7 @@ vi.mock("../services/trendingMarkets.js", () => ({
 // Mock the trading cache service
 vi.mock("../services/polymarketTradingCache.js", () => ({
   tradingCache: {
+    getTradingData: vi.fn(),
     getOrFetchTradingData: vi.fn(),
   },
 }));
@@ -187,6 +188,165 @@ describe("API Server", () => {
     it("should support first_seen_at sorting", async () => {
       await request(app).get("/api/wallets?sortBy=first_seen_at&sortDir=desc");
       expect(db.getAllWallets).toHaveBeenCalledWith(1, 20, 'first_seen_at', 'desc');
+    });
+
+    describe("trading metrics enrichment", () => {
+      const mockWalletWithAddress1 = {
+        address: "0x1234567890123456789012345678901234567890",
+        total_deposited: 50000,
+        deposit_count: 5,
+        first_seen_at: new Date().toISOString(),
+      };
+
+      const mockWalletWithAddress2 = {
+        address: "0xabcdef1234567890abcdef1234567890abcdef12",
+        total_deposited: 30000,
+        deposit_count: 3,
+        first_seen_at: new Date().toISOString(),
+      };
+
+      const mockTradingData1: WalletTradingData = {
+        address: "0x1234567890123456789012345678901234567890",
+        metrics: {
+          pnl: 5000,
+          pnl7d: 1000,
+          pnl30d: 3000,
+          winRate: 65.5,
+          portfolioValue: 50000,
+          activePositions: 8,
+          totalTrades: 150,
+          lastActivityAt: "2024-01-15T10:30:00Z",
+          isLive: true,
+        },
+        positions: [],
+        activity: [],
+        profile: null,
+        fetchedAt: "2024-01-15T10:35:00Z",
+      };
+
+      const mockTradingData2: WalletTradingData = {
+        address: "0xabcdef1234567890abcdef1234567890abcdef12",
+        metrics: {
+          pnl: -2000,
+          pnl7d: -500,
+          pnl30d: -1500,
+          winRate: 40.0,
+          portfolioValue: 25000,
+          activePositions: 3,
+          totalTrades: 80,
+          lastActivityAt: "2024-01-10T15:00:00Z",
+          isLive: false,
+        },
+        positions: [],
+        activity: [],
+        profile: null,
+        fetchedAt: "2024-01-15T10:35:00Z",
+      };
+
+      beforeEach(() => {
+        vi.mocked(db.getAllWallets).mockResolvedValue({
+          wallets: [mockWalletWithAddress1, mockWalletWithAddress2],
+          total: 2,
+          page: 1,
+          limit: 20,
+        });
+      });
+
+      it("should include trading metrics for each wallet", async () => {
+        vi.mocked(tradingCache.getOrFetchTradingData)
+          .mockResolvedValueOnce(mockTradingData1)
+          .mockResolvedValueOnce(mockTradingData2);
+
+        const response = await request(app).get("/api/wallets");
+
+        expect(response.status).toBe(200);
+        expect(response.body.wallets[0]).toHaveProperty("pnl", 5000);
+        expect(response.body.wallets[0]).toHaveProperty("winRate", 65.5);
+        expect(response.body.wallets[0]).toHaveProperty("isLive", true);
+        expect(response.body.wallets[1]).toHaveProperty("pnl", -2000);
+        expect(response.body.wallets[1]).toHaveProperty("winRate", 40.0);
+        expect(response.body.wallets[1]).toHaveProperty("isLive", false);
+      });
+
+      it("should fetch trading data for all returned wallets", async () => {
+        vi.mocked(tradingCache.getOrFetchTradingData)
+          .mockResolvedValueOnce(mockTradingData1)
+          .mockResolvedValueOnce(mockTradingData2);
+
+        await request(app).get("/api/wallets");
+
+        expect(tradingCache.getOrFetchTradingData).toHaveBeenCalledTimes(2);
+        expect(tradingCache.getOrFetchTradingData).toHaveBeenCalledWith(
+          "0x1234567890123456789012345678901234567890",
+          false
+        );
+        expect(tradingCache.getOrFetchTradingData).toHaveBeenCalledWith(
+          "0xabcdef1234567890abcdef1234567890abcdef12",
+          false
+        );
+      });
+
+      it("should include all trading metric fields", async () => {
+        vi.mocked(tradingCache.getOrFetchTradingData).mockResolvedValue(mockTradingData1);
+
+        const response = await request(app).get("/api/wallets");
+
+        const wallet = response.body.wallets[0];
+        expect(wallet).toHaveProperty("pnl");
+        expect(wallet).toHaveProperty("pnl7d");
+        expect(wallet).toHaveProperty("pnl30d");
+        expect(wallet).toHaveProperty("winRate");
+        expect(wallet).toHaveProperty("portfolioValue");
+        expect(wallet).toHaveProperty("totalTrades");
+        expect(wallet).toHaveProperty("lastActivityAt");
+        expect(wallet).toHaveProperty("isLive");
+      });
+
+      it("should handle trading data fetch failures gracefully", async () => {
+        vi.mocked(tradingCache.getOrFetchTradingData)
+          .mockResolvedValueOnce(mockTradingData1)
+          .mockRejectedValueOnce(new Error("API timeout"));
+
+        const response = await request(app).get("/api/wallets");
+
+        // First wallet should have trading data
+        expect(response.body.wallets[0]).toHaveProperty("pnl", 5000);
+        // Second wallet should have null trading metrics (graceful fallback)
+        expect(response.body.wallets[1].pnl).toBeNull();
+        expect(response.body.wallets[1].winRate).toBeNull();
+        expect(response.body.wallets[1].isLive).toBeNull();
+      });
+
+      it("should return 200 even if all trading data fetches fail", async () => {
+        vi.mocked(tradingCache.getOrFetchTradingData).mockRejectedValue(
+          new Error("API timeout")
+        );
+
+        const response = await request(app).get("/api/wallets");
+
+        expect(response.status).toBe(200);
+        // Wallets should still be returned with null trading metrics
+        expect(response.body.wallets).toHaveLength(2);
+        expect(response.body.wallets[0].pnl).toBeNull();
+      });
+
+      it("should fetch trading data in parallel for performance", async () => {
+        const startTime = Date.now();
+        const delay = 50; // 50ms per call
+
+        vi.mocked(tradingCache.getOrFetchTradingData).mockImplementation(async () => {
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          return mockTradingData1;
+        });
+
+        await request(app).get("/api/wallets");
+
+        const elapsed = Date.now() - startTime;
+        // If sequential: 2 * 50ms = 100ms minimum
+        // If parallel: ~50ms (both start at same time)
+        // Allow some buffer for test overhead
+        expect(elapsed).toBeLessThan(delay * 1.8);
+      });
     });
   });
 

@@ -17,7 +17,7 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
 import { tokens } from '../styles/tokens';
 import { formatCardTime } from '../styles/cardStyles';
-import { formatUSD } from '../utils/formatters';
+import { formatUSD, formatPnl } from '../utils/formatters';
 import { Pagination } from './Pagination';
 import { SwipeableCard } from './SwipeableCard';
 import { CopyableAddress } from './CopyableAddress';
@@ -27,11 +27,48 @@ import { useNewItemAnimation } from '../hooks/useNewItemAnimation';
 import type { Whale, WhaleWithTrading, WhaleSortField, SortDirection } from '../types/whale';
 
 /**
- * Type guard to check if a whale has trading data
+ * Type guard to check if a whale has trading data loaded
+ * Returns true only if trading data is present AND not null (actually loaded)
  */
 function hasTrading(whale: Whale | WhaleWithTrading): whale is WhaleWithTrading {
-  return 'isLive' in whale;
+  return 'pnl' in whale && whale.pnl !== null;
 }
+
+/**
+ * Check if whale has trading fields but they're null (still loading)
+ */
+function isTradingLoading(whale: Whale | WhaleWithTrading): boolean {
+  return 'pnl' in whale && whale.pnl === null;
+}
+
+/**
+ * Get P&L color based on value
+ */
+function getPnlColor(pnl: number): string {
+  if (pnl > 0) return tokens.colors.profit;
+  if (pnl < 0) return tokens.colors.loss;
+  return tokens.colors.neutral;
+}
+
+/**
+ * Shimmer placeholder for loading trading data
+ * Cyan/magenta gradient animation
+ */
+function ShimmerPlaceholder({ width = '60px' }: { width?: string }) {
+  return (
+    <div
+      style={{
+        width,
+        height: '16px',
+        borderRadius: '4px',
+        background: `linear-gradient(90deg, ${tokens.colors.cyan}20, ${tokens.colors.magenta}40, ${tokens.colors.cyan}20)`,
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.5s ease-in-out infinite',
+      }}
+    />
+  );
+}
+
 
 interface WhaleTableProps {
   /** Whales to display (may include trading data) */
@@ -563,14 +600,15 @@ export function WhaleTable({
                   </span>
                 </div>
 
-                {/* Stats Grid */}
+                {/* Stats Grid - 2x2 layout */}
                 <div
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr',
-                    gap: '16px',
+                    gap: '12px 16px',
                   }}
                 >
+                  {/* Deposited */}
                   <div>
                     <div
                       style={{
@@ -582,12 +620,12 @@ export function WhaleTable({
                         marginBottom: '4px',
                       }}
                     >
-                      Total Deposited
+                      Deposited
                     </div>
                     <div
                       style={{
                         fontFamily: tokens.fonts.mono,
-                        fontSize: '17px',
+                        fontSize: '16px',
                         fontWeight: 600,
                         color: tokens.colors.profit,
                         textShadow: `0 0 15px ${tokens.colors.profitGlow}`,
@@ -596,6 +634,68 @@ export function WhaleTable({
                       {formatUSD(whale.totalDeposited)}
                     </div>
                   </div>
+                  {/* P&L */}
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: tokens.fonts.mono,
+                        fontSize: '10px',
+                        color: tokens.colors.textMuted,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      P&L
+                    </div>
+                    {isTradingLoading(whale) ? (
+                      <ShimmerPlaceholder width="70px" />
+                    ) : (
+                      <div
+                        style={{
+                          fontFamily: tokens.fonts.mono,
+                          fontSize: '16px',
+                          fontWeight: 600,
+                          color: hasTrading(whale) ? getPnlColor(whale.pnl) : tokens.colors.textMuted,
+                          textShadow: hasTrading(whale) && whale.pnl !== 0
+                            ? `0 0 15px ${whale.pnl > 0 ? tokens.colors.profitGlow : tokens.colors.lossGlow}`
+                            : 'none',
+                        }}
+                      >
+                        {hasTrading(whale) ? formatPnl(whale.pnl) : '—'}
+                      </div>
+                    )}
+                  </div>
+                  {/* Win Rate */}
+                  <div>
+                    <div
+                      style={{
+                        fontFamily: tokens.fonts.mono,
+                        fontSize: '10px',
+                        color: tokens.colors.textMuted,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        marginBottom: '4px',
+                      }}
+                    >
+                      Win Rate
+                    </div>
+                    {isTradingLoading(whale) ? (
+                      <ShimmerPlaceholder width="50px" />
+                    ) : (
+                      <div
+                        style={{
+                          fontFamily: tokens.fonts.mono,
+                          fontSize: '16px',
+                          fontWeight: 600,
+                          color: hasTrading(whale) ? tokens.colors.cyan : tokens.colors.textMuted,
+                        }}
+                      >
+                        {hasTrading(whale) ? `${whale.winRate}%` : '—'}
+                      </div>
+                    )}
+                  </div>
+                  {/* Deposits */}
                   <div>
                     <div
                       style={{
@@ -612,7 +712,7 @@ export function WhaleTable({
                     <div
                       style={{
                         fontFamily: tokens.fonts.mono,
-                        fontSize: '17px',
+                        fontSize: '16px',
                         fontWeight: 600,
                         color: tokens.colors.textPrimary,
                       }}
@@ -934,7 +1034,7 @@ export function WhaleTable({
                   textTransform: 'uppercase',
                   letterSpacing: '0.1em',
                   whiteSpace: 'nowrap',
-                  width: '35%',
+                  width: '28%',
                 }}
               >
                 Wallet
@@ -954,7 +1054,7 @@ export function WhaleTable({
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   userSelect: 'none',
-                  width: '25%',
+                  width: '16%',
                   transition: 'color 0.15s ease',
                 }}
                 onMouseEnter={(e) => {
@@ -968,8 +1068,40 @@ export function WhaleTable({
                   }
                 }}
               >
-                Total Deposited{' '}
+                Deposited{' '}
                 {sortBy === 'totalDeposited' && (sortDir === 'desc' ? '↓' : '↑')}
+              </th>
+              <th
+                style={{
+                  padding: '12px 16px',
+                  textAlign: 'left',
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: '10px',
+                  fontWeight: 500,
+                  color: tokens.colors.textMuted,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  whiteSpace: 'nowrap',
+                  width: '14%',
+                }}
+              >
+                P&L
+              </th>
+              <th
+                style={{
+                  padding: '12px 16px',
+                  textAlign: 'left',
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: '10px',
+                  fontWeight: 500,
+                  color: tokens.colors.textMuted,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  whiteSpace: 'nowrap',
+                  width: '14%',
+                }}
+              >
+                Win Rate
               </th>
               <th
                 data-testid="sort-depositCount"
@@ -986,7 +1118,7 @@ export function WhaleTable({
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   userSelect: 'none',
-                  width: '20%',
+                  width: '14%',
                   transition: 'color 0.15s ease',
                 }}
                 onMouseEnter={(e) => {
@@ -1018,7 +1150,7 @@ export function WhaleTable({
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   userSelect: 'none',
-                  width: '20%',
+                  width: '14%',
                   transition: 'color 0.15s ease',
                 }}
                 onMouseEnter={(e) => {
@@ -1107,6 +1239,41 @@ export function WhaleTable({
                   }}
                 >
                   {formatUSD(whale.totalDeposited)}
+                </td>
+                {/* P&L Column */}
+                <td
+                  style={{
+                    padding: '14px 16px',
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '13px',
+                    fontWeight: 500,
+                    color: hasTrading(whale) ? getPnlColor(whale.pnl) : tokens.colors.textMuted,
+                  }}
+                >
+                  {isTradingLoading(whale) ? (
+                    <ShimmerPlaceholder width="70px" />
+                  ) : hasTrading(whale) ? (
+                    formatPnl(whale.pnl)
+                  ) : (
+                    '—'
+                  )}
+                </td>
+                {/* Win Rate Column */}
+                <td
+                  style={{
+                    padding: '14px 16px',
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: '13px',
+                    color: hasTrading(whale) ? tokens.colors.cyan : tokens.colors.textMuted,
+                  }}
+                >
+                  {isTradingLoading(whale) ? (
+                    <ShimmerPlaceholder width="50px" />
+                  ) : hasTrading(whale) ? (
+                    `${whale.winRate}%`
+                  ) : (
+                    '—'
+                  )}
                 </td>
                 <td
                   style={{
