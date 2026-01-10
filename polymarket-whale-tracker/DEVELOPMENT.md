@@ -213,6 +213,77 @@ function isTradingLoading(whale: Whale | WhaleWithTrading): boolean {
 - **Prefetching**: Viewing any page warms adjacent ±2 pages in background
 - **Rate Limiting**: Polymarket API has rate limits; cache warmer respects ~1 req/sec
 
+### Win Rate Color Gradient
+
+The Win Rate column uses a smooth gradient color scale to indicate performance at a glance.
+
+#### Color Scale
+
+| Win Rate | Color | Hex Code |
+|----------|-------|----------|
+| 0% (with trades) | Vibrant red | `#FF4757` |
+| 50% | Golden yellow | `#FFD93D` |
+| 100% | Bright green | `#00D26A` |
+| No trades | Muted gray dash "—" | `tokens.colors.textMuted` |
+
+#### How It Works
+
+The gradient uses linear RGB interpolation between color stops:
+
+1. **0% → 50%**: Interpolates from red to yellow
+2. **50% → 100%**: Interpolates from yellow to green
+
+```typescript
+function getWinRateColor(winRate: number, totalTrades: number | null): string {
+  // No trades = neutral dash
+  if (totalTrades === null || totalTrades === 0) {
+    return tokens.colors.textMuted;
+  }
+
+  // Clamp to 0-100 range
+  const rate = Math.max(0, Math.min(100, winRate));
+
+  // Color definitions
+  const red = { r: 255, g: 71, b: 87 };    // #FF4757
+  const yellow = { r: 255, g: 217, b: 61 }; // #FFD93D
+  const green = { r: 0, g: 210, b: 106 };   // #00D26A
+
+  let r: number, g: number, b: number;
+
+  if (rate <= 50) {
+    // Interpolate red → yellow (0% → 50%)
+    const t = rate / 50;
+    r = Math.round(red.r + (yellow.r - red.r) * t);
+    g = Math.round(red.g + (yellow.g - red.g) * t);
+    b = Math.round(red.b + (yellow.b - red.b) * t);
+  } else {
+    // Interpolate yellow → green (50% → 100%)
+    const t = (rate - 50) / 50;
+    r = Math.round(yellow.r + (green.r - yellow.r) * t);
+    g = Math.round(yellow.g + (green.g - yellow.g) * t);
+    b = Math.round(yellow.b + (green.b - yellow.b) * t);
+  }
+
+  return `rgb(${r}, ${g}, ${b})`;
+}
+```
+
+#### Edge Cases
+
+- **0% with trades**: Shows red (not gray) — the whale traded but lost every position
+- **0 trades**: Shows gray "—" — no trading activity to evaluate
+- **Null data**: Shows shimmer placeholder while loading
+
+#### Visual Examples
+
+| Win Rate | Resulting Color |
+|----------|-----------------|
+| 0% | Red `rgb(255, 71, 87)` |
+| 25% | Orange-red `rgb(255, 144, 74)` |
+| 50% | Golden yellow `rgb(255, 217, 61)` |
+| 75% | Yellow-green `rgb(128, 214, 84)` |
+| 100% | Bright green `rgb(0, 210, 106)` |
+
 ---
 
 ## UI Components
