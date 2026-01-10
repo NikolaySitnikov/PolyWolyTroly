@@ -51,6 +51,59 @@ function getPnlColor(pnl: number): string {
 }
 
 /**
+ * Get Win Rate color based on percentage (0-100)
+ * Creates a smooth gradient: red (0%) → yellow (50%) → green (100%)
+ *
+ * Color stops:
+ * - 0%:   #FF4757 (vibrant red)
+ * - 50%:  #FFD93D (golden yellow)
+ * - 100%: #00D26A (bright green)
+ */
+function getWinRateColor(winRate: number, totalTrades: number | null): string {
+  // No trades = neutral dash
+  if (totalTrades === null || totalTrades === 0) {
+    return tokens.colors.textMuted;
+  }
+
+  // Clamp to 0-100 range
+  const rate = Math.max(0, Math.min(100, winRate));
+
+  // Color definitions
+  const red = { r: 255, g: 71, b: 87 };    // #FF4757
+  const yellow = { r: 255, g: 217, b: 61 }; // #FFD93D
+  const green = { r: 0, g: 210, b: 106 };   // #00D26A
+
+  let r: number, g: number, b: number;
+
+  if (rate <= 50) {
+    // Interpolate red → yellow (0% → 50%)
+    const t = rate / 50;
+    r = Math.round(red.r + (yellow.r - red.r) * t);
+    g = Math.round(red.g + (yellow.g - red.g) * t);
+    b = Math.round(red.b + (yellow.b - red.b) * t);
+  } else {
+    // Interpolate yellow → green (50% → 100%)
+    const t = (rate - 50) / 50;
+    r = Math.round(yellow.r + (green.r - yellow.r) * t);
+    g = Math.round(yellow.g + (green.g - yellow.g) * t);
+    b = Math.round(yellow.b + (green.b - yellow.b) * t);
+  }
+
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+/**
+ * Format Win Rate display
+ * Returns "—" for no trades, percentage otherwise
+ */
+function formatWinRate(winRate: number | null, totalTrades: number | null): string {
+  if (totalTrades === null || totalTrades === 0) {
+    return '—';
+  }
+  return `${winRate ?? 0}%`;
+}
+
+/**
  * Shimmer placeholder for loading trading data
  * Cyan/magenta gradient animation
  */
@@ -688,10 +741,14 @@ export function WhaleTable({
                           fontFamily: tokens.fonts.mono,
                           fontSize: '16px',
                           fontWeight: 600,
-                          color: hasTrading(whale) ? tokens.colors.cyan : tokens.colors.textMuted,
+                          color: hasTrading(whale)
+                            ? getWinRateColor(whale.winRate ?? 0, whale.totalTrades)
+                            : tokens.colors.textMuted,
                         }}
                       >
-                        {hasTrading(whale) ? `${whale.winRate}%` : '—'}
+                        {hasTrading(whale)
+                          ? formatWinRate(whale.winRate, whale.totalTrades)
+                          : '—'}
                       </div>
                     )}
                   </div>
@@ -1264,13 +1321,15 @@ export function WhaleTable({
                     padding: '14px 16px',
                     fontFamily: tokens.fonts.mono,
                     fontSize: '13px',
-                    color: hasTrading(whale) ? tokens.colors.cyan : tokens.colors.textMuted,
+                    color: hasTrading(whale)
+                      ? getWinRateColor(whale.winRate ?? 0, whale.totalTrades)
+                      : tokens.colors.textMuted,
                   }}
                 >
                   {isTradingLoading(whale) ? (
                     <ShimmerPlaceholder width="50px" />
                   ) : hasTrading(whale) ? (
-                    `${whale.winRate}%`
+                    formatWinRate(whale.winRate, whale.totalTrades)
                   ) : (
                     '—'
                   )}
