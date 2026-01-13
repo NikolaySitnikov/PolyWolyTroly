@@ -149,7 +149,7 @@ Queries `https://data-api.polymarket.com/activity?user={address}` to determine i
 
 ### Insider Detection Module (src/services/insiderDetection/)
 
-New module for detecting suspicious trading patterns on Polymarket. Phase 0.1 complete.
+Module for detecting suspicious trading patterns on Polymarket. Phase 0.1-0.5 complete.
 
 **Database Tables** (7 new tables via migration 002):
 - `markets` - Market metadata, resolution times, volume tracking
@@ -170,6 +170,7 @@ New module for detecting suspicious trading patterns on Polymarket. Phase 0.1 co
   - Same robust pattern as `blockchain.ts` (heartbeat, health tracking, auto-restart)
   - Redis deduplication prevents duplicate processing
   - Filters mints/burns, stores wallet-to-wallet transfers in `ctf_transfers` table
+  - Automatically updates wallet activity index on each transfer
 - `marketMetadataService.ts` - Gamma API integration for market metadata
   - Syncs active markets from `gamma-api.polymarket.com/markets`
   - Extracts CLOB token IDs, resolution times, volume, liquidity
@@ -177,6 +178,22 @@ New module for detecting suspicious trading patterns on Polymarket. Phase 0.1 co
   - Cache warming on startup
   - Resolution tracking (detects when markets resolve)
   - Stores in `markets` table for detection analysis
+- `marketDepthService.ts` - CLOB API integration for order book depth
+  - Fetches order books from `clob.polymarket.com/book`
+  - Extracts depth at 2/5/10 tick levels from mid price
+  - Calculates bid/ask liquidity, mid price, spread
+  - Background polling every 30 seconds
+  - Hourly 30-day median liquidity calculation
+  - Rate limiting (5 req/s) and batch processing
+  - `calculateDepthRatio()` - Compare trade size to available liquidity
+- `walletActivityIndex.ts` - Per-market wallet activity tracking
+  - Process CTF transfers and update activity for buyer/seller
+  - Track volume, trade count, net position, avg entry price, realized PnL
+  - Calculate volume share (concentration metric)
+  - `getWalletConcentration()` - Top market and volume share
+  - `getHighConcentrationWallets()` - Find wallets with ≥70% in one market
+  - `getNewWalletActivity()` - Find wallets trading soon after first trade
+  - `backfillFromTransfers()` - Backfill from existing CTF transfer history
 
 **Default Thresholds** (from `detection_config` table):
 - Wallet age: <14 days = HIGH, <30 days = MEDIUM
@@ -187,7 +204,10 @@ New module for detecting suspicious trading patterns on Polymarket. Phase 0.1 co
 
 **Usage**:
 ```typescript
-import { detectionDb, detectionCache, loadConfig, runAllChecks, ctfEventListener } from "./services/insiderDetection/index.js";
+import {
+  detectionDb, detectionCache, loadConfig, runAllChecks,
+  ctfEventListener, marketMetadataService, marketDepthService, walletActivityIndex
+} from "./services/insiderDetection/index.js";
 
 // Check thresholds
 const result = await runAllChecks({
@@ -197,10 +217,22 @@ const result = await runAllChecks({
 });
 // result.overallSuspicious = true, result.triggeredChecks = ['wallet_age_HIGH', 'timing_HIGH']
 
-// CTF Event Listener
+// CTF Event Listener (auto-updates wallet activity on each transfer)
 await ctfEventListener.startListening();
 const health = ctfEventListener.getHealthStatus();
 // { isRunning: true, healthy: true, transfersProcessed: 42, ... }
+
+// Market Depth Service
+marketDepthService.startPolling();  // Start 30s polling
+const depth = await marketDepthService.getLatestDepth("0xcondition...");
+const ratio = await marketDepthService.calculateDepthRatio("0xcondition...", 5000, 2);
+// ratio = trade size / available liquidity at 2-tick level
+
+// Wallet Activity Index
+const concentration = await walletActivityIndex.getWalletConcentration("0xwallet...");
+// { topMarket: { conditionId, volumeShare: 85 }, totalVolume: 10000, marketCount: 3 }
+const highConcentration = await walletActivityIndex.getHighConcentrationWallets("0xcondition...", 70);
+// Wallets with ≥70% of their volume in this market
 ```
 
 **API Endpoints** (Added to server.ts):
@@ -211,7 +243,12 @@ const health = ctfEventListener.getHealthStatus();
 - `GET /api/detection/markets` - List active markets (supports `?nearResolution=<hours>` filter)
 - `GET /api/detection/markets/:conditionId` - Get single market details
 - `POST /api/detection/markets/sync` - Trigger manual market sync
-- `GET /api/health` - Extended with `ctfListener` and `marketMetadata` status
+- `GET /api/detection/depth/:conditionId` - Latest depth snapshot for a market
+- `GET /api/detection/depth/:conditionId/history` - Depth history (with `?hours=N` param)
+- `GET /api/detection/depth/:conditionId/liquidity` - Liquidity at tick level (2/5/10)
+- `GET /api/detection/depth/:conditionId/ratio` - Calculate depth ratio for trade size
+- `POST /api/detection/depth/poll` - Trigger manual depth poll
+- `GET /api/health` - Extended with `ctfListener`, `marketMetadata`, and `marketDepth` status
 
 ### Required Environment Variables
 - `ALCHEMY_WSS_URL` / `ALCHEMY_HTTP_URL` - Polygon RPC endpoints (PublicNode)
@@ -238,6 +275,10 @@ Test files:
 - `database.test.ts` - Tests for PostgreSQL operations
 - `cache.test.ts` - Tests for Redis operations
 - `index.test.ts` - Tests for main application startup
+- `insiderDetection/__tests__/ctfEventListener.test.ts` - 7 tests for CTF event listener
+- `insiderDetection/__tests__/marketMetadataService.test.ts` - 15 tests for market metadata
+- `insiderDetection/__tests__/marketDepthService.test.ts` - 22 tests for order book depth
+- `insiderDetection/__tests__/walletActivityIndex.test.ts` - 24 tests for wallet activity
 
 ## Module System
 

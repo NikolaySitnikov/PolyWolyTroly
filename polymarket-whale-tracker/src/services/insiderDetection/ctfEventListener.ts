@@ -25,6 +25,7 @@ import { config } from "../../config/index.js";
 import { CONTRACTS, ERC1155_ABI, ZERO_ADDRESS } from "../../utils/constants.js";
 import { detectionDb } from "./detectionDatabase.js";
 import { detectionCache } from "./detectionCache.js";
+import { walletActivityIndex } from "./walletActivityIndex.js";
 import type { CtfTransfer } from "./types.js";
 import pino from "pino";
 
@@ -189,6 +190,13 @@ async function processTransferSingle(log: Log): Promise<void> {
     await detectionDb.recordCtfTransfer(transfer);
     transfersProcessed++;
 
+    // Update wallet activity index for both parties
+    try {
+      await walletActivityIndex.processTransfer(transfer);
+    } catch (err) {
+      logger.warn({ msg: "Failed to update wallet activity", error: err });
+    }
+
     // Mark as processed
     await detectionCache.markCtfTransferProcessed(dedupKey);
 
@@ -286,6 +294,14 @@ async function processTransferBatch(log: Log): Promise<void> {
 
       await detectionDb.recordCtfTransfer(transfer);
       transfersProcessed++;
+
+      // Update wallet activity index for both parties
+      try {
+        await walletActivityIndex.processTransfer(transfer);
+      } catch (err) {
+        logger.warn({ msg: "Failed to update wallet activity in batch", error: err });
+      }
+
       await detectionCache.markCtfTransferProcessed(dedupKey);
     }
 

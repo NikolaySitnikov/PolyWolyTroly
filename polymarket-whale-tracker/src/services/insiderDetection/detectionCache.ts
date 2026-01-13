@@ -129,26 +129,34 @@ export const detectionCache = {
   // WALLET ACTIVITY CACHE (per market)
   // ----------------------------------------
 
+  /**
+   * Set wallet activity using a cache key (wallet:conditionId format)
+   */
   async setWalletActivity(
-    walletAddress: string,
-    conditionId: string,
-    activity: WalletActivity
+    cacheKey: string,
+    activity: WalletActivity,
+    ttl?: number
   ): Promise<void> {
     await redis.setex(
-      `${PREFIX.walletActivity}${walletAddress.toLowerCase()}:${conditionId}`,
-      TTL.walletActivity,
+      `${PREFIX.walletActivity}${cacheKey.toLowerCase()}`,
+      ttl || TTL.walletActivity,
       JSON.stringify(activity)
     );
   },
 
-  async getWalletActivity(
-    walletAddress: string,
-    conditionId: string
-  ): Promise<WalletActivity | null> {
-    const data = await redis.get(
-      `${PREFIX.walletActivity}${walletAddress.toLowerCase()}:${conditionId}`
-    );
+  /**
+   * Get wallet activity using a cache key (wallet:conditionId format)
+   */
+  async getWalletActivity(cacheKey: string): Promise<WalletActivity | null> {
+    const data = await redis.get(`${PREFIX.walletActivity}${cacheKey.toLowerCase()}`);
     return data ? JSON.parse(data) : null;
+  },
+
+  /**
+   * Invalidate wallet activity cache entry
+   */
+  async invalidateWalletActivity(cacheKey: string): Promise<void> {
+    await redis.del(`${PREFIX.walletActivity}${cacheKey.toLowerCase()}`);
   },
 
   // ----------------------------------------

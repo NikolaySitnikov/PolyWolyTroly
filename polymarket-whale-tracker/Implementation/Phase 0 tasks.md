@@ -242,13 +242,14 @@ src/services/insiderDetection/
 | 0.4.7 | Integrate with server startup | Integration test | ✅ |
 | 0.4.8 | Unit tests for depth service (22 tests) | Vitest | ✅ |
 
-### Phase 0.5: Wallet Activity Index
+### Phase 0.5: Wallet Activity Index ✅ COMPLETED (2026-01-13)
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 0.5.1 | Implement `walletActivityIndex.ts` | Unit tests | ⬜ |
-| 0.5.2 | Calculate concentration metrics (volume share) | Unit tests | ⬜ |
-| 0.5.3 | Integrate with CTF listener (update on transfer) | Integration test | ⬜ |
-| 0.5.4 | Add historical backfill support | Batch processing test | ⬜ |
+| 0.5.1 | Implement `walletActivityIndex.ts` | Unit tests | ✅ |
+| 0.5.2 | Calculate concentration metrics (volume share) | Unit tests | ✅ |
+| 0.5.3 | Integrate with CTF listener (update on transfer) | Integration test | ✅ |
+| 0.5.4 | Add historical backfill support | Batch processing test | ✅ |
+| 0.5.5 | Unit tests for wallet activity index (24 tests) | Vitest | ✅ |
 
 ### Phase 0.6: Funding Source Analysis
 | # | Task | Test Strategy | Status |
@@ -377,16 +378,37 @@ Phase 0.1 (DB) ─┬─> Phase 0.2 (CTF) ─> Phase 0.5 (Activity)
 
 ## Progress Tracking
 
-**Total Subtasks:** 42
-**Completed:** 24
+**Total Subtasks:** 43
+**Completed:** 29
 **In Progress:** 0
-**Remaining:** 18
+**Remaining:** 14
 
 Last Updated: 2026-01-13
 
 ---
 
 ## Changelog
+
+### 2026-01-13 - Phase 0.5 Complete
+- Created `walletActivityIndex.ts` with:
+  - Process CTF transfers and update wallet activity for both buyer and seller
+  - Track per-market wallet activity (volume, trade count, net position, avg entry price, realized PnL)
+  - Calculate volume share of wallet (concentration metric)
+  - Methods: `getWalletActivity`, `getWalletMarketActivity`, `getMarketActivity`
+  - `getWalletConcentration()` - returns top market and volume share metrics
+  - `getHighConcentrationWallets()` - find wallets with high concentration in a market
+  - `getNewWalletActivity()` - find wallets that traded soon after their first-ever trade
+  - `backfillFromTransfers()` - backfill wallet activity from existing CTF transfers
+  - `recalculateAllVolumeShares()` - batch update all wallet volume shares
+  - `invalidateWalletCache()` - clear cache for specific wallet
+- Updated `ctfEventListener.ts`:
+  - Integrated `walletActivityIndex.processTransfer()` for both TransferSingle and TransferBatch
+  - Wallet activity is updated automatically when CTF transfers are processed
+- Updated `detectionCache.ts`:
+  - Changed `setWalletActivity()` signature to use cache key format
+  - Added `invalidateWalletActivity()` method
+- Exported `walletActivityIndex` from `index.ts`
+- Created unit tests for wallet activity index (24 tests passing)
 
 ### 2026-01-13 - Phase 0.4 Complete
 - Created `marketDepthService.ts` with:

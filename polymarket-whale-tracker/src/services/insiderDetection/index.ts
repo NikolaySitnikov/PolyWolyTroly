@@ -37,3 +37,6 @@ export { marketMetadataService } from "./marketMetadataService.js";
 
 // Market Depth Service
 export { marketDepthService } from "./marketDepthService.js";
+
+// Wallet Activity Index
+export { walletActivityIndex } from "./walletActivityIndex.js";
