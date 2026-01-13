@@ -149,7 +149,7 @@ Queries `https://data-api.polymarket.com/activity?user={address}` to determine i
 
 ### Insider Detection Module (src/services/insiderDetection/)
 
-Module for detecting suspicious trading patterns on Polymarket. Phase 0.1-0.5 complete.
+Module for detecting suspicious trading patterns on Polymarket. Phase 0.1-0.6 complete.
 
 **Database Tables** (7 new tables via migration 002):
 - `markets` - Market metadata, resolution times, volume tracking
@@ -194,6 +194,19 @@ Module for detecting suspicious trading patterns on Polymarket. Phase 0.1-0.5 co
   - `getHighConcentrationWallets()` - Find wallets with ≥70% in one market
   - `getNewWalletActivity()` - Find wallets trading soon after first trade
   - `backfillFromTransfers()` - Backfill from existing CTF transfer history
+  - Auto-triggers funding analysis for new wallets on first trade
+- `fundingAnalyzer.ts` - Wallet funding source analysis
+  - Alchemy Asset Transfers API for 1-hop funding source lookup
+  - Address classification: `cex`, `bridge`, `contract`, `eoa`, `unknown`
+  - Known address labels: 12+ CEXs (Binance, Coinbase, Kraken, OKX, etc.)
+  - Known address labels: 10+ bridges (Polygon Bridge, Hop, Stargate, etc.)
+  - `analyzeFundingSources()` - Fetch and classify all funding transfers
+  - `updateTimingMetrics()` - Calculate hours between funding and first trade
+  - `findWalletsWithSameFunder()` - Find wallet clusters from same source
+  - `isRecentlyFunded()` - Check if wallet was funded within N hours
+  - `getFundingProfile()` - Comprehensive profile with related wallets
+  - Rate limiting (200ms) and retry logic (3 retries)
+  - Cache results for 30 minutes
 
 **Default Thresholds** (from `detection_config` table):
 - Wallet age: <14 days = HIGH, <30 days = MEDIUM
@@ -206,7 +219,8 @@ Module for detecting suspicious trading patterns on Polymarket. Phase 0.1-0.5 co
 ```typescript
 import {
   detectionDb, detectionCache, loadConfig, runAllChecks,
-  ctfEventListener, marketMetadataService, marketDepthService, walletActivityIndex
+  ctfEventListener, marketMetadataService, marketDepthService,
+  walletActivityIndex, fundingAnalyzer
 } from "./services/insiderDetection/index.js";
 
 // Check thresholds
@@ -233,6 +247,14 @@ const concentration = await walletActivityIndex.getWalletConcentration("0xwallet
 // { topMarket: { conditionId, volumeShare: 85 }, totalVolume: 10000, marketCount: 3 }
 const highConcentration = await walletActivityIndex.getHighConcentrationWallets("0xcondition...", 70);
 // Wallets with ≥70% of their volume in this market
+
+// Funding Analyzer
+const profile = await fundingAnalyzer.getFundingProfile("0xwallet...");
+// { sources: [...], totalFunded: 15000, primarySourceType: "cex", relatedWallets: [...] }
+const recentlyFunded = await fundingAnalyzer.isRecentlyFunded("0xwallet...", 24);
+// { isRecent: true, hoursAgo: 3, fundingSource: { sourceType: "cex", sourceLabel: "Binance" } }
+const cluster = await fundingAnalyzer.findWalletsWithSameFunder("0xbinance...");
+// ["0xwallet1", "0xwallet2", ...] - wallets all funded from same source
 ```
 
 **API Endpoints** (Added to server.ts):
@@ -248,6 +270,10 @@ const highConcentration = await walletActivityIndex.getHighConcentrationWallets(
 - `GET /api/detection/depth/:conditionId/liquidity` - Liquidity at tick level (2/5/10)
 - `GET /api/detection/depth/:conditionId/ratio` - Calculate depth ratio for trade size
 - `POST /api/detection/depth/poll` - Trigger manual depth poll
+- `GET /api/detection/wallets/:address/funding` - Get wallet funding profile
+- `POST /api/detection/wallets/:address/funding/analyze` - Trigger funding analysis (with `forceRefresh`)
+- `GET /api/detection/wallets/:address/funding/recent` - Check if recently funded (with `?hours=N`)
+- `GET /api/detection/funding/clusters/:sourceAddress` - Find wallets funded by same source
 - `GET /api/health` - Extended with `ctfListener`, `marketMetadata`, and `marketDepth` status
 
 ### Required Environment Variables
@@ -279,6 +305,7 @@ Test files:
 - `insiderDetection/__tests__/marketMetadataService.test.ts` - 15 tests for market metadata
 - `insiderDetection/__tests__/marketDepthService.test.ts` - 22 tests for order book depth
 - `insiderDetection/__tests__/walletActivityIndex.test.ts` - 24 tests for wallet activity
+- `insiderDetection/__tests__/fundingAnalyzer.test.ts` - 22 tests for funding source analysis
 
 ## Module System
 

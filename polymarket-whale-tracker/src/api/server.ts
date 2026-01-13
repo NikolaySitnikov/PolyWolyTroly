@@ -15,7 +15,7 @@ import { trendingMarketsService } from "../services/trendingMarkets.js";
 import { blockchain } from "../services/blockchain.js";
 import { tradingCache } from "../services/polymarketTradingCache.js";
 import { polymarketApi } from "../services/polymarketApi.js";
-import { ctfEventListener, detectionDb, marketMetadataService, marketDepthService } from "../services/insiderDetection/index.js";
+import { ctfEventListener, detectionDb, marketMetadataService, marketDepthService, fundingAnalyzer } from "../services/insiderDetection/index.js";
 
 /**
  * Creates and configures the Express application.
@@ -685,6 +685,90 @@ export function createApp(): Express {
     } catch (error) {
       console.error("Error triggering depth poll:", error);
       res.status(500).json({ error: "Failed to trigger depth poll" });
+    }
+  });
+
+  // ============================================
+  // FUNDING ANALYSIS ENDPOINTS
+  // ============================================
+
+  // Get wallet funding profile
+  app.get("/api/detection/wallets/:address/funding", async (req: Request, res: Response) => {
+    try {
+      const { address } = req.params;
+      const forceRefresh = req.query.refresh === "true";
+
+      const profile = await fundingAnalyzer.getFundingProfile(address);
+
+      res.json({
+        walletAddress: address,
+        ...profile,
+      });
+    } catch (error) {
+      console.error("Error getting wallet funding:", error);
+      res.status(500).json({ error: "Failed to get wallet funding" });
+    }
+  });
+
+  // Analyze funding sources for a wallet (with optional force refresh)
+  app.post("/api/detection/wallets/:address/funding/analyze", async (req: Request, res: Response) => {
+    try {
+      const { address } = req.params;
+      const { forceRefresh, minAmount } = req.body as {
+        forceRefresh?: boolean;
+        minAmount?: number;
+      };
+
+      const analysis = await fundingAnalyzer.analyzeFundingSources(address, {
+        forceRefresh,
+        minAmount,
+      });
+
+      res.json({
+        walletAddress: address,
+        ...analysis,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error analyzing wallet funding:", error);
+      res.status(500).json({ error: "Failed to analyze wallet funding" });
+    }
+  });
+
+  // Check if wallet was recently funded
+  app.get("/api/detection/wallets/:address/funding/recent", async (req: Request, res: Response) => {
+    try {
+      const { address } = req.params;
+      const hoursThreshold = parseInt(req.query.hours as string) || 24;
+
+      const result = await fundingAnalyzer.isRecentlyFunded(address, hoursThreshold);
+
+      res.json({
+        walletAddress: address,
+        hoursThreshold,
+        ...result,
+      });
+    } catch (error) {
+      console.error("Error checking recent funding:", error);
+      res.status(500).json({ error: "Failed to check recent funding" });
+    }
+  });
+
+  // Find wallets with the same funding source (cluster detection)
+  app.get("/api/detection/funding/clusters/:sourceAddress", async (req: Request, res: Response) => {
+    try {
+      const { sourceAddress } = req.params;
+
+      const wallets = await fundingAnalyzer.findWalletsWithSameFunder(sourceAddress);
+
+      res.json({
+        sourceAddress,
+        walletCount: wallets.length,
+        wallets,
+      });
+    } catch (error) {
+      console.error("Error finding wallet clusters:", error);
+      res.status(500).json({ error: "Failed to find wallet clusters" });
     }
   });
 

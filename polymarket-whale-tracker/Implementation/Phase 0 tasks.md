@@ -251,13 +251,15 @@ src/services/insiderDetection/
 | 0.5.4 | Add historical backfill support | Batch processing test | ✅ |
 | 0.5.5 | Unit tests for wallet activity index (24 tests) | Vitest | ✅ |
 
-### Phase 0.6: Funding Source Analysis
+### Phase 0.6: Funding Source Analysis ✅ COMPLETED (2026-01-13)
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 0.6.1 | Implement `fundingAnalyzer.ts` (Alchemy API) | Mock API tests | ⬜ |
-| 0.6.2 | Add address labeling (CEX, bridges) | Unit tests | ⬜ |
-| 0.6.3 | Integrate with new wallet detection | Integration test | ⬜ |
-| 0.6.4 | Cache funding analysis results | Cache hit/miss tests | ⬜ |
+| 0.6.1 | Implement `fundingAnalyzer.ts` (Alchemy API) | Mock API tests | ✅ |
+| 0.6.2 | Add address labeling (CEX, bridges) | Unit tests | ✅ |
+| 0.6.3 | Integrate with new wallet detection | Integration test | ✅ |
+| 0.6.4 | Cache funding analysis results | Cache hit/miss tests | ✅ |
+| 0.6.5 | Add funding API endpoints | API tests | ✅ |
+| 0.6.6 | Unit tests for funding analyzer (22 tests) | Vitest | ✅ |
 
 ### Phase 0.7: API Endpoints
 | # | Task | Test Strategy | Status |
@@ -378,16 +380,39 @@ Phase 0.1 (DB) ─┬─> Phase 0.2 (CTF) ─> Phase 0.5 (Activity)
 
 ## Progress Tracking
 
-**Total Subtasks:** 43
-**Completed:** 29
+**Total Subtasks:** 45
+**Completed:** 35
 **In Progress:** 0
-**Remaining:** 14
+**Remaining:** 10
 
 Last Updated: 2026-01-13
 
 ---
 
 ## Changelog
+
+### 2026-01-13 - Phase 0.6 Complete
+- Created `fundingAnalyzer.ts` with:
+  - Alchemy Asset Transfers API integration for 1-hop funding source analysis
+  - Address classification (CEX, bridge, contract, EOA, unknown)
+  - Known address labels for 12+ CEXs (Binance, Coinbase, Kraken, OKX, etc.)
+  - Known address labels for 10+ bridges (Polygon Bridge, Hop, Across, Stargate, etc.)
+  - Rate limiting and retry logic for API calls
+  - Methods: `analyzeFundingSources`, `updateTimingMetrics`, `findWalletsWithSameFunder`
+  - `isRecentlyFunded()` - check if wallet was funded within N hours
+  - `getFundingProfile()` - comprehensive funding profile with related wallets
+  - `_summarizeFundingSources()` - calculate primary source type and totals
+- Updated `walletActivityIndex.ts`:
+  - Integrated funding analysis trigger for new wallets
+  - `triggerFundingAnalysisForNewWallet()` - non-blocking background analysis
+  - Automatically analyzes funding when wallet's first trade is detected
+- Added funding API endpoints to `server.ts`:
+  - `GET /api/detection/wallets/:address/funding` - Get wallet funding profile
+  - `POST /api/detection/wallets/:address/funding/analyze` - Trigger analysis
+  - `GET /api/detection/wallets/:address/funding/recent` - Check recent funding
+  - `GET /api/detection/funding/clusters/:sourceAddress` - Find related wallets
+- Exported `fundingAnalyzer` from `index.ts`
+- Created unit tests for funding analyzer (22 tests passing)
 
 ### 2026-01-13 - Phase 0.5 Complete
 - Created `walletActivityIndex.ts` with:

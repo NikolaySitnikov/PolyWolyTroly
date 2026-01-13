@@ -19,6 +19,15 @@ import { detectionCache } from "./detectionCache.js";
 import { marketMetadataService } from "./marketMetadataService.js";
 import type { WalletActivity, CtfTransfer, Market } from "./types.js";
 
+// Lazy import to avoid circular dependency
+let fundingAnalyzerModule: typeof import("./fundingAnalyzer.js") | null = null;
+async function getFundingAnalyzer() {
+  if (!fundingAnalyzerModule) {
+    fundingAnalyzerModule = await import("./fundingAnalyzer.js");
+  }
+  return fundingAnalyzerModule.fundingAnalyzer;
+}
+
 // Batch size for backfill processing
 const BACKFILL_BATCH_SIZE = 100;
 
@@ -132,6 +141,54 @@ async function calculateVolumeShares(walletAddress: string): Promise<Map<string,
   return shares;
 }
 
+// Set to track wallets we've already triggered funding analysis for
+// This prevents duplicate analysis within a session
+const fundingAnalysisTriggered = new Set<string>();
+
+/**
+ * Trigger funding analysis for a new wallet (non-blocking)
+ * Called when we detect a wallet's first ever trade
+ */
+async function triggerFundingAnalysisForNewWallet(
+  walletAddress: string,
+  firstTradeAt: Date
+): Promise<void> {
+  const address = walletAddress.toLowerCase();
+
+  // Skip if we've already triggered analysis for this wallet
+  if (fundingAnalysisTriggered.has(address)) {
+    return;
+  }
+
+  fundingAnalysisTriggered.add(address);
+
+  // Run funding analysis in the background (don't block transfer processing)
+  // This is a fire-and-forget operation
+  setTimeout(async () => {
+    try {
+      const analyzer = await getFundingAnalyzer();
+
+      // Analyze funding sources
+      const analysis = await analyzer.analyzeFundingSources(address);
+
+      // Update timing metrics if we found funding sources
+      if (analysis.sources.length > 0) {
+        await analyzer.updateTimingMetrics(address, firstTradeAt);
+      }
+
+      console.log(
+        `[WalletActivityIndex] Funding analysis complete for ${address}: ` +
+        `${analysis.sources.length} sources, $${analysis.totalFunded.toFixed(2)} total`
+      );
+    } catch (error) {
+      console.error(
+        `[WalletActivityIndex] Failed to analyze funding for ${address}:`,
+        error
+      );
+    }
+  }, 100); // Small delay to not block the current event processing
+}
+
 /**
  * Update wallet activity based on a CTF transfer
  */
@@ -148,6 +205,9 @@ async function updateActivityFromTransfer(
   }
 
   const activity = await getOrCreateWalletActivity(walletAddress, conditionId);
+
+  // Check if this is the wallet's first ever trade (for funding analysis)
+  const isFirstEverTrade = activity.tradeCount === 0;
 
   // Get current price for value calculation
   const price = await getMarketPrice(conditionId);
@@ -209,6 +269,12 @@ async function updateActivityFromTransfer(
   // Update cache
   const cacheKey = `${walletAddress.toLowerCase()}:${conditionId}`;
   await detectionCache.setWalletActivity(cacheKey, activity, WALLET_ACTIVITY_CACHE_TTL);
+
+  // Trigger funding analysis for new wallets
+  // This helps detect wallets that were funded specifically for this trade
+  if (isFirstEverTrade && activity.firstTradeAt) {
+    triggerFundingAnalysisForNewWallet(walletAddress, activity.firstTradeAt);
+  }
 }
 
 /**

@@ -40,3 +40,6 @@ export { marketDepthService } from "./marketDepthService.js";
 
 // Wallet Activity Index
 export { walletActivityIndex } from "./walletActivityIndex.js";
+
+// Funding Analyzer
+export { fundingAnalyzer } from "./fundingAnalyzer.js";
