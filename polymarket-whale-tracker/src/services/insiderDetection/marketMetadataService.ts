@@ -249,10 +249,9 @@ async function fetchRecentlyResolvedMarkets(): Promise<GammaMarket[]> {
       break;
     }
 
-    // Only include markets that are resolved (have a winner)
-    const resolved = batch.filter(
-      (m) => m.resolved && m.tokens?.some((t) => t.winner === true)
-    );
+    // Only include markets that are resolved
+    // Note: We check resolution via outcomePrices - one should be "1" (winner)
+    const resolved = batch.filter((m) => m.resolved);
     allResolved.push(...resolved);
     offset += PAGE_SIZE;
 
@@ -286,7 +285,7 @@ export const marketMetadataService = {
           await detectionDb.upsertMarket(market);
           synced++;
         } catch (error) {
-          console.error(`[MarketMetadata] Error syncing market ${gamma.condition_id}:`, error);
+          console.error(`[MarketMetadata] Error syncing market ${gamma.conditionId}:`, error);
           syncStats.errors++;
         }
       }

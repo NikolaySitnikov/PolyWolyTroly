@@ -15,7 +15,7 @@ import { trendingMarketsService } from "../services/trendingMarkets.js";
 import { blockchain } from "../services/blockchain.js";
 import { tradingCache } from "../services/polymarketTradingCache.js";
 import { polymarketApi } from "../services/polymarketApi.js";
-import { ctfEventListener, detectionDb, marketMetadataService } from "../services/insiderDetection/index.js";
+import { ctfEventListener, detectionDb, marketMetadataService, marketDepthService } from "../services/insiderDetection/index.js";
 
 /**
  * Creates and configures the Express application.
@@ -33,6 +33,7 @@ export function createApp(): Express {
     const healthStatus = blockchain.getHealthStatus();
     const ctfHealthStatus = ctfEventListener.getHealthStatus();
     const marketMetadataStatus = marketMetadataService.getStatus();
+    const marketDepthStatus = marketDepthService.getStatus();
 
     res.json({
       status: "ok",
@@ -61,6 +62,14 @@ export function createApp(): Express {
         totalSynced: marketMetadataStatus.totalSynced,
         lastSyncDuration: marketMetadataStatus.lastSyncDuration,
         errors: marketMetadataStatus.errors,
+      },
+      marketDepth: {
+        polling: marketDepthStatus.isRunning,
+        lastPollAt: marketDepthStatus.lastPollAt?.toISOString() || null,
+        totalSnapshots: marketDepthStatus.totalSnapshots,
+        marketsPolled: marketDepthStatus.marketsPolled,
+        lastPollDuration: marketDepthStatus.lastPollDuration,
+        errors: marketDepthStatus.errors,
       },
     });
   });
@@ -541,6 +550,144 @@ export function createApp(): Express {
     }
   });
 
+  // ============================================
+  // Market Depth Endpoints (Phase 0.4)
+  // ============================================
+
+  // Get latest depth snapshot for a market
+  app.get("/api/detection/depth/:conditionId", async (req: Request, res: Response) => {
+    try {
+      const conditionId = req.params.conditionId as string;
+      const snapshot = await marketDepthService.getLatestDepth(conditionId);
+
+      if (!snapshot) {
+        res.status(404).json({ error: "No depth data found for this market" });
+        return;
+      }
+
+      res.json({
+        conditionId,
+        snapshot,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error fetching market depth:", error);
+      res.status(500).json({ error: "Failed to fetch market depth" });
+    }
+  });
+
+  // Get depth history for a market
+  app.get("/api/detection/depth/:conditionId/history", async (req: Request, res: Response) => {
+    try {
+      const conditionId = req.params.conditionId as string;
+      const hours = parseInt(req.query.hours as string) || 24;
+
+      const snapshots = await marketDepthService.getDepthHistory(conditionId, hours);
+
+      res.json({
+        conditionId,
+        hours,
+        count: snapshots.length,
+        snapshots,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error fetching depth history:", error);
+      res.status(500).json({ error: "Failed to fetch depth history" });
+    }
+  });
+
+  // Get liquidity at specific tick level
+  app.get("/api/detection/depth/:conditionId/liquidity", async (req: Request, res: Response) => {
+    try {
+      const conditionId = req.params.conditionId as string;
+      const tickLevel = parseInt(req.query.ticks as string) || 2;
+
+      // Validate tick level
+      if (![2, 5, 10].includes(tickLevel)) {
+        res.status(400).json({ error: "Invalid tick level. Use 2, 5, or 10." });
+        return;
+      }
+
+      const liquidity = await marketDepthService.getLiquidityAtTick(
+        conditionId,
+        tickLevel as 2 | 5 | 10
+      );
+
+      if (!liquidity) {
+        res.status(404).json({ error: "No liquidity data found for this market" });
+        return;
+      }
+
+      res.json({
+        conditionId,
+        tickLevel,
+        liquidity,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error fetching liquidity:", error);
+      res.status(500).json({ error: "Failed to fetch liquidity" });
+    }
+  });
+
+  // Calculate depth ratio for a trade size
+  app.get("/api/detection/depth/:conditionId/ratio", async (req: Request, res: Response) => {
+    try {
+      const conditionId = req.params.conditionId as string;
+      const tradeSizeUsd = parseFloat(req.query.size as string);
+      const tickLevel = parseInt(req.query.ticks as string) || 2;
+
+      if (!tradeSizeUsd || isNaN(tradeSizeUsd)) {
+        res.status(400).json({ error: "Invalid or missing 'size' query parameter" });
+        return;
+      }
+
+      if (![2, 5, 10].includes(tickLevel)) {
+        res.status(400).json({ error: "Invalid tick level. Use 2, 5, or 10." });
+        return;
+      }
+
+      const ratio = await marketDepthService.calculateDepthRatio(
+        conditionId,
+        tradeSizeUsd,
+        tickLevel as 2 | 5 | 10
+      );
+
+      if (ratio === null) {
+        res.status(404).json({ error: "No liquidity data to calculate ratio" });
+        return;
+      }
+
+      res.json({
+        conditionId,
+        tradeSizeUsd,
+        tickLevel,
+        depthRatio: ratio,
+        interpretation: ratio >= 3 ? "HIGH_IMPACT" : ratio >= 1 ? "MEDIUM_IMPACT" : "LOW_IMPACT",
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error calculating depth ratio:", error);
+      res.status(500).json({ error: "Failed to calculate depth ratio" });
+    }
+  });
+
+  // Trigger manual depth poll
+  app.post("/api/detection/depth/poll", async (_req: Request, res: Response) => {
+    try {
+      const marketCount = await marketDepthService.pollAllMarkets();
+      res.json({
+        message: "Poll completed",
+        marketsPolled: marketCount,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error triggering depth poll:", error);
+      res.status(500).json({ error: "Failed to trigger depth poll" });
+    }
+  });
+
   // 404 handler for unknown API routes (Express 5 syntax)
   app.use("/api/{*path}", (_req: Request, res: Response) => {
     res.status(404).json({
@@ -619,6 +766,17 @@ export async function startServer(port: number = 3001): Promise<void> {
   } catch (error) {
     console.error('Failed to start market metadata service:', error);
     console.log('Market metadata will be fetched on-demand instead');
+  }
+
+  // Start market depth service for insider detection (Phase 0.4)
+  try {
+    // Start background polling (every 30 seconds by default)
+    // Polls CLOB API for order book depth on all active markets
+    marketDepthService.startPolling();
+    console.log('Market depth service started - polling CLOB API for order book depth');
+  } catch (error) {
+    console.error('Failed to start market depth service:', error);
+    console.log('Market depth data will be unavailable');
   }
 
   // Keep the process alive

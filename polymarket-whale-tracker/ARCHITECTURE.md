@@ -1378,6 +1378,138 @@ The system includes an insider trading detection module for monitoring suspiciou
 │  config_value        JSONB                      Threshold values            │
 │  description         TEXT                       Human-readable description  │
 └─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  depth_snapshots - Order book depth snapshots (Phase 0.4)                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  id                  SERIAL       PRIMARY KEY                               │
+│  condition_id        VARCHAR(66)                Market condition ID         │
+│  snapshot_at         TIMESTAMPTZ               When snapshot was taken      │
+│  mid_price           DECIMAL(10,4)              (best_bid + best_ask) / 2   │
+│  spread              DECIMAL(10,4)              best_ask - best_bid         │
+│  bid_liquidity_2tick DECIMAL(20,2)              Bid volume within 2%        │
+│  ask_liquidity_2tick DECIMAL(20,2)              Ask volume within 2%        │
+│  bid_liquidity_5tick DECIMAL(20,2)              Bid volume within 5%        │
+│  ask_liquidity_5tick DECIMAL(20,2)              Ask volume within 5%        │
+│  bid_liquidity_10tick DECIMAL(20,2)             Bid volume within 10%       │
+│  ask_liquidity_10tick DECIMAL(20,2)             Ask volume within 10%       │
+│  median_liquidity_2tick DECIMAL(20,2)           30-day rolling median       │
+│  INDEX(condition_id, snapshot_at DESC)                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Market Depth Service (Phase 0.4)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     MARKET DEPTH SERVICE                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  PURPOSE                                                                │
+    │                                                                         │
+    │  Poll Polymarket CLOB API to track order book depth for insider         │
+    │  detection. Captures liquidity snapshots at multiple tick levels        │
+    │  to identify unusually large trades relative to available liquidity.    │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  CLOB API INTEGRATION                                                   │
+    │                                                                         │
+    │  Endpoint: https://clob.polymarket.com/book?token_id={tokenId}         │
+    │                                                                         │
+    │  Response:                                                              │
+    │  {                                                                      │
+    │    market: "0x...",                                                     │
+    │    asset_id: "token123",                                                │
+    │    timestamp: "2026-01-13T12:00:00Z",                                   │
+    │    bids: [{ price: "0.52", size: "1000" }, ...],                        │
+    │    asks: [{ price: "0.53", size: "1500" }, ...],                        │
+    │    tick_size: "0.01"                                                    │
+    │  }                                                                      │
+    │                                                                         │
+    │  Rate Limiting: 5 requests/second (200ms delay between requests)        │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DEPTH EXTRACTION                                                       │
+    │                                                                         │
+    │  Tick Levels:                                                           │
+    │  • 2-tick (2% from mid): Immediate liquidity                           │
+    │  • 5-tick (5% from mid): Near-term liquidity                           │
+    │  • 10-tick (10% from mid): Extended liquidity                          │
+    │                                                                         │
+    │  Snapshot Fields:                                                       │
+    │  • midPrice: (best_bid + best_ask) / 2                                 │
+    │  • spread: best_ask - best_bid                                         │
+    │  • bidLiquidity{2,5,10}tick: Sum of bid sizes within tick range        │
+    │  • askLiquidity{2,5,10}tick: Sum of ask sizes within tick range        │
+    │  • medianLiquidity2tick: 30-day rolling median (hourly calculation)    │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  BACKGROUND POLLING                                                     │
+    │                                                                         │
+    │  Interval: 30 seconds                                                   │
+    │  Scope: All active markets from marketMetadataService                   │
+    │                                                                         │
+    │  Flow:                                                                  │
+    │  1. Get active markets from marketMetadataService                      │
+    │  2. For each market with a YES token ID:                               │
+    │     a. Fetch order book from CLOB API                                  │
+    │     b. Extract depth at tick levels                                     │
+    │     c. Store snapshot in PostgreSQL (depth_snapshots)                  │
+    │     d. Cache latest snapshot in Redis                                   │
+    │  3. Log poll results and errors                                         │
+    │                                                                         │
+    │  Hourly Job: Calculate 30-day rolling median for each market            │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DATA STORAGE                                                           │
+    │                                                                         │
+    │  PostgreSQL: depth_snapshots table                                      │
+    │  • condition_id, snapshot_at, mid_price, spread                        │
+    │  • bid_liquidity_2tick, ask_liquidity_2tick                            │
+    │  • bid_liquidity_5tick, ask_liquidity_5tick                            │
+    │  • bid_liquidity_10tick, ask_liquidity_10tick                          │
+    │  • median_liquidity_2tick (updated hourly)                             │
+    │                                                                         │
+    │  Redis: Latest snapshot cache                                           │
+    │  • Key: depth_snapshot:{conditionId}                                   │
+    │  • TTL: 5 minutes                                                       │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DEPTH RATIO CALCULATION                                                │
+    │                                                                         │
+    │  Purpose: Measure how large a trade is relative to available liquidity │
+    │                                                                         │
+    │  Formula: depth_ratio = trade_size_usd / total_liquidity_at_tick       │
+    │                                                                         │
+    │  Example:                                                               │
+    │  • Trade size: $50,000                                                 │
+    │  • 2-tick liquidity: $100,000 (bid: $50K, ask: $50K)                   │
+    │  • Depth ratio: 0.5 (trade is 50% of near-book liquidity)              │
+    │                                                                         │
+    │  Insider Detection Use:                                                 │
+    │  • High depth ratio (>0.3) + resolution proximity = suspicious         │
+    │  • Combined with time_to_resolution for pattern detection              │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  SERVICE STATUS                                                         │
+    │                                                                         │
+    │  Status Object:                                                         │
+    │  {                                                                      │
+    │    isRunning: boolean,      // Polling active                          │
+    │    lastPollAt: Date | null, // Last successful poll                    │
+    │    totalSnapshots: number,  // Snapshots captured this session         │
+    │    errors: number           // Consecutive errors                      │
+    │  }                                                                      │
+    │                                                                         │
+    │  Health Check: Included in /api/health response under marketDepth      │
+    └────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Detection API Endpoints
@@ -1429,7 +1561,7 @@ The system includes an insider trading detection module for monitoring suspiciou
     ┌────────────────────────────────────────────────────────────────────────┐
     │  GET /api/health                                                        │
     │                                                                         │
-    │  Extended with ctfListener status:                                      │
+    │  Extended with ctfListener and marketDepth status:                      │
     │  {                                                                      │
     │    status: "healthy",                                                   │
     │    ctfListener: {                                                       │
@@ -1438,8 +1570,80 @@ The system includes an insider trading detection module for monitoring suspiciou
     │      lastEventTime: "2026-01-13T...",                                  │
     │      transfersProcessed: 42,                                           │
     │      transfersSkippedDuplicate: 5                                      │
+    │    },                                                                   │
+    │    marketDepth: {                                                       │
+    │      isRunning: true,                                                   │
+    │      lastPollAt: "2026-01-13T...",                                     │
+    │      totalSnapshots: 150,                                              │
+    │      errors: 0                                                         │
     │    }                                                                    │
     │  }                                                                      │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  MARKET DEPTH ENDPOINTS (Phase 0.4)                                     │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  GET /api/detection/depth/:conditionId                                  │
+    │                                                                         │
+    │  Returns: Latest depth snapshot for a market                           │
+    │  {                                                                      │
+    │    conditionId: string,                                                │
+    │    snapshotAt: string,                                                 │
+    │    midPrice: number,                                                   │
+    │    spread: number,                                                     │
+    │    bidLiquidity2tick: number,                                          │
+    │    askLiquidity2tick: number,                                          │
+    │    bidLiquidity5tick: number,                                          │
+    │    askLiquidity5tick: number,                                          │
+    │    bidLiquidity10tick: number,                                         │
+    │    askLiquidity10tick: number,                                         │
+    │    medianLiquidity2tick: number | null                                 │
+    │  }                                                                      │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  GET /api/detection/depth/:conditionId/history?hours=24                 │
+    │                                                                         │
+    │  Query Params:                                                          │
+    │  • hours: Time window (default 24, max 168)                            │
+    │                                                                         │
+    │  Returns: Array of depth snapshots                                      │
+    │  { snapshots: DepthSnapshot[], count: number }                         │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  GET /api/detection/depth/:conditionId/liquidity?tick=2                 │
+    │                                                                         │
+    │  Query Params:                                                          │
+    │  • tick: Tick level (2, 5, or 10, default 2)                           │
+    │                                                                         │
+    │  Returns: Liquidity at specified tick level                            │
+    │  { bid: number, ask: number, total: number }                           │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  GET /api/detection/depth/:conditionId/ratio?tradeSize=10000&tick=2     │
+    │                                                                         │
+    │  Query Params:                                                          │
+    │  • tradeSize: Trade size in USD (required)                             │
+    │  • tick: Tick level (2, 5, or 10, default 2)                           │
+    │                                                                         │
+    │  Returns: Depth ratio for the trade                                    │
+    │  {                                                                      │
+    │    depthRatio: number,     // trade_size / total_liquidity             │
+    │    tradeSize: number,      // Input trade size                         │
+    │    totalLiquidity: number  // Liquidity at tick level                  │
+    │  }                                                                      │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  POST /api/detection/depth/poll                                         │
+    │                                                                         │
+    │  Manually trigger a poll of all active markets                         │
+    │                                                                         │
+    │  Returns: { polled: number, message: string }                          │
     └────────────────────────────────────────────────────────────────────────┘
 ```
 

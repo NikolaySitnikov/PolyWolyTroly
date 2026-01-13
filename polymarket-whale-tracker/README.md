@@ -135,6 +135,14 @@ npm run build
 - **Testing**: Vitest + React Testing Library
 - **Design**: Custom cyberpunk terminal aesthetic
 
+### Insider Detection (Advanced)
+The system includes an insider trading detection module (in development) that monitors:
+- **CTF Token Transfers**: ERC-1155 outcome token movements via blockchain events
+- **Market Metadata**: Resolution times and market details from Gamma API
+- **Order Book Depth**: Liquidity snapshots from CLOB API for depth ratio analysis
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed documentation.
+
 ## Project Structure
 
 ```
@@ -145,6 +153,10 @@ polymarket-whale-tracker/
 │   │   ├── server.ts      # Express app
 │   │   └── websocket.ts   # WebSocket for live updates
 │   ├── services/          # Core business logic
+│   │   └── insiderDetection/  # Insider trading detection module
+│   │       ├── ctfEventListener.ts    # ERC-1155 event listener
+│   │       ├── marketMetadataService.ts # Gamma API sync
+│   │       └── marketDepthService.ts    # CLOB order book polling
 │   └── config/            # Environment config
 ├── frontend/              # React dashboard
 │   ├── src/
@@ -152,5 +164,6 @@ polymarket-whale-tracker/
 │   │   ├── hooks/         # Custom hooks for API/WebSocket
 │   │   └── styles/        # Design tokens & global CSS
 │   └── package.json
+├── Implementation/        # Implementation tracking docs
 └── package.json
 ```

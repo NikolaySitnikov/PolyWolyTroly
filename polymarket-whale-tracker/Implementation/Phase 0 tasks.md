@@ -230,14 +230,17 @@ src/services/insiderDetection/
 | 0.3.5 | Add API endpoints (`/api/detection/markets`) | API tests | ✅ |
 | 0.3.6 | Unit tests for market metadata service | Vitest | ✅ |
 
-### Phase 0.4: Order Book Depth Service
+### Phase 0.4: Order Book Depth Service ✅ COMPLETED (2026-01-13)
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 0.4.1 | Implement CLOB API client (`clob.polymarket.com`) | Mock fetch tests | ⬜ |
-| 0.4.2 | Implement `marketDepthService.ts` (5s polling) | Mock timer tests | ⬜ |
-| 0.4.3 | Extract 2/5/10 tick level snapshots | Unit tests | ⬜ |
-| 0.4.4 | Calculate 30-day rolling median (hourly job) | Unit tests | ⬜ |
-| 0.4.5 | Add rate limiting and market batching | Integration test | ⬜ |
+| 0.4.1 | Implement CLOB API client (`clob.polymarket.com`) | Mock fetch tests | ✅ |
+| 0.4.2 | Implement `marketDepthService.ts` (30s polling) | Mock timer tests | ✅ |
+| 0.4.3 | Extract 2/5/10 tick level snapshots | Unit tests | ✅ |
+| 0.4.4 | Calculate 30-day rolling median (hourly job) | Unit tests | ✅ |
+| 0.4.5 | Add rate limiting and market batching | Integration test | ✅ |
+| 0.4.6 | Add API endpoints (`/api/detection/depth`) | API tests | ✅ |
+| 0.4.7 | Integrate with server startup | Integration test | ✅ |
+| 0.4.8 | Unit tests for depth service (22 tests) | Vitest | ✅ |
 
 ### Phase 0.5: Wallet Activity Index
 | # | Task | Test Strategy | Status |
@@ -374,16 +377,41 @@ Phase 0.1 (DB) ─┬─> Phase 0.2 (CTF) ─> Phase 0.5 (Activity)
 
 ## Progress Tracking
 
-**Total Subtasks:** 39
-**Completed:** 16
+**Total Subtasks:** 42
+**Completed:** 24
 **In Progress:** 0
-**Remaining:** 23
+**Remaining:** 18
 
 Last Updated: 2026-01-13
 
 ---
 
 ## Changelog
+
+### 2026-01-13 - Phase 0.4 Complete
+- Created `marketDepthService.ts` with:
+  - CLOB API integration for fetching order book data (`clob.polymarket.com/book`)
+  - Depth extraction at 2/5/10 tick levels from mid price
+  - Liquidity calculation (bid/ask liquidity in USD)
+  - Mid price and spread calculation
+  - Background polling job (30s interval, configurable)
+  - Hourly median liquidity calculation (30-day rolling window)
+  - Rate limiting (5 req/s) and batch processing (10 markets per batch)
+  - Depth ratio calculation for trade size vs. available liquidity
+  - Status tracking for health monitoring
+- Added market depth API endpoints to `server.ts`:
+  - `GET /api/detection/depth/:conditionId` - Latest depth snapshot for a market
+  - `GET /api/detection/depth/:conditionId/history` - Depth history (with hours param)
+  - `GET /api/detection/depth/:conditionId/liquidity` - Liquidity at tick level (2/5/10)
+  - `GET /api/detection/depth/:conditionId/ratio` - Calculate depth ratio for trade size
+  - `POST /api/detection/depth/poll` - Trigger manual depth poll
+- Extended `/api/health` endpoint with market depth service status
+- Market depth service starts automatically with server
+- Created unit tests for depth service (22 tests passing)
+- Exported `marketDepthService` from `index.ts`
+- Fixed TypeScript errors in `marketMetadataService.ts`:
+  - Changed `m.tokens?.some(...)` to `m.resolved` for resolution detection
+  - Fixed `gamma.condition_id` to `gamma.conditionId`
 
 ### 2026-01-13 - Phase 0.3 Complete
 - Created `marketMetadataService.ts` with:

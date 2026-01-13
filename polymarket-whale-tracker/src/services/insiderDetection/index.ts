@@ -34,3 +34,6 @@ export type { CtfListenerHealthStatus } from "./ctfEventListener.js";
 
 // Market Metadata Service
 export { marketMetadataService } from "./marketMetadataService.js";
+
+// Market Depth Service
+export { marketDepthService } from "./marketDepthService.js";
