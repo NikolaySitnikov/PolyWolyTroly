@@ -43,3 +43,6 @@ export { walletActivityIndex } from "./walletActivityIndex.js";
 
 // Funding Analyzer
 export { fundingAnalyzer } from "./fundingAnalyzer.js";
+
+// Wallet Risk Service
+export { walletRiskService } from "./walletRiskService.js";

@@ -15,7 +15,7 @@ import { trendingMarketsService } from "../services/trendingMarkets.js";
 import { blockchain } from "../services/blockchain.js";
 import { tradingCache } from "../services/polymarketTradingCache.js";
 import { polymarketApi } from "../services/polymarketApi.js";
-import { ctfEventListener, detectionDb, marketMetadataService, marketDepthService, fundingAnalyzer } from "../services/insiderDetection/index.js";
+import { ctfEventListener, detectionDb, marketMetadataService, marketDepthService, fundingAnalyzer, walletRiskService, loadConfig, updateConfig } from "../services/insiderDetection/index.js";
 
 /**
  * Creates and configures the Express application.
@@ -769,6 +769,94 @@ export function createApp(): Express {
     } catch (error) {
       console.error("Error finding wallet clusters:", error);
       res.status(500).json({ error: "Failed to find wallet clusters" });
+    }
+  });
+
+  // ============================================
+  // WALLET RISK PROFILE ENDPOINTS (Phase 0.7)
+  // ============================================
+
+  // Get wallet risk profile
+  app.get("/api/detection/wallets/:address/risk", async (req: Request, res: Response) => {
+    try {
+      const addressParam = req.params.address;
+      const address = Array.isArray(addressParam) ? addressParam[0] : addressParam;
+      const forceRefresh = req.query.refresh === "true";
+
+      const profile = await walletRiskService.getRiskProfile(address, { forceRefresh });
+
+      res.json(profile);
+    } catch (error) {
+      console.error("Error getting wallet risk profile:", error);
+      res.status(500).json({ error: "Failed to get wallet risk profile" });
+    }
+  });
+
+  // ============================================
+  // DETECTION CONFIG ENDPOINTS (Phase 0.7)
+  // ============================================
+
+  // Get all detection configuration
+  app.get("/api/detection/config", async (_req: Request, res: Response) => {
+    try {
+      const config = await loadConfig();
+      res.json({
+        config,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error getting detection config:", error);
+      res.status(500).json({ error: "Failed to get detection config" });
+    }
+  });
+
+  // Update a specific config key
+  app.patch("/api/detection/config/:key", async (req: Request, res: Response) => {
+    try {
+      const keyParam = req.params.key;
+      const key = Array.isArray(keyParam) ? keyParam[0] : keyParam;
+      const { value } = req.body;
+
+      // Validate key
+      const validKeys = [
+        "wallet_age_days",
+        "funding_amount",
+        "trade_timing_hours",
+        "entry_odds_pct",
+        "concentration_pct",
+      ];
+
+      if (!validKeys.includes(key)) {
+        res.status(400).json({
+          error: "Invalid config key",
+          validKeys,
+        });
+        return;
+      }
+
+      if (value === undefined) {
+        res.status(400).json({ error: "Missing 'value' in request body" });
+        return;
+      }
+
+      const success = await updateConfig(key as any, value);
+
+      if (!success) {
+        res.status(500).json({ error: "Failed to update config" });
+        return;
+      }
+
+      // Return updated config
+      const updatedConfig = await loadConfig();
+      res.json({
+        message: "Config updated successfully",
+        key,
+        config: updatedConfig,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error updating detection config:", error);
+      res.status(500).json({ error: "Failed to update detection config" });
     }
   });
 

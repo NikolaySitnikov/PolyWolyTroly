@@ -17,6 +17,7 @@ import type {
   WalletActivity,
   WalletFundingSource,
   DetectionConfig,
+  WalletRiskProfile,
 } from "./types.js";
 
 const redis = new (Redis as any)(config.redis.url);
@@ -27,6 +28,7 @@ const PREFIX = {
   depth: "det:depth:",
   walletProfile: "det:wallet:",
   walletActivity: "det:activity:",
+  walletRisk: "det:risk:",
   fundingAnalysis: "det:funding:",
   config: "det:config:",
   recentAlerts: "det:alerts:recent",
@@ -40,6 +42,7 @@ const TTL = {
   depth: 30,                // 30 seconds (snapshots are frequent)
   walletProfile: 5 * 60,    // 5 minutes
   walletActivity: 5 * 60,   // 5 minutes
+  walletRisk: 5 * 60,       // 5 minutes
   fundingAnalysis: 30 * 60, // 30 minutes (rarely changes)
   config: 60,               // 1 minute (allow quick config updates)
   ctfProcessed: 7 * 24 * 60 * 60, // 7 days
@@ -157,6 +160,48 @@ export const detectionCache = {
    */
   async invalidateWalletActivity(cacheKey: string): Promise<void> {
     await redis.del(`${PREFIX.walletActivity}${cacheKey.toLowerCase()}`);
+  },
+
+  // ----------------------------------------
+  // WALLET RISK PROFILE CACHE
+  // ----------------------------------------
+
+  async setWalletRiskProfile(
+    walletAddress: string,
+    profile: WalletRiskProfile,
+    ttl?: number
+  ): Promise<void> {
+    await redis.setex(
+      `${PREFIX.walletRisk}${walletAddress.toLowerCase()}`,
+      ttl || TTL.walletRisk,
+      JSON.stringify(profile)
+    );
+  },
+
+  async getWalletRiskProfile(walletAddress: string): Promise<WalletRiskProfile | null> {
+    const data = await redis.get(`${PREFIX.walletRisk}${walletAddress.toLowerCase()}`);
+    if (!data) return null;
+
+    const profile = JSON.parse(data);
+    // Restore Date objects
+    if (profile.walletAge?.firstSeenAt) {
+      profile.walletAge.firstSeenAt = new Date(profile.walletAge.firstSeenAt);
+    }
+    if (profile.assessedAt) {
+      profile.assessedAt = new Date(profile.assessedAt);
+    }
+    if (profile.alerts?.recent) {
+      profile.alerts.recent = profile.alerts.recent.map((a: any) => ({
+        ...a,
+        detectedAt: a.detectedAt ? new Date(a.detectedAt) : undefined,
+        reviewedAt: a.reviewedAt ? new Date(a.reviewedAt) : undefined,
+      }));
+    }
+    return profile;
+  },
+
+  async invalidateWalletRiskProfile(walletAddress: string): Promise<void> {
+    await redis.del(`${PREFIX.walletRisk}${walletAddress.toLowerCase()}`);
   },
 
   // ----------------------------------------

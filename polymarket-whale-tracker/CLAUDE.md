@@ -149,7 +149,7 @@ Queries `https://data-api.polymarket.com/activity?user={address}` to determine i
 
 ### Insider Detection Module (src/services/insiderDetection/)
 
-Module for detecting suspicious trading patterns on Polymarket. Phase 0.1-0.6 complete.
+Module for detecting suspicious trading patterns on Polymarket. Phase 0.1-0.7 complete.
 
 **Database Tables** (7 new tables via migration 002):
 - `markets` - Market metadata, resolution times, volume tracking
@@ -207,6 +207,16 @@ Module for detecting suspicious trading patterns on Polymarket. Phase 0.1-0.6 co
   - `getFundingProfile()` - Comprehensive profile with related wallets
   - Rate limiting (200ms) and retry logic (3 retries)
   - Cache results for 30 minutes
+- `walletRiskService.ts` - Comprehensive wallet risk assessment
+  - Combines wallet age, funding patterns, activity concentration, and alert history
+  - Weighted risk scoring: age (25%), funding (30%), activity (25%), alerts (20%)
+  - Risk levels: CRITICAL (≥80), HIGH (≥60), MEDIUM (≥40), LOW (≥20), UNKNOWN (<20)
+  - Human-readable risk factor descriptions
+  - `getRiskProfile()` - Full risk profile with all factors
+  - `getRiskLevel()` - Quick risk level only (for list views)
+  - `isHighRisk()` - Boolean check for HIGH/CRITICAL wallets
+  - `invalidateProfile()` - Clear cached risk profile
+  - Cached for 5 minutes
 
 **Default Thresholds** (from `detection_config` table):
 - Wallet age: <14 days = HIGH, <30 days = MEDIUM
@@ -220,7 +230,7 @@ Module for detecting suspicious trading patterns on Polymarket. Phase 0.1-0.6 co
 import {
   detectionDb, detectionCache, loadConfig, runAllChecks,
   ctfEventListener, marketMetadataService, marketDepthService,
-  walletActivityIndex, fundingAnalyzer
+  walletActivityIndex, fundingAnalyzer, walletRiskService
 } from "./services/insiderDetection/index.js";
 
 // Check thresholds
@@ -255,6 +265,12 @@ const recentlyFunded = await fundingAnalyzer.isRecentlyFunded("0xwallet...", 24)
 // { isRecent: true, hoursAgo: 3, fundingSource: { sourceType: "cex", sourceLabel: "Binance" } }
 const cluster = await fundingAnalyzer.findWalletsWithSameFunder("0xbinance...");
 // ["0xwallet1", "0xwallet2", ...] - wallets all funded from same source
+
+// Wallet Risk Service
+const riskProfile = await walletRiskService.getRiskProfile("0xwallet...");
+// { riskLevel: "HIGH", riskScore: 65, walletAge: {...}, funding: {...}, activity: {...}, riskFactors: [...] }
+const isHighRisk = await walletRiskService.isHighRisk("0xwallet...");
+// true if CRITICAL or HIGH risk level
 ```
 
 **API Endpoints** (Added to server.ts):
@@ -274,6 +290,9 @@ const cluster = await fundingAnalyzer.findWalletsWithSameFunder("0xbinance...");
 - `POST /api/detection/wallets/:address/funding/analyze` - Trigger funding analysis (with `forceRefresh`)
 - `GET /api/detection/wallets/:address/funding/recent` - Check if recently funded (with `?hours=N`)
 - `GET /api/detection/funding/clusters/:sourceAddress` - Find wallets funded by same source
+- `GET /api/detection/wallets/:address/risk` - Comprehensive wallet risk profile
+- `GET /api/detection/config` - Get all detection thresholds
+- `PATCH /api/detection/config/:key` - Update specific threshold
 - `GET /api/health` - Extended with `ctfListener`, `marketMetadata`, and `marketDepth` status
 
 ### Required Environment Variables
@@ -306,6 +325,7 @@ Test files:
 - `insiderDetection/__tests__/marketDepthService.test.ts` - 22 tests for order book depth
 - `insiderDetection/__tests__/walletActivityIndex.test.ts` - 24 tests for wallet activity
 - `insiderDetection/__tests__/fundingAnalyzer.test.ts` - 22 tests for funding source analysis
+- `insiderDetection/__tests__/walletRiskService.test.ts` - 17 tests for wallet risk assessment
 
 ## Module System
 

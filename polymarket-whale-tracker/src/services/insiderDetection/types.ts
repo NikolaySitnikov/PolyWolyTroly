@@ -325,3 +325,62 @@ export interface DetectionStats {
   activeMarkets: number;
   walletsTracked: number;
 }
+
+// ============================================
+// WALLET RISK PROFILE TYPES
+// ============================================
+
+export type RiskLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN';
+
+export interface WalletRiskProfile {
+  walletAddress: string;
+  riskLevel: RiskLevel;
+  riskScore: number; // 0-100
+
+  // Age analysis
+  walletAge?: {
+    firstSeenAt: Date | null;
+    ageDays: number | null;
+    isNew: boolean;
+    riskContribution: number;
+  };
+
+  // Funding analysis
+  funding?: {
+    totalFunded: number;
+    sourceCount: number;
+    primarySourceType: FundingSourceType | null;
+    primarySourceLabel: string | null;
+    hoursBeforeFirstTrade: number | null;
+    isRecentlyFunded: boolean;
+    riskContribution: number;
+  };
+
+  // Activity analysis
+  activity?: {
+    totalVolume: number;
+    tradeCount: number;
+    marketCount: number;
+    topMarket: {
+      conditionId: string;
+      question?: string;
+      volumeShare: number;
+    } | null;
+    isHighlyConcentrated: boolean;
+    riskContribution: number;
+  };
+
+  // Alerts summary
+  alerts?: {
+    total: number;
+    bySeverity: Record<AlertSeverity, number>;
+    recent: DetectionAlert[];
+    riskContribution: number;
+  };
+
+  // Risk factors triggered
+  riskFactors: string[];
+
+  // Assessment timestamp
+  assessedAt: Date;
+}

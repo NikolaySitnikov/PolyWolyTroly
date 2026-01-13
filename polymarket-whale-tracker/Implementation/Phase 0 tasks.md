@@ -261,15 +261,15 @@ src/services/insiderDetection/
 | 0.6.5 | Add funding API endpoints | API tests | ✅ |
 | 0.6.6 | Unit tests for funding analyzer (22 tests) | Vitest | ✅ |
 
-### Phase 0.7: API Endpoints
+### Phase 0.7: API Endpoints ✅ COMPLETED (2026-01-13)
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 0.7.1 | Add `/api/detection/stats` | API test | ⬜ |
-| 0.7.2 | Add `/api/detection/alerts` with pagination | API test | ⬜ |
-| 0.7.3 | Add `/api/detection/alerts/:id` | API test | ⬜ |
-| 0.7.4 | Add `PATCH /api/detection/alerts/:id` | API test | ⬜ |
-| 0.7.5 | Add `/api/detection/wallets/:address/risk` | API test | ⬜ |
-| 0.7.6 | Add `/api/detection/config` endpoints | API tests | ⬜ |
+| 0.7.1 | Add `/api/detection/stats` | API test | ✅ |
+| 0.7.2 | Add `/api/detection/alerts` with pagination | API test | ✅ |
+| 0.7.3 | Add `/api/detection/alerts/:id` | API test | ✅ |
+| 0.7.4 | Add `PATCH /api/detection/alerts/:id` | API test | ✅ |
+| 0.7.5 | Add `/api/detection/wallets/:address/risk` | API test | ✅ |
+| 0.7.6 | Add `/api/detection/config` endpoints | API tests | ✅ |
 
 ### Phase 0.8: Frontend Detection Page
 | # | Task | Test Strategy | Status |
@@ -295,21 +295,22 @@ src/services/insiderDetection/
 ## Critical Files to Modify/Create
 
 ### Backend (Create)
-- `src/scripts/migrations/002_add_insider_detection_tables.ts`
-- `src/services/insiderDetection/index.ts`
-- `src/services/insiderDetection/types.ts`
-- `src/services/insiderDetection/config.ts`
-- `src/services/insiderDetection/detectionDatabase.ts`
-- `src/services/insiderDetection/detectionCache.ts`
-- `src/services/insiderDetection/ctfEventListener.ts`
-- `src/services/insiderDetection/marketMetadataService.ts`
-- `src/services/insiderDetection/marketDepthService.ts`
-- `src/services/insiderDetection/walletActivityIndex.ts`
-- `src/services/insiderDetection/fundingAnalyzer.ts`
+- `src/scripts/migrations/002_add_insider_detection_tables.ts` ✅
+- `src/services/insiderDetection/index.ts` ✅
+- `src/services/insiderDetection/types.ts` ✅
+- `src/services/insiderDetection/config.ts` ✅
+- `src/services/insiderDetection/detectionDatabase.ts` ✅
+- `src/services/insiderDetection/detectionCache.ts` ✅
+- `src/services/insiderDetection/ctfEventListener.ts` ✅
+- `src/services/insiderDetection/marketMetadataService.ts` ✅
+- `src/services/insiderDetection/marketDepthService.ts` ✅
+- `src/services/insiderDetection/walletActivityIndex.ts` ✅
+- `src/services/insiderDetection/fundingAnalyzer.ts` ✅
+- `src/services/insiderDetection/walletRiskService.ts` ✅ (NEW)
 
 ### Backend (Modify)
-- `src/utils/constants.ts` - Add ERC-1155 ABI
-- `src/api/server.ts` - Add detection endpoints
+- `src/utils/constants.ts` - Add ERC-1155 ABI ✅
+- `src/api/server.ts` - Add detection endpoints ✅
 - `src/api/websocket.ts` - Add detection alert broadcast
 - `src/index.ts` - Start detection services
 
@@ -381,15 +382,40 @@ Phase 0.1 (DB) ─┬─> Phase 0.2 (CTF) ─> Phase 0.5 (Activity)
 ## Progress Tracking
 
 **Total Subtasks:** 45
-**Completed:** 35
+**Completed:** 41
 **In Progress:** 0
-**Remaining:** 10
+**Remaining:** 4 (Frontend + Integration)
 
 Last Updated: 2026-01-13
 
 ---
 
 ## Changelog
+
+### 2026-01-13 - Phase 0.7 Complete
+- Created `walletRiskService.ts` with:
+  - Comprehensive risk profile calculation combining wallet age, funding, activity, and alerts
+  - Weighted risk scoring (age: 25%, funding: 30%, activity: 25%, alerts: 20%)
+  - Risk level classification: CRITICAL (≥80), HIGH (≥60), MEDIUM (≥40), LOW (≥20), UNKNOWN (<20)
+  - Risk factor identification and human-readable descriptions
+  - Methods: `getRiskProfile()`, `getRiskLevel()`, `isHighRisk()`, `invalidateProfile()`
+- Added `WalletRiskProfile` type to `types.ts`:
+  - `RiskLevel` enum: CRITICAL | HIGH | MEDIUM | LOW | UNKNOWN
+  - Full profile structure with wallet age, funding, activity, and alerts sections
+  - Risk contribution breakdown per category
+  - Risk factors array with human-readable descriptions
+- Extended `detectionCache.ts`:
+  - Added `walletRisk` cache prefix and TTL (5 minutes)
+  - `setWalletRiskProfile()` - cache risk profiles
+  - `getWalletRiskProfile()` - retrieve with Date restoration
+  - `invalidateWalletRiskProfile()` - clear cached profile
+- Added API endpoints to `server.ts`:
+  - `GET /api/detection/wallets/:address/risk` - Get wallet risk profile
+  - `GET /api/detection/config` - Get all detection thresholds
+  - `PATCH /api/detection/config/:key` - Update specific threshold
+- Exported `walletRiskService` from `index.ts`
+- Created unit tests for wallet risk service (17 tests passing)
+- **Note:** Phase 0.7 tasks 0.7.1-0.7.4 (stats, alerts endpoints) were already implemented in Phase 0.2
 
 ### 2026-01-13 - Phase 0.6 Complete
 - Created `fundingAnalyzer.ts` with:
