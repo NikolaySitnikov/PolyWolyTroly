@@ -220,13 +220,15 @@ src/services/insiderDetection/
 | 0.2.4 | Integrate with server startup + API endpoints | Integration test | ✅ |
 | 0.2.5 | Unit tests for CTF listener | Vitest | ✅ |
 
-### Phase 0.3: Market Metadata Service
+### Phase 0.3: Market Metadata Service ✅ COMPLETED (2026-01-13)
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 0.3.1 | Implement `marketMetadataService.ts` (Gamma API) | Mock fetch tests | ⬜ |
-| 0.3.2 | Add market resolution tracking | Unit tests | ⬜ |
-| 0.3.3 | Create background sync job (5 min interval) | Timer mock tests | ⬜ |
-| 0.3.4 | Warm market cache on startup | Integration test | ⬜ |
+| 0.3.1 | Implement `marketMetadataService.ts` (Gamma API) | Mock fetch tests | ✅ |
+| 0.3.2 | Add market resolution tracking | Unit tests | ✅ |
+| 0.3.3 | Create background sync job (5 min interval) | Timer mock tests | ✅ |
+| 0.3.4 | Warm market cache on startup | Integration test | ✅ |
+| 0.3.5 | Add API endpoints (`/api/detection/markets`) | API tests | ✅ |
+| 0.3.6 | Unit tests for market metadata service | Vitest | ✅ |
 
 ### Phase 0.4: Order Book Depth Service
 | # | Task | Test Strategy | Status |
@@ -372,16 +374,36 @@ Phase 0.1 (DB) ─┬─> Phase 0.2 (CTF) ─> Phase 0.5 (Activity)
 
 ## Progress Tracking
 
-**Total Subtasks:** 37
-**Completed:** 10
+**Total Subtasks:** 39
+**Completed:** 16
 **In Progress:** 0
-**Remaining:** 27
+**Remaining:** 23
 
 Last Updated: 2026-01-13
 
 ---
 
 ## Changelog
+
+### 2026-01-13 - Phase 0.3 Complete
+- Created `marketMetadataService.ts` with:
+  - Gamma API integration for fetching market metadata
+  - Automatic token ID extraction for YES/NO outcomes
+  - Market resolution detection and tracking
+  - Background sync job (every 5 minutes)
+  - Cache warming on startup
+  - Status tracking for health monitoring
+- Updated `detectionCache.ts`:
+  - Changed `setMarket()` signature to accept conditionId and optional TTL
+  - Added `invalidateMarket()` method for cache invalidation on resolution
+- Added market metadata API endpoints to `server.ts`:
+  - `GET /api/detection/markets` - List active markets (with optional `nearResolution` filter)
+  - `GET /api/detection/markets/:conditionId` - Get single market details
+  - `POST /api/detection/markets/sync` - Trigger manual market sync
+- Extended `/api/health` endpoint with market metadata service status
+- Market metadata service starts automatically with server
+- Created unit tests for market metadata service (15 tests passing)
+- Exported `marketMetadataService` from `index.ts`
 
 ### 2026-01-13 - Phase 0.2 Complete
 - Added ERC-1155 ABI to `constants.ts` (TransferSingle, TransferBatch events)

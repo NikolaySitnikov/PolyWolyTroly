@@ -51,10 +51,10 @@ export const detectionCache = {
   // MARKET CACHE
   // ----------------------------------------
 
-  async setMarket(market: Market): Promise<void> {
+  async setMarket(conditionId: string, market: Market, ttl?: number): Promise<void> {
     await redis.setex(
-      `${PREFIX.market}${market.conditionId}`,
-      TTL.market,
+      `${PREFIX.market}${conditionId}`,
+      ttl || TTL.market,
       JSON.stringify(market)
     );
   },
@@ -65,6 +65,10 @@ export const detectionCache = {
   },
 
   async deleteMarket(conditionId: string): Promise<void> {
+    await redis.del(`${PREFIX.market}${conditionId}`);
+  },
+
+  async invalidateMarket(conditionId: string): Promise<void> {
     await redis.del(`${PREFIX.market}${conditionId}`);
   },
 

@@ -170,6 +170,13 @@ New module for detecting suspicious trading patterns on Polymarket. Phase 0.1 co
   - Same robust pattern as `blockchain.ts` (heartbeat, health tracking, auto-restart)
   - Redis deduplication prevents duplicate processing
   - Filters mints/burns, stores wallet-to-wallet transfers in `ctf_transfers` table
+- `marketMetadataService.ts` - Gamma API integration for market metadata
+  - Syncs active markets from `gamma-api.polymarket.com/markets`
+  - Extracts CLOB token IDs, resolution times, volume, liquidity
+  - Background sync every 5 minutes
+  - Cache warming on startup
+  - Resolution tracking (detects when markets resolve)
+  - Stores in `markets` table for detection analysis
 
 **Default Thresholds** (from `detection_config` table):
 - Wallet age: <14 days = HIGH, <30 days = MEDIUM
@@ -201,7 +208,10 @@ const health = ctfEventListener.getHealthStatus();
 - `GET /api/detection/alerts` - Paginated alert list with filters (type, severity, status)
 - `GET /api/detection/alerts/:id` - Single alert detail
 - `PATCH /api/detection/alerts/:id` - Update alert status (reviewed, dismissed, etc.)
-- `GET /api/health` - Extended with `ctfListener` status
+- `GET /api/detection/markets` - List active markets (supports `?nearResolution=<hours>` filter)
+- `GET /api/detection/markets/:conditionId` - Get single market details
+- `POST /api/detection/markets/sync` - Trigger manual market sync
+- `GET /api/health` - Extended with `ctfListener` and `marketMetadata` status
 
 ### Required Environment Variables
 - `ALCHEMY_WSS_URL` / `ALCHEMY_HTTP_URL` - Polygon RPC endpoints (PublicNode)

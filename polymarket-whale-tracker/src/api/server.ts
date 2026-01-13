@@ -15,7 +15,7 @@ import { trendingMarketsService } from "../services/trendingMarkets.js";
 import { blockchain } from "../services/blockchain.js";
 import { tradingCache } from "../services/polymarketTradingCache.js";
 import { polymarketApi } from "../services/polymarketApi.js";
-import { ctfEventListener, detectionDb } from "../services/insiderDetection/index.js";
+import { ctfEventListener, detectionDb, marketMetadataService } from "../services/insiderDetection/index.js";
 
 /**
  * Creates and configures the Express application.
@@ -32,6 +32,7 @@ export function createApp(): Express {
   app.get("/api/health", (_req: Request, res: Response) => {
     const healthStatus = blockchain.getHealthStatus();
     const ctfHealthStatus = ctfEventListener.getHealthStatus();
+    const marketMetadataStatus = marketMetadataService.getStatus();
 
     res.json({
       status: "ok",
@@ -53,6 +54,13 @@ export function createApp(): Express {
         consecutiveErrors: ctfHealthStatus.consecutiveErrors,
         transfersProcessed: ctfHealthStatus.transfersProcessed,
         transfersSkippedDuplicate: ctfHealthStatus.transfersSkippedDuplicate,
+      },
+      marketMetadata: {
+        syncing: marketMetadataStatus.isRunning,
+        lastSyncAt: marketMetadataStatus.lastSyncAt?.toISOString() || null,
+        totalSynced: marketMetadataStatus.totalSynced,
+        lastSyncDuration: marketMetadataStatus.lastSyncDuration,
+        errors: marketMetadataStatus.errors,
       },
     });
   });
@@ -471,6 +479,68 @@ export function createApp(): Express {
     }
   });
 
+  // ===========================================
+  // MARKET METADATA ENDPOINTS (Phase 0.3)
+  // ===========================================
+
+  // Get list of active markets tracked in detection system
+  app.get("/api/detection/markets", async (req: Request, res: Response) => {
+    try {
+      const nearResolutionHours = parseInt(req.query.nearResolution as string) || 0;
+
+      let markets;
+      if (nearResolutionHours > 0) {
+        // Get markets near resolution (useful for detection monitoring)
+        markets = await marketMetadataService.getMarketsNearResolution(nearResolutionHours);
+      } else {
+        // Get all active markets
+        markets = await marketMetadataService.getActiveMarkets();
+      }
+
+      res.json({
+        markets,
+        total: markets.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error fetching markets:", error);
+      res.status(500).json({ error: "Failed to fetch markets" });
+    }
+  });
+
+  // Get single market by condition ID
+  app.get("/api/detection/markets/:conditionId", async (req: Request, res: Response) => {
+    try {
+      const conditionId = req.params.conditionId;
+      const market = await marketMetadataService.getMarket(conditionId);
+
+      if (!market) {
+        res.status(404).json({ error: "Market not found" });
+        return;
+      }
+
+      res.json(market);
+    } catch (error) {
+      console.error("Error fetching market:", error);
+      res.status(500).json({ error: "Failed to fetch market" });
+    }
+  });
+
+  // Trigger manual market sync (admin/debug endpoint)
+  app.post("/api/detection/markets/sync", async (_req: Request, res: Response) => {
+    try {
+      const result = await marketMetadataService.triggerSync();
+      res.json({
+        message: "Sync completed",
+        ...result,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error triggering market sync:", error);
+      res.status(500).json({ error: "Failed to trigger sync" });
+    }
+  });
+
   // 404 handler for unknown API routes (Express 5 syntax)
   app.use("/api/{*path}", (_req: Request, res: Response) => {
     res.status(404).json({
@@ -534,6 +604,21 @@ export async function startServer(port: number = 3001): Promise<void> {
   } catch (error) {
     console.error('Failed to start CTF event listener:', error);
     console.log('Insider detection CTF tracking will be unavailable');
+  }
+
+  // Start market metadata service for insider detection (Phase 0.3)
+  try {
+    // Warm market cache (fetches active markets from Gamma API)
+    // Don't await - let it warm in background while server is ready
+    marketMetadataService.warmCache().catch(err => {
+      console.error('Market cache warming error:', err);
+    });
+    // Start background sync (every 5 minutes)
+    marketMetadataService.startBackgroundSync();
+    console.log('Market metadata service started - syncing from Gamma API');
+  } catch (error) {
+    console.error('Failed to start market metadata service:', error);
+    console.log('Market metadata will be fetched on-demand instead');
   }
 
   // Keep the process alive
