@@ -20,3 +20,33 @@ export const ERC20_TRANSFER_ABI = [
     ],
   },
 ] as const;
+
+// ERC-1155 ABI for CTF (Conditional Token Framework) events
+// Used for tracking outcome token transfers on Polymarket
+export const ERC1155_ABI = [
+  {
+    type: "event",
+    name: "TransferSingle",
+    inputs: [
+      { indexed: true, name: "operator", type: "address" },
+      { indexed: true, name: "from", type: "address" },
+      { indexed: true, name: "to", type: "address" },
+      { indexed: false, name: "id", type: "uint256" },
+      { indexed: false, name: "value", type: "uint256" },
+    ],
+  },
+  {
+    type: "event",
+    name: "TransferBatch",
+    inputs: [
+      { indexed: true, name: "operator", type: "address" },
+      { indexed: true, name: "from", type: "address" },
+      { indexed: true, name: "to", type: "address" },
+      { indexed: false, name: "ids", type: "uint256[]" },
+      { indexed: false, name: "values", type: "uint256[]" },
+    ],
+  },
+] as const;
+
+// Zero address (used for minting/burning detection)
+export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";

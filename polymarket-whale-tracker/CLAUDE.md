@@ -165,6 +165,11 @@ New module for detecting suspicious trading patterns on Polymarket. Phase 0.1 co
 - `detectionDatabase.ts` - CRUD operations for detection tables
 - `detectionCache.ts` - Redis caching with TTLs (market: 5min, depth: 30s, wallet: 5min)
 - `config.ts` - Threshold configuration loader with helper functions
+- `ctfEventListener.ts` - Real-time ERC-1155 event listener for CTF token transfers
+  - Monitors TransferSingle and TransferBatch events on CTF Exchange
+  - Same robust pattern as `blockchain.ts` (heartbeat, health tracking, auto-restart)
+  - Redis deduplication prevents duplicate processing
+  - Filters mints/burns, stores wallet-to-wallet transfers in `ctf_transfers` table
 
 **Default Thresholds** (from `detection_config` table):
 - Wallet age: <14 days = HIGH, <30 days = MEDIUM
@@ -175,7 +180,7 @@ New module for detecting suspicious trading patterns on Polymarket. Phase 0.1 co
 
 **Usage**:
 ```typescript
-import { detectionDb, detectionCache, loadConfig, runAllChecks } from "./services/insiderDetection/index.js";
+import { detectionDb, detectionCache, loadConfig, runAllChecks, ctfEventListener } from "./services/insiderDetection/index.js";
 
 // Check thresholds
 const result = await runAllChecks({
@@ -184,7 +189,19 @@ const result = await runAllChecks({
   hoursFromFunding: 1,
 });
 // result.overallSuspicious = true, result.triggeredChecks = ['wallet_age_HIGH', 'timing_HIGH']
+
+// CTF Event Listener
+await ctfEventListener.startListening();
+const health = ctfEventListener.getHealthStatus();
+// { isRunning: true, healthy: true, transfersProcessed: 42, ... }
 ```
+
+**API Endpoints** (Added to server.ts):
+- `GET /api/detection/stats` - Detection dashboard statistics
+- `GET /api/detection/alerts` - Paginated alert list with filters (type, severity, status)
+- `GET /api/detection/alerts/:id` - Single alert detail
+- `PATCH /api/detection/alerts/:id` - Update alert status (reviewed, dismissed, etc.)
+- `GET /api/health` - Extended with `ctfListener` status
 
 ### Required Environment Variables
 - `ALCHEMY_WSS_URL` / `ALCHEMY_HTTP_URL` - Polygon RPC endpoints (PublicNode)

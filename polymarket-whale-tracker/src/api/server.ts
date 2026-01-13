@@ -15,6 +15,7 @@ import { trendingMarketsService } from "../services/trendingMarkets.js";
 import { blockchain } from "../services/blockchain.js";
 import { tradingCache } from "../services/polymarketTradingCache.js";
 import { polymarketApi } from "../services/polymarketApi.js";
+import { ctfEventListener, detectionDb } from "../services/insiderDetection/index.js";
 
 /**
  * Creates and configures the Express application.
@@ -30,6 +31,7 @@ export function createApp(): Express {
   // Health check endpoint - includes blockchain listener status
   app.get("/api/health", (_req: Request, res: Response) => {
     const healthStatus = blockchain.getHealthStatus();
+    const ctfHealthStatus = ctfEventListener.getHealthStatus();
 
     res.json({
       status: "ok",
@@ -41,6 +43,16 @@ export function createApp(): Express {
         lastEventTime: healthStatus.lastEventTime?.toISOString() || null,
         startTime: healthStatus.startTime?.toISOString() || null,
         consecutiveErrors: healthStatus.consecutiveErrors,
+      },
+      ctfListener: {
+        listening: ctfHealthStatus.isRunning,
+        healthy: ctfHealthStatus.healthy,
+        lastHeartbeatTime: ctfHealthStatus.lastHeartbeatTime?.toISOString() || null,
+        lastEventTime: ctfHealthStatus.lastEventTime?.toISOString() || null,
+        startTime: ctfHealthStatus.startTime?.toISOString() || null,
+        consecutiveErrors: ctfHealthStatus.consecutiveErrors,
+        transfersProcessed: ctfHealthStatus.transfersProcessed,
+        transfersSkippedDuplicate: ctfHealthStatus.transfersSkippedDuplicate,
       },
     });
   });
@@ -56,91 +68,87 @@ export function createApp(): Express {
     }
   });
 
-  // Wallets list endpoint with pagination and sorting - connected to database
+  // Wallets list endpoint with pagination, sorting, and filtering - connected to database
   // Market makers are automatically excluded via database query
-  // Trading metrics: fetched with timeout to ensure real data
+  // Trading metrics: cached in database, refreshed by background cache warmer
+  // Filters: profitable (pnl > 0), losing (pnl < 0), live (active in last 24h)
   app.get("/api/wallets", async (req: Request, res: Response) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
 
-      // Validate sort parameters
-      const validSortFields = ['total_deposited', 'deposit_count', 'first_seen_at'];
+      // Validate sort parameters (now includes 'pnl' for P&L sorting)
+      const validSortFields = ['total_deposited', 'deposit_count', 'first_seen_at', 'pnl'];
       const validSortDirs = ['asc', 'desc'];
 
       const sortByParam = req.query.sortBy as string;
       const sortDirParam = req.query.sortDir as string;
 
       const sortBy = validSortFields.includes(sortByParam)
-        ? sortByParam as 'total_deposited' | 'deposit_count' | 'first_seen_at'
+        ? sortByParam as 'total_deposited' | 'deposit_count' | 'first_seen_at' | 'pnl'
         : 'total_deposited';
       const sortDir = validSortDirs.includes(sortDirParam)
         ? sortDirParam as 'asc' | 'desc'
         : 'desc';
 
-      const result = await db.getAllWallets(page, limit, sortBy, sortDir);
+      // Parse filter parameter (comma-separated: profitable,losing,live)
+      const filterParam = req.query.filter as string;
+      const filters = filterParam
+        ? filterParam.split(',').filter(f => ['profitable', 'losing', 'live'].includes(f)) as ('profitable' | 'losing' | 'live')[]
+        : [];
+      const hasFilters = filters.length > 0;
 
-      // Fetch trading data for ALL wallets in parallel with 2s timeout per wallet
-      // This ensures we get real data, not just cache lookups
-      const TIMEOUT_MS = 2000;
-
-      const walletsWithTrading = await Promise.all(
-        result.wallets.map(async (wallet) => {
-          try {
-            const data = await Promise.race([
-              tradingCache.getOrFetchTradingData(wallet.address),
-              new Promise<null>((_, reject) =>
-                setTimeout(() => reject(new Error('timeout')), TIMEOUT_MS)
-              ),
-            ]);
-
-            if (data) {
-              return {
-                ...wallet,
-                pnl: data.metrics.pnl,
-                pnl7d: data.metrics.pnl7d,
-                pnl30d: data.metrics.pnl30d,
-                winRate: data.metrics.winRate,
-                portfolioValue: data.metrics.portfolioValue,
-                totalTrades: data.metrics.totalTrades,
-                lastActivityAt: data.metrics.lastActivityAt,
-                isLive: data.metrics.isLive,
-              };
-            }
-          } catch {
-            // Timeout - return without trading data
-          }
-
-          return {
-            ...wallet,
-            pnl: null,
-            pnl7d: null,
-            pnl30d: null,
-            winRate: null,
-            portfolioValue: null,
-            totalTrades: null,
-            lastActivityAt: null,
-            isLive: null,
-          };
-        })
-      );
-
-      res.json({
-        ...result,
-        wallets: walletsWithTrading,
+      // Transform DB row to API response format
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transformWallet = (wallet: any) => ({
+        ...wallet,
+        // Map snake_case DB columns to camelCase for API response
+        pnl: wallet.pnl !== null ? parseFloat(wallet.pnl) : null,
+        pnl7d: wallet.pnl_7d !== null ? parseFloat(wallet.pnl_7d) : null,
+        pnl30d: wallet.pnl_30d !== null ? parseFloat(wallet.pnl_30d) : null,
+        winRate: wallet.win_rate !== null ? parseFloat(wallet.win_rate) : null,
+        portfolioValue: wallet.portfolio_value !== null ? parseFloat(wallet.portfolio_value) : null,
+        totalTrades: wallet.total_trades,
+        lastActivityAt: wallet.last_activity_at,
+        isLive: wallet.is_live,
       });
 
-      // BACKGROUND: Prefetch adjacent pages for smooth navigation
-      const prefetchPages = [page - 2, page - 1, page + 1, page + 2].filter(p => p > 0);
-      for (const prefetchPage of prefetchPages) {
-        db.getAllWallets(prefetchPage, limit, sortBy, sortDir)
-          .then(prefetchResult => {
-            const addresses = prefetchResult.wallets.map(w => w.address);
-            import('../services/cacheWarmer.js').then(({ cacheWarmer }) => {
-              cacheWarmer.warmAddresses(addresses);
-            }).catch(() => {});
-          })
-          .catch(() => {});
+      if (hasFilters) {
+        // Use database-based filtering (trading metrics are cached in DB)
+        // This is FAST - uses SQL indexes for filtering and sorting
+        const result = await db.getFilteredWallets(page, limit, sortBy, sortDir, filters);
+
+        res.json({
+          wallets: result.wallets.map(transformWallet),
+          total: result.total,
+          page: result.page,
+          limit: result.limit,
+          totalPages: Math.ceil(result.total / limit),
+        });
+      } else {
+        // No filters - standard pagination from DB with cached trading data
+        const result = await db.getAllWallets(page, limit, sortBy, sortDir);
+
+        res.json({
+          wallets: result.wallets.map(transformWallet),
+          total: result.total,
+          page: result.page,
+          limit: result.limit,
+          totalPages: Math.ceil(result.total / limit),
+        });
+
+        // BACKGROUND: Prefetch adjacent pages for smooth navigation
+        const prefetchPages = [page - 2, page - 1, page + 1, page + 2].filter(p => p > 0);
+        for (const prefetchPage of prefetchPages) {
+          db.getAllWallets(prefetchPage, limit, sortBy, sortDir)
+            .then(prefetchResult => {
+              const addresses = prefetchResult.wallets.map(w => w.address);
+              import('../services/cacheWarmer.js').then(({ cacheWarmer }) => {
+                cacheWarmer.warmAddresses(addresses);
+              }).catch(() => {});
+            })
+            .catch(() => {});
+        }
       }
     } catch (error) {
       console.error("Error fetching wallets:", error);
@@ -346,6 +354,123 @@ export function createApp(): Express {
     }
   });
 
+  // ===========================================
+  // DETECTION ENDPOINTS (Phase 0 - Insider Trading Detection)
+  // ===========================================
+
+  // Detection stats endpoint - returns insider detection dashboard statistics
+  app.get("/api/detection/stats", async (_req: Request, res: Response) => {
+    try {
+      const stats = await detectionDb.getStats();
+      const ctfHealth = ctfEventListener.getHealthStatus();
+
+      res.json({
+        ...stats,
+        ctfListener: {
+          healthy: ctfHealth.healthy,
+          transfersProcessed: ctfHealth.transfersProcessed,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching detection stats:", error);
+      res.status(500).json({ error: "Failed to fetch detection stats" });
+    }
+  });
+
+  // Detection alerts list endpoint with pagination and filters
+  app.get("/api/detection/alerts", async (req: Request, res: Response) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+
+      // Parse filters
+      const status = req.query.status as string | undefined;
+      const severity = req.query.severity as string | undefined;
+      const alertType = req.query.alertType as string | undefined;
+      const walletAddress = req.query.wallet as string | undefined;
+      const conditionId = req.query.market as string | undefined;
+
+      // Parse sort parameters
+      const validSortFields = ["detected_at", "severity", "confidence_score", "status"];
+      const sortByParam = req.query.sortBy as string;
+      const sortDirParam = req.query.sortDir as string;
+      const sortBy = validSortFields.includes(sortByParam) ? sortByParam : "detected_at";
+      const sortDir = sortDirParam === "asc" ? "asc" : "desc";
+
+      const result = await detectionDb.getAlerts(
+        {
+          status: status as any,
+          severity: severity as any,
+          alertType: alertType as any,
+          walletAddress,
+          conditionId,
+        },
+        { page, limit, sortBy, sortDir }
+      );
+
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching detection alerts:", error);
+      res.status(500).json({ error: "Failed to fetch detection alerts" });
+    }
+  });
+
+  // Single alert detail endpoint
+  app.get("/api/detection/alerts/:id", async (req: Request, res: Response) => {
+    try {
+      const idParam = req.params.id;
+      const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
+      const id = parseInt(idStr);
+      if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid alert ID" });
+        return;
+      }
+
+      const alert = await detectionDb.getAlert(id);
+      if (!alert) {
+        res.status(404).json({ error: "Alert not found" });
+        return;
+      }
+
+      res.json(alert);
+    } catch (error) {
+      console.error("Error fetching alert:", error);
+      res.status(500).json({ error: "Failed to fetch alert" });
+    }
+  });
+
+  // Update alert status endpoint
+  app.patch("/api/detection/alerts/:id", async (req: Request, res: Response) => {
+    try {
+      const idParam = req.params.id;
+      const idStr = Array.isArray(idParam) ? idParam[0] : idParam;
+      const id = parseInt(idStr);
+      if (isNaN(id)) {
+        res.status(400).json({ error: "Invalid alert ID" });
+        return;
+      }
+
+      const { status, notes } = req.body;
+      const validStatuses = ["new", "investigating", "confirmed", "dismissed"];
+      if (!validStatuses.includes(status)) {
+        res.status(400).json({ error: "Invalid status" });
+        return;
+      }
+
+      const success = await detectionDb.updateAlertStatus(id, status, undefined, notes);
+      if (!success) {
+        res.status(404).json({ error: "Alert not found" });
+        return;
+      }
+
+      const updatedAlert = await detectionDb.getAlert(id);
+      res.json(updatedAlert);
+    } catch (error) {
+      console.error("Error updating alert:", error);
+      res.status(500).json({ error: "Failed to update alert" });
+    }
+  });
+
   // 404 handler for unknown API routes (Express 5 syntax)
   app.use("/api/{*path}", (_req: Request, res: Response) => {
     res.status(404).json({
@@ -400,6 +525,15 @@ export async function startServer(port: number = 3001): Promise<void> {
   } catch (error) {
     console.error('Failed to start cache warmer:', error);
     console.log('Trading data will be fetched on-demand instead');
+  }
+
+  // Start CTF event listener for insider detection (Phase 0)
+  try {
+    await ctfEventListener.startListening();
+    console.log('CTF event listener started - tracking ERC-1155 transfers');
+  } catch (error) {
+    console.error('Failed to start CTF event listener:', error);
+    console.log('Insider detection CTF tracking will be unavailable');
   }
 
   // Keep the process alive

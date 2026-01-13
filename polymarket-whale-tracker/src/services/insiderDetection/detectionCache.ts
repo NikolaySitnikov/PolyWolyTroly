@@ -233,6 +233,32 @@ export const detectionCache = {
     await redis.setex(key, TTL.ctfProcessed, Date.now().toString());
   },
 
+  /**
+   * Acquire lock using dedup key (for ctfEventListener)
+   */
+  async acquireCtfTransferLock(dedupKey: string): Promise<boolean> {
+    const key = `${PREFIX.ctfLock}${dedupKey.toLowerCase()}`;
+    const result = await redis.set(key, Date.now().toString(), "EX", TTL.ctfLock, "NX");
+    return result === "OK";
+  },
+
+  /**
+   * Check if CTF transfer is processed using dedup key
+   */
+  async isCtfTransferProcessed(dedupKey: string): Promise<boolean> {
+    const key = `${PREFIX.ctfProcessed}${dedupKey.toLowerCase()}`;
+    const result = await redis.exists(key);
+    return result === 1;
+  },
+
+  /**
+   * Mark CTF transfer as processed using dedup key
+   */
+  async markCtfTransferProcessed(dedupKey: string): Promise<void> {
+    const key = `${PREFIX.ctfProcessed}${dedupKey.toLowerCase()}`;
+    await redis.setex(key, TTL.ctfProcessed, Date.now().toString());
+  },
+
   // ----------------------------------------
   // RECENT ALERTS (for quick dashboard access)
   // ----------------------------------------

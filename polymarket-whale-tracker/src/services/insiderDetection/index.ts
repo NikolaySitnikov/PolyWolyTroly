@@ -27,3 +27,7 @@ export {
   checkConcentration,
   runAllChecks,
 } from "./config.js";
+
+// CTF Event Listener
+export { ctfEventListener } from "./ctfEventListener.js";
+export type { CtfListenerHealthStatus } from "./ctfEventListener.js";

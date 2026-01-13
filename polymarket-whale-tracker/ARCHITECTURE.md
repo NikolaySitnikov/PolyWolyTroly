@@ -431,6 +431,7 @@ PolyWolyTroly monitors the Polygon blockchain for large USDC deposits to Polymar
 ├───────────────────────────┼─────────────────────────────────────────────────┤
 │  USDC Token (Polygon)     │  0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174     │
 │  Polymarket Exchange      │  0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E     │
+│  CTF Exchange (ERC-1155)  │  0x4D97DCd97eC945f40cF65F87097ACe5EA0476045     │
 └───────────────────────────┴─────────────────────────────────────────────────┘
 
     We watch: USDC Transfer events WHERE "to" = Polymarket Exchange
@@ -1268,4 +1269,193 @@ The Activity tab supports progressive loading of historical activity beyond the 
     • Redeem = Gold: Cashing out winning positions (celebratory)
     • Claim = Purple: Special rewards/incentives (distinct from trades)
     • Transfer = Gray: Neutral wallet-to-wallet movement
+```
+
+---
+
+## Insider Trading Detection System
+
+The system includes an insider trading detection module for monitoring suspicious trading patterns on Polymarket.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     INSIDER DETECTION ARCHITECTURE                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  CTF EVENT LISTENER (ctfEventListener.ts)                               │
+    │                                                                         │
+    │  Purpose: Track ERC-1155 outcome token transfers on Polymarket          │
+    │                                                                         │
+    │  Contract: 0x4D97DCd97eC945f40cF65F87097ACe5EA0476045 (CTF Exchange)   │
+    │                                                                         │
+    │  Events Monitored:                                                      │
+    │  • TransferSingle(operator, from, to, id, value)                       │
+    │  • TransferBatch(operator, from, to, ids, values)                      │
+    │                                                                         │
+    │  Filtering:                                                             │
+    │  • Skips mints (from = 0x0)                                            │
+    │  • Skips burns (to = 0x0)                                              │
+    │  • Only processes wallet-to-wallet transfers                           │
+    │                                                                         │
+    │  Storage: ctf_transfers table                                           │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  HEALTH MONITORING (same pattern as blockchain.ts)                      │
+    │                                                                         │
+    │  • Heartbeat every 30 seconds                                          │
+    │  • Auto-restart after 5 consecutive errors                             │
+    │  • Health status exposed via /api/health endpoint                      │
+    │  • Tracks: transfersProcessed, transfersSkippedDuplicate               │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DEDUPLICATION (via Redis)                                              │
+    │                                                                         │
+    │  Key Pattern: ctf_transfer_processed:{txHash}:{logIndex}               │
+    │  Lock Pattern: ctf_transfer_lock:{txHash}:{logIndex}                   │
+    │  TTL: 7 days (processed), 60 seconds (lock)                            │
+    │                                                                         │
+    │  Multi-instance safe - prevents duplicate processing                    │
+    └────────────────────────────────────────────────────────────────────────┘
+```
+
+### Detection Database Tables
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      DETECTION DATABASE SCHEMA                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  markets - Market metadata for resolution tracking                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  condition_id        VARCHAR(66)  PRIMARY KEY   Polymarket condition ID     │
+│  question            TEXT                       Market question              │
+│  slug                VARCHAR(255)               URL slug                     │
+│  resolution_time     TIMESTAMPTZ               Expected resolution          │
+│  volume_24h          DECIMAL                    24h trading volume           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  ctf_transfers - ERC-1155 token movements                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  id                  SERIAL       PRIMARY KEY                               │
+│  tx_hash             VARCHAR(66)                Transaction hash            │
+│  from_address        VARCHAR(42)                Sender wallet               │
+│  to_address          VARCHAR(42)                Receiver wallet             │
+│  token_id            VARCHAR(100)               ERC-1155 token ID           │
+│  amount              DECIMAL(30,0)              Number of tokens            │
+│  condition_id        VARCHAR(66)                Market condition ID         │
+│  block_number        BIGINT                     Polygon block number        │
+│  block_timestamp     TIMESTAMPTZ               When transfer occurred       │
+│  log_index           INTEGER                    Event log index             │
+│  UNIQUE(tx_hash, log_index)                                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  detection_alerts - Suspicious pattern alerts                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  id                  SERIAL       PRIMARY KEY                               │
+│  alert_type          VARCHAR(50)                Type of detection           │
+│  severity            VARCHAR(20)                HIGH/MEDIUM/LOW             │
+│  confidence_score    DECIMAL(5,2)               0-100 confidence            │
+│  wallet_address      VARCHAR(42)                Flagged wallet              │
+│  condition_id        VARCHAR(66)                Related market              │
+│  detection_rule      VARCHAR(100)               Rule that triggered         │
+│  trigger_values      JSONB                      Values that triggered       │
+│  threshold_values    JSONB                      Thresholds exceeded         │
+│  status              VARCHAR(20)                new/reviewed/dismissed      │
+│  detected_at         TIMESTAMPTZ               When detected                │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  detection_config - Configurable thresholds                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  id                  SERIAL       PRIMARY KEY                               │
+│  config_key          VARCHAR(100) UNIQUE        Threshold identifier        │
+│  config_value        JSONB                      Threshold values            │
+│  description         TEXT                       Human-readable description  │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Detection API Endpoints
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      DETECTION API ENDPOINTS                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  GET /api/detection/stats                                               │
+    │                                                                         │
+    │  Returns: {                                                             │
+    │    totalAlerts: number,                                                 │
+    │    alertsByType: { [type]: count },                                    │
+    │    alertsBySeverity: { HIGH: n, MEDIUM: n, LOW: n },                   │
+    │    alertsToday: number,                                                │
+    │    transfersTracked: number                                            │
+    │  }                                                                      │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  GET /api/detection/alerts?type=X&severity=Y&status=Z&limit=N&offset=M │
+    │                                                                         │
+    │  Query Params:                                                          │
+    │  • type: Filter by alert type                                          │
+    │  • severity: Filter by HIGH/MEDIUM/LOW                                 │
+    │  • status: Filter by new/reviewed/dismissed                            │
+    │  • limit: Page size (default 20)                                       │
+    │  • offset: Pagination offset                                           │
+    │                                                                         │
+    │  Returns: { alerts: DetectionAlert[], total: number }                  │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  GET /api/detection/alerts/:id                                          │
+    │                                                                         │
+    │  Returns: DetectionAlert with full details                              │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  PATCH /api/detection/alerts/:id                                        │
+    │                                                                         │
+    │  Body: { status?: string, notes?: string }                             │
+    │                                                                         │
+    │  Purpose: Update alert status (reviewed, dismissed, etc.)               │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  GET /api/health                                                        │
+    │                                                                         │
+    │  Extended with ctfListener status:                                      │
+    │  {                                                                      │
+    │    status: "healthy",                                                   │
+    │    ctfListener: {                                                       │
+    │      isRunning: true,                                                   │
+    │      healthy: true,                                                     │
+    │      lastEventTime: "2026-01-13T...",                                  │
+    │      transfersProcessed: 42,                                           │
+    │      transfersSkippedDuplicate: 5                                      │
+    │    }                                                                    │
+    │  }                                                                      │
+    └────────────────────────────────────────────────────────────────────────┘
+```
+
+### Detection Module Structure
+
+```
+src/services/insiderDetection/
+├── index.ts                  # Module exports
+├── types.ts                  # Detection types & interfaces
+├── config.ts                 # Threshold config loader
+├── detectionDatabase.ts      # DB operations for detection tables
+├── detectionCache.ts         # Redis caching layer
+├── ctfEventListener.ts       # ERC-1155 event listener (Phase 0.2)
+├── marketMetadataService.ts  # Gamma API market sync (Phase 0.3)
+├── marketDepthService.ts     # CLOB order book polling (Phase 0.4)
+├── walletActivityIndex.ts    # Wallet activity aggregator (Phase 0.5)
+├── fundingAnalyzer.ts        # 1-hop funding source analysis (Phase 0.6)
+└── __tests__/                # Unit tests
 ```
