@@ -10,8 +10,9 @@ import type { IconProps } from '../components/icons';
 /**
  * Available navigation views in the application
  * 'wallet' is a dynamic view that displays a specific wallet profile
+ * 'detection' is the insider trading detection dashboard
  */
-export type ViewId = 'dashboard' | 'whales' | 'alerts' | 'settings' | 'wallet';
+export type ViewId = 'dashboard' | 'whales' | 'alerts' | 'detection' | 'settings' | 'wallet';
 
 /**
  * Icon can be either a string (emoji) or a React component
@@ -36,7 +37,7 @@ export function isIconComponent(icon: NavIcon): icon is ComponentType<IconProps>
 
 // Import icons - lazy to avoid circular dependencies
 // Icons are imported where NAV_ITEMS is used, not here
-import { DashboardIcon, WhaleIcon, AlertsIcon, SettingsIcon } from '../components/icons';
+import { DashboardIcon, WhaleIcon, AlertsIcon, SettingsIcon, DetectionIcon } from '../components/icons';
 
 /**
  * Standard navigation items for the app
@@ -45,6 +46,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon },
   { id: 'whales', label: 'Whales', icon: WhaleIcon },
   { id: 'alerts', label: 'Alerts', icon: AlertsIcon },
+  { id: 'detection', label: 'Detection', icon: DetectionIcon },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ];
 
@@ -55,5 +57,6 @@ export const MOBILE_NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Home', icon: DashboardIcon },
   { id: 'whales', label: 'Whales', icon: WhaleIcon },
   { id: 'alerts', label: 'Alerts', icon: AlertsIcon },
+  { id: 'detection', label: 'Detect', icon: DetectionIcon },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ];

@@ -45,17 +45,18 @@ import { WhaleTableSkeleton } from './components/WhaleTableSkeleton';
 import { AlertFeedSkeleton } from './components/AlertFeedSkeleton';
 import { LiveTicker } from './components/LiveTicker';
 import { WhaleOfTheDay } from './components/WhaleOfTheDay';
+import { DetectionDashboard } from './components/detection';
 import { useSettings } from './contexts/SettingsContext';
 import { useToast } from './contexts/ToastContext';
 import type { ViewId } from './types/navigation';
 import type { Alert } from './types/alert';
 import type { WhaleSortField, SortDirection } from './types/whale';
-import { fetchWhaleAtIndex, type WhaleSortField as ApiSortField, type DepositSortField } from './services/api';
+import { fetchWhaleAtIndex, type WhaleSortField as ApiSortField, type DepositSortField, type WhaleFilterType } from './services/api';
 import type { AlertSortField } from './components/AlertFeed';
 
 /**
  * Parse URL hash to determine view and wallet address
- * Supports: #dashboard, #whales, #alerts, #settings, #wallet/0x...
+ * Supports: #dashboard, #whales, #alerts, #detection, #settings, #wallet/0x...
  */
 interface ParsedHash {
   view: ViewId;
@@ -64,7 +65,7 @@ interface ParsedHash {
 
 function parseHash(): ParsedHash {
   const hash = window.location.hash.slice(1); // Remove #
-  const validViews: ViewId[] = ['dashboard', 'whales', 'alerts', 'settings'];
+  const validViews: ViewId[] = ['dashboard', 'whales', 'alerts', 'detection', 'settings'];
 
   // Check for wallet profile: #wallet/0x...
   if (hash.startsWith('wallet/')) {
@@ -149,6 +150,9 @@ function App() {
   const [whaleSortBy, setWhaleSortBy] = useState<WhaleSortField>('totalDeposited');
   const [whaleSortDir, setWhaleSortDir] = useState<SortDirection>('desc');
 
+  // Whale table filter state (server-side filtering)
+  const [whaleFilters, setWhaleFilters] = useState<WhaleFilterType[]>(['all']);
+
   // Alert feed sort state (managed here for server-side sorting)
   const [alertSortBy, setAlertSortBy] = useState<AlertSortField>('timestamp');
   const [alertSortDir, setAlertSortDir] = useState<SortDirection>('desc');
@@ -169,7 +173,7 @@ function App() {
     total: totalWhales,
     page: whalesPage,
     setPage: setWhalesPage,
-  } = useWhales(WHALES_PER_PAGE, mapSortFieldToApi(whaleSortBy), whaleSortDir);
+  } = useWhales(WHALES_PER_PAGE, mapSortFieldToApi(whaleSortBy), whaleSortDir, whaleFilters);
 
   const ALERTS_PER_PAGE = 20;
   const {
@@ -720,11 +724,13 @@ function App() {
             onWhaleClick={handleWhaleClick}
             currentPage={whalesPage}
             itemsPerPage={WHALES_PER_PAGE}
-            totalItems={stats?.whaleCount ?? totalWhales}
+            totalItems={totalWhales}
             onPageChange={setWhalesPage}
             sortBy={whaleSortBy}
             sortDir={whaleSortDir}
             onSortChange={handleWhaleSortChange}
+            activeFilters={whaleFilters}
+            onFilterChange={setWhaleFilters}
             onFollowWhale={isMobile ? handleFollowWhale : undefined}
             onHideWhale={isMobile ? handleHideWhale : undefined}
           />
@@ -858,6 +864,12 @@ function App() {
             {currentView === 'whales' && renderWhalesContent()}
             {currentView === 'alerts' && renderAlertsContent()}
             {currentView === 'wallet' && renderWalletContent()}
+            {currentView === 'detection' && (
+              <DetectionDashboard
+                isMobile={isMobile}
+                onWalletClick={handleWhaleClick}
+              />
+            )}
 
             {/* Settings page */}
             {currentView === 'settings' && <Settings isMobile={isMobile} />}

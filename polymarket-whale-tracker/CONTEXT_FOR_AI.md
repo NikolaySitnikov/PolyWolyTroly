@@ -389,6 +389,108 @@ Check with: `git log -1 --oneline`
 
 ---
 
+## Insider Trading Detection System (Phase 0)
+
+### Overview
+
+A new module for detecting suspicious trading activity on Polymarket. The detection system is implemented as a separate module at `/src/services/insiderDetection/` with its own frontend route at `#detection`.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     DATA SOURCES                                 │
+├─────────────────────┬─────────────────────┬────────────────────┤
+│ Polygon Blockchain  │ Gamma API           │ CLOB API           │
+│ (USDC, CTF tokens)  │ (Market metadata)   │ (Order book depth) │
+└─────────┬───────────┴──────────┬──────────┴─────────┬──────────┘
+          │                      │                    │
+          ▼                      ▼                    ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  BACKEND SERVICES                                │
+│  /src/services/insiderDetection/                                 │
+├─────────────────────────────────────────────────────────────────┤
+│ • ctfEventListener.ts    - ERC-1155 transfer monitoring         │
+│ • marketMetadataService  - Gamma API market sync (5 min)        │
+│ • marketDepthService     - Order book polling (30s)             │
+│ • walletActivityIndex    - Per-market wallet activity           │
+│ • fundingAnalyzer        - 1-hop funding source analysis        │
+│ • walletRiskService      - Risk profile calculation             │
+│ • detectionDatabase      - PostgreSQL CRUD operations           │
+│ • detectionCache         - Redis caching layer                  │
+└─────────────────────────────────────────────────────────────────┘
+          │
+          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  API ENDPOINTS                                   │
+│  GET  /api/detection/stats          - Dashboard statistics       │
+│  GET  /api/detection/alerts         - Paginated alert list       │
+│  GET  /api/detection/alerts/:id     - Single alert detail        │
+│  PATCH /api/detection/alerts/:id    - Update alert status        │
+│  GET  /api/detection/wallets/:addr/risk - Wallet risk profile    │
+│  GET  /api/detection/config         - Detection thresholds       │
+└─────────────────────────────────────────────────────────────────┘
+          │
+          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  FRONTEND (localhost:5173/#detection)            │
+│  /frontend/src/components/detection/                             │
+├─────────────────────────────────────────────────────────────────┤
+│ • DetectionDashboard.tsx - Stats grid + alert list               │
+│ • DetectionAlertList.tsx - Filterable alert list with pagination │
+│ • AlertDetail.tsx        - Single alert view with actions        │
+│ • WalletRiskCard.tsx     - Risk profile visualization            │
+├─────────────────────────────────────────────────────────────────┤
+│ Hooks: useDetectionStats, useDetectionAlerts, useWalletRisk      │
+│ Types: /frontend/src/types/detection.ts                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Database Tables (Phase 0)
+
+| Table | Purpose |
+|-------|---------|
+| `markets` | Market metadata from Gamma API |
+| `depth_snapshots` | Order book depth at 2/5/10 tick levels |
+| `wallet_activity` | Per-market wallet trading activity |
+| `wallet_funding_sources` | 1-hop funding source analysis |
+| `ctf_transfers` | ERC-1155 token movements |
+| `detection_alerts` | Suspicious pattern alerts |
+| `detection_config` | Configurable detection thresholds |
+
+### Where Data Comes From
+
+| Data | Source | Update Frequency |
+|------|--------|------------------|
+| Wallets | Polygon blockchain (USDC Transfer events) | Real-time |
+| Markets | Polymarket Gamma API | Every 5 minutes |
+| Depth | Polymarket CLOB API | Every 30 seconds |
+
+### Current Status
+
+- **Phase 0 (Data Infrastructure)**: ✅ Complete
+- **Phase 1 (Detection Rules)**: ⬜ Not started
+
+The Detection page shows stats and an empty alert list because the detection rules (Phase 1) haven't been implemented yet. Phase 0 built the data infrastructure and UI shell.
+
+### Key Files
+
+**Backend:**
+- `src/services/insiderDetection/` - All detection services
+- `src/api/server.ts` - Detection API endpoints (lines 379-520)
+
+**Frontend:**
+- `frontend/src/components/detection/` - Detection UI components
+- `frontend/src/hooks/useDetectionStats.ts` - Stats hook with 10s polling
+- `frontend/src/types/detection.ts` - TypeScript types
+
+### Documentation
+
+- `Implementation/Insider Trading Detection System.md` - Full roadmap
+- `Implementation/Phase 0 tasks.md` - Detailed task breakdown
+
+---
+
 ## Questions to Ask Human
 
 If you're unsure about:

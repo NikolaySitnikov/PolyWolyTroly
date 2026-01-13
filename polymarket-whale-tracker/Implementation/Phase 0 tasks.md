@@ -271,16 +271,16 @@ src/services/insiderDetection/
 | 0.7.5 | Add `/api/detection/wallets/:address/risk` | API test | ✅ |
 | 0.7.6 | Add `/api/detection/config` endpoints | API tests | ✅ |
 
-### Phase 0.8: Frontend Detection Page
+### Phase 0.8: Frontend Detection Page ✅ COMPLETED (2026-01-13)
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 0.8.1 | Add `detection` route to App.tsx | Component test | ⬜ |
-| 0.8.2 | Create `DetectionDashboard.tsx` (stats + alert list) | Component test | ⬜ |
-| 0.8.3 | Create `AlertList.tsx` with filtering | Component test | ⬜ |
-| 0.8.4 | Create `AlertDetail.tsx` with actions | Component test | ⬜ |
-| 0.8.5 | Create `WalletRiskCard.tsx` | Component test | ⬜ |
-| 0.8.6 | Add hooks: `useDetectionStats`, `useAlerts`, `useWalletRisk` | Hook tests | ⬜ |
-| 0.8.7 | Browser E2E verification via MCP | Manual test | ⬜ |
+| 0.8.1 | Add `detection` route to App.tsx | Component test | ✅ |
+| 0.8.2 | Create `DetectionDashboard.tsx` (stats + alert list) | Component test | ✅ |
+| 0.8.3 | Create `DetectionAlertList.tsx` with filtering | Component test | ✅ |
+| 0.8.4 | Create `AlertDetail.tsx` with actions | Component test | ✅ |
+| 0.8.5 | Create `WalletRiskCard.tsx` | Component test | ✅ |
+| 0.8.6 | Add hooks: `useDetectionStats`, `useDetectionAlerts`, `useWalletRisk` | Hook tests | ✅ |
+| 0.8.7 | Browser E2E verification via MCP | Manual test | ✅ |
 
 ### Phase 0.9: Integration & Testing
 | # | Task | Test Strategy | Status |
@@ -315,18 +315,22 @@ src/services/insiderDetection/
 - `src/index.ts` - Start detection services
 
 ### Frontend (Create)
-- `frontend/src/components/detection/DetectionDashboard.tsx`
-- `frontend/src/components/detection/AlertList.tsx`
-- `frontend/src/components/detection/AlertDetail.tsx`
-- `frontend/src/components/detection/WalletRiskCard.tsx`
-- `frontend/src/hooks/useDetectionStats.ts`
-- `frontend/src/hooks/useAlerts.ts`
-- `frontend/src/hooks/useWalletRisk.ts`
-- `frontend/src/types/detection.ts`
+- `frontend/src/components/detection/DetectionDashboard.tsx` ✅
+- `frontend/src/components/detection/DetectionAlertList.tsx` ✅
+- `frontend/src/components/detection/AlertDetail.tsx` ✅
+- `frontend/src/components/detection/WalletRiskCard.tsx` ✅
+- `frontend/src/components/detection/index.ts` ✅
+- `frontend/src/components/icons/DetectionIcon.tsx` ✅
+- `frontend/src/hooks/useDetectionStats.ts` ✅
+- `frontend/src/hooks/useDetectionAlerts.ts` ✅
+- `frontend/src/hooks/useWalletRisk.ts` ✅
+- `frontend/src/types/detection.ts` ✅
 
 ### Frontend (Modify)
-- `frontend/src/App.tsx` - Add detection route
-- `frontend/src/services/api.ts` - Add detection API functions
+- `frontend/src/App.tsx` - Add detection route ✅
+- `frontend/src/services/api.ts` - Add detection API functions ✅
+- `frontend/src/types/navigation.ts` - Add 'detection' to ViewId ✅
+- `frontend/src/components/icons/index.ts` - Export DetectionIcon ✅
 
 ---
 
@@ -382,15 +386,40 @@ Phase 0.1 (DB) ─┬─> Phase 0.2 (CTF) ─> Phase 0.5 (Activity)
 ## Progress Tracking
 
 **Total Subtasks:** 45
-**Completed:** 41
+**Completed:** 48
 **In Progress:** 0
-**Remaining:** 4 (Frontend + Integration)
+**Remaining:** 4 (Integration & Testing)
 
 Last Updated: 2026-01-13
 
 ---
 
 ## Changelog
+
+### 2026-01-13 - Phase 0.8 Complete
+- Created frontend Detection page at `/frontend/src/components/detection/`:
+  - `DetectionDashboard.tsx` - Main dashboard with stats grid and alert list
+  - `DetectionAlertList.tsx` - Alert list with severity/status/type filters and pagination
+  - `AlertDetail.tsx` - Detailed view with status update actions
+  - `WalletRiskCard.tsx` - Risk profile visualization with risk meter and factor breakdown
+  - `index.ts` - Barrel exports
+- Created React hooks:
+  - `useDetectionStats.ts` - Fetch detection statistics with loading/error states
+  - `useDetectionAlerts.ts` - Paginated alerts with filtering and status updates
+  - `useWalletRisk.ts` - Wallet risk profile fetching
+- Created frontend types at `frontend/src/types/detection.ts`:
+  - Alert types, severities, and statuses
+  - Detection stats and wallet risk profile interfaces
+  - Color mappings and label helpers
+- Added detection API functions to `frontend/src/services/api.ts`:
+  - `fetchDetectionStats()`, `fetchDetectionAlerts()`, `fetchDetectionAlert()`
+  - `updateDetectionAlertStatus()`, `fetchWalletRisk()`
+- Created `DetectionIcon.tsx` (shield with eye) and exported from icons
+- Updated navigation:
+  - Added `'detection'` to `ViewId` type in `navigation.ts`
+  - Added detection to `NAV_ITEMS` and `MOBILE_NAV_ITEMS`
+- Wired detection route in `App.tsx` with proper URL hash parsing
+- Browser E2E verification: Detection dashboard loads correctly, shows stats and filter pills, handles empty alert state gracefully
 
 ### 2026-01-13 - Phase 0.7 Complete
 - Created `walletRiskService.ts` with:

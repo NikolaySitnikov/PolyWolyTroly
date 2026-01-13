@@ -675,6 +675,17 @@ export const detectionDb = {
   // ----------------------------------------
 
   async getStats(): Promise<DetectionStats> {
+    // Import cache here to avoid circular dependency at module load
+    const { detectionCache } = await import("./detectionCache.js");
+
+    // Try cache first
+    const cached = await detectionCache.getDetectionStats();
+    if (cached) {
+      return cached as DetectionStats;
+    }
+
+    // Cache miss - query database
+    // Note: Using approximate count for wallet_activity to avoid slow COUNT(DISTINCT)
     const [
       alertsTodayResult,
       alertsTotalResult,
@@ -688,7 +699,8 @@ export const detectionDb = {
       pool.query("SELECT alert_type, COUNT(*) as count FROM detection_alerts GROUP BY alert_type"),
       pool.query("SELECT severity, COUNT(*) as count FROM detection_alerts GROUP BY severity"),
       pool.query("SELECT COUNT(*) as count FROM markets WHERE resolved_at IS NULL"),
-      pool.query("SELECT COUNT(DISTINCT wallet_address) as count FROM wallet_activity"),
+      // Use wallets table count (already tracked) - much faster than COUNT(DISTINCT) on wallet_activity
+      pool.query("SELECT COUNT(*) as count FROM wallets"),
     ]);
 
     const alertsByType: Record<AlertType, number> = {
@@ -705,7 +717,7 @@ export const detectionDb = {
       alertsBySeverity[row.severity as AlertSeverity] = parseInt(row.count);
     }
 
-    return {
+    const stats: DetectionStats = {
       alertsToday: parseInt(alertsTodayResult.rows[0]?.count || "0"),
       alertsTotal: parseInt(alertsTotalResult.rows[0]?.count || "0"),
       alertsByType,
@@ -713,6 +725,11 @@ export const detectionDb = {
       activeMarkets: parseInt(activeMarketsResult.rows[0]?.count || "0"),
       walletsTracked: parseInt(walletsTrackedResult.rows[0]?.count || "0"),
     };
+
+    // Cache the result
+    await detectionCache.setDetectionStats(stats);
+
+    return stats;
   },
 
   // ----------------------------------------

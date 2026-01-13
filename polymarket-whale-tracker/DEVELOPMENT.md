@@ -286,6 +286,78 @@ function getWinRateColor(winRate: number, totalTrades: number | null): string {
 
 ---
 
+## Insider Trading Detection System
+
+### Overview
+
+The Detection system monitors trading activity for suspicious patterns. Access it at `http://localhost:5173/#detection`.
+
+### Starting Detection Services
+
+The detection services start automatically with the API server:
+
+```bash
+npm run dev:api
+```
+
+This starts:
+- Market metadata sync (every 5 minutes from Gamma API)
+- Market depth polling (every 30 seconds from CLOB API)
+- CTF token transfer listener (real-time from Polygon)
+
+### Detection Dashboard
+
+The Detection page (`#detection`) shows:
+- **Stats Grid**: Alerts today, total alerts, critical/high counts
+- **Alerts by Type**: Timing, Large Size, Pattern, Cluster, Funding
+- **Recent Alerts**: Filterable list with severity/status/type filters
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/detection/stats` | GET | Dashboard statistics |
+| `/api/detection/alerts` | GET | Paginated alerts (supports `?page=`, `?limit=`, `?severity=`, `?status=`, `?alertType=`) |
+| `/api/detection/alerts/:id` | GET | Single alert details |
+| `/api/detection/alerts/:id` | PATCH | Update alert status (`investigating`, `confirmed`, `dismissed`) |
+| `/api/detection/wallets/:address/risk` | GET | Wallet risk profile |
+| `/api/detection/config` | GET | Detection thresholds |
+
+### Caching
+
+Detection stats are cached in Redis with 30-second TTL for fast page loads. The frontend polls every 10 seconds for near-real-time updates.
+
+### Database Tables
+
+```sql
+-- Core detection tables
+markets              -- Market metadata from Gamma API
+depth_snapshots      -- Order book depth snapshots
+wallet_activity      -- Per-market wallet trading activity
+wallet_funding_sources -- 1-hop funding analysis
+ctf_transfers        -- ERC-1155 token movements
+detection_alerts     -- Suspicious pattern alerts
+detection_config     -- Configurable thresholds
+```
+
+### Key Files
+
+| Component | Location |
+|-----------|----------|
+| Detection services | `src/services/insiderDetection/` |
+| API endpoints | `src/api/server.ts` (lines 379-520) |
+| Frontend components | `frontend/src/components/detection/` |
+| Frontend hooks | `frontend/src/hooks/useDetection*.ts` |
+| Types | `frontend/src/types/detection.ts` |
+
+### Performance Notes
+
+- **Stats endpoint**: Cached in Redis (30s TTL) to avoid slow COUNT queries
+- **Frontend polling**: 10-second interval for live updates
+- **Wallets count**: Uses `wallets` table count (fast) instead of `COUNT(DISTINCT)` on `wallet_activity`
+
+---
+
 ## UI Components
 
 ### PositionsTable

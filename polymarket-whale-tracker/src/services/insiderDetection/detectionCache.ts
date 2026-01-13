@@ -34,6 +34,7 @@ const PREFIX = {
   recentAlerts: "det:alerts:recent",
   ctfProcessed: "det:ctf_processed:",
   ctfLock: "det:ctf_lock:",
+  detectionStats: "det:stats",
 } as const;
 
 // TTL values in seconds
@@ -47,6 +48,7 @@ const TTL = {
   config: 60,               // 1 minute (allow quick config updates)
   ctfProcessed: 7 * 24 * 60 * 60, // 7 days
   ctfLock: 60,              // 60 seconds
+  detectionStats: 30,       // 30 seconds (for fast UI updates)
 } as const;
 
 export const detectionCache = {
@@ -335,6 +337,41 @@ export const detectionCache = {
   // ----------------------------------------
   // UTILITY METHODS
   // ----------------------------------------
+
+  // ----------------------------------------
+  // DETECTION STATS CACHE
+  // ----------------------------------------
+
+  async setDetectionStats(stats: {
+    alertsToday: number;
+    alertsTotal: number;
+    alertsByType: Record<string, number>;
+    alertsBySeverity: Record<string, number>;
+    activeMarkets: number;
+    walletsTracked: number;
+  }): Promise<void> {
+    await redis.setex(
+      PREFIX.detectionStats,
+      TTL.detectionStats,
+      JSON.stringify(stats)
+    );
+  },
+
+  async getDetectionStats(): Promise<{
+    alertsToday: number;
+    alertsTotal: number;
+    alertsByType: Record<string, number>;
+    alertsBySeverity: Record<string, number>;
+    activeMarkets: number;
+    walletsTracked: number;
+  } | null> {
+    const data = await redis.get(PREFIX.detectionStats);
+    return data ? JSON.parse(data) : null;
+  },
+
+  async invalidateDetectionStats(): Promise<void> {
+    await redis.del(PREFIX.detectionStats);
+  },
 
   /**
    * Clear all detection cache entries (useful for testing)

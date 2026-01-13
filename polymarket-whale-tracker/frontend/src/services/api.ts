@@ -102,6 +102,9 @@ export interface WalletsResponse {
 export type WhaleSortField = 'total_deposited' | 'deposit_count' | 'first_seen_at';
 export type SortDirection = 'asc' | 'desc';
 
+/** Whale filter types for server-side filtering */
+export type WhaleFilterType = 'all' | 'profitable' | 'losing' | 'live';
+
 /**
  * Fetches paginated list of tracked whale wallets.
  * Market makers are automatically excluded server-side.
@@ -109,6 +112,7 @@ export type SortDirection = 'asc' | 'desc';
  * @param limit - Items per page (default 20)
  * @param sortBy - Field to sort by (default 'total_deposited')
  * @param sortDir - Sort direction (default 'desc')
+ * @param filters - Optional array of filter types (profitable, losing, live)
  * @returns Promise resolving to paginated wallet data
  * @throws Error if the request fails
  */
@@ -117,6 +121,7 @@ export async function fetchWhales(
   limit = 20,
   sortBy: WhaleSortField = 'total_deposited',
   sortDir: SortDirection = 'desc',
+  filters?: WhaleFilterType[],
   signal?: AbortSignal
 ): Promise<WalletsResponse> {
   const params = new URLSearchParams({
@@ -125,6 +130,11 @@ export async function fetchWhales(
     sortBy,
     sortDir,
   });
+
+  // Add filter parameter if filters are active (not 'all' or empty)
+  if (filters && filters.length > 0 && !filters.includes('all')) {
+    params.set('filter', filters.join(','));
+  }
 
   const response = await fetch(`${api.baseUrl}/api/wallets?${params.toString()}`, { signal });
 
@@ -573,6 +583,142 @@ export async function fetchClosedPositions(
 
   if (!response.ok) {
     throw new Error(`Failed to fetch closed positions: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// ============================================
+// INSIDER DETECTION API
+// ============================================
+
+import type {
+  DetectionStatsResponse,
+  DetectionAlertsResponse,
+  DetectionAlert,
+  WalletRiskProfile,
+  AlertFilters,
+  AlertStatus,
+} from '../types/detection';
+
+/**
+ * Fetches detection dashboard statistics.
+ * @returns Promise resolving to detection stats
+ */
+export async function fetchDetectionStats(): Promise<DetectionStatsResponse> {
+  const response = await fetch(`${api.baseUrl}/api/detection/stats`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch detection stats: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetches paginated detection alerts with optional filters.
+ * @param page - Page number (1-indexed)
+ * @param limit - Items per page
+ * @param filters - Optional filters
+ * @returns Promise resolving to paginated alerts
+ */
+export async function fetchDetectionAlerts(
+  page = 1,
+  limit = 20,
+  filters?: AlertFilters
+): Promise<DetectionAlertsResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+
+  if (filters?.status) {
+    const statuses = Array.isArray(filters.status) ? filters.status : [filters.status];
+    params.set('status', statuses.join(','));
+  }
+  if (filters?.severity) {
+    const severities = Array.isArray(filters.severity) ? filters.severity : [filters.severity];
+    params.set('severity', severities.join(','));
+  }
+  if (filters?.alertType) {
+    const types = Array.isArray(filters.alertType) ? filters.alertType : [filters.alertType];
+    params.set('alertType', types.join(','));
+  }
+  if (filters?.walletAddress) {
+    params.set('wallet', filters.walletAddress);
+  }
+  if (filters?.conditionId) {
+    params.set('market', filters.conditionId);
+  }
+
+  const response = await fetch(`${api.baseUrl}/api/detection/alerts?${params.toString()}`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch detection alerts: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetches a single detection alert by ID.
+ * @param id - Alert ID
+ * @returns Promise resolving to alert details
+ */
+export async function fetchDetectionAlert(id: number): Promise<DetectionAlert> {
+  const response = await fetch(`${api.baseUrl}/api/detection/alerts/${id}`);
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Alert not found');
+    }
+    throw new Error(`Failed to fetch alert: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Updates detection alert status.
+ * @param id - Alert ID
+ * @param status - New status
+ * @param notes - Optional review notes
+ * @returns Promise resolving to updated alert
+ */
+export async function updateDetectionAlertStatus(
+  id: number,
+  status: AlertStatus,
+  notes?: string
+): Promise<DetectionAlert> {
+  const response = await fetch(`${api.baseUrl}/api/detection/alerts/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ status, notes }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to update alert: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetches wallet risk profile.
+ * @param address - Wallet address
+ * @returns Promise resolving to risk profile
+ */
+export async function fetchWalletRisk(address: string): Promise<WalletRiskProfile> {
+  const normalizedAddress = address.toLowerCase();
+  const response = await fetch(`${api.baseUrl}/api/detection/wallets/${normalizedAddress}/risk`);
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Wallet not found');
+    }
+    throw new Error(`Failed to fetch wallet risk: ${response.status}`);
   }
 
   return response.json();

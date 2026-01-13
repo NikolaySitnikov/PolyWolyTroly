@@ -12,6 +12,7 @@ export { DashboardIcon } from './DashboardIcon';
 export { WhaleIcon } from './WhaleIcon';
 export { AlertsIcon } from './AlertsIcon';
 export { SettingsIcon } from './SettingsIcon';
+export { DetectionIcon } from './DetectionIcon';
 
 // KPI Card Icons (24px)
 export { WhaleTrackedIcon } from './WhaleTrackedIcon';
