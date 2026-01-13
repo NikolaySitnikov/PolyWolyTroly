@@ -144,7 +144,47 @@ Queries `https://data-api.polymarket.com/activity?user={address}` to determine i
 ### Key Constants (src/utils/constants.ts)
 - USDC contract: `0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174`
 - Polymarket Exchange: `0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E`
+- CTF Exchange: `0x4D97DCd97eC945f40cF65F87097ACe5EA0476045`
 - USDC has 6 decimals
+
+### Insider Detection Module (src/services/insiderDetection/)
+
+New module for detecting suspicious trading patterns on Polymarket. Phase 0.1 complete.
+
+**Database Tables** (7 new tables via migration 002):
+- `markets` - Market metadata, resolution times, volume tracking
+- `depth_snapshots` - Order book depth at 2/5/10 tick levels
+- `wallet_activity` - Per-market wallet activity index
+- `wallet_funding_sources` - 1-hop funding source analysis
+- `ctf_transfers` - ERC-1155 token movements
+- `detection_alerts` - Suspicious pattern alerts with severity/status
+- `detection_config` - Configurable detection thresholds
+
+**Services**:
+- `types.ts` - TypeScript interfaces for all detection entities
+- `detectionDatabase.ts` - CRUD operations for detection tables
+- `detectionCache.ts` - Redis caching with TTLs (market: 5min, depth: 30s, wallet: 5min)
+- `config.ts` - Threshold configuration loader with helper functions
+
+**Default Thresholds** (from `detection_config` table):
+- Wallet age: <14 days = HIGH, <30 days = MEDIUM
+- Funding: ≥$3,000 OR ≥5% of market 24h volume
+- Trade timing: <2h from funding = HIGH, <24h = MEDIUM
+- Entry odds: ≤15% OR price moved >8% in 1h
+- Concentration: ≥85% wallet level, ≥70% cluster level
+
+**Usage**:
+```typescript
+import { detectionDb, detectionCache, loadConfig, runAllChecks } from "./services/insiderDetection/index.js";
+
+// Check thresholds
+const result = await runAllChecks({
+  walletAgeDays: 10,
+  fundingAmountUsd: 5000,
+  hoursFromFunding: 1,
+});
+// result.overallSuspicious = true, result.triggeredChecks = ['wallet_age_HIGH', 'timing_HIGH']
+```
 
 ### Required Environment Variables
 - `ALCHEMY_WSS_URL` / `ALCHEMY_HTTP_URL` - Polygon RPC endpoints (PublicNode)
