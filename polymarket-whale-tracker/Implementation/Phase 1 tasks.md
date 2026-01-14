@@ -199,17 +199,17 @@ src/services/insiderDetection/
 | 1.4.8 | Create alert with detailed trigger values | Unit test | ✅ |
 | 1.4.9 | Unit tests for Rule #1 (18+ tests) | Vitest | ✅ |
 
-### Phase 1.5: Rule #2 - Pre-Move Advantage
+### Phase 1.5: Rule #2 - Pre-Move Advantage ✅ COMPLETED
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 1.5.1 | Create `rules/preMoveAdvantage.ts` skeleton | TypeScript compilation | |
-| 1.5.2 | Implement `evaluate(trade, market)` method | Unit test | |
-| 1.5.3 | Implement MTM calculation using priceHistoryService | Unit test | |
-| 1.5.4 | Implement volatility regime detection | Unit test | |
-| 1.5.5 | Implement lookback evaluation (check price N hours after trade) | Unit test | |
-| 1.5.6 | Implement scheduled re-evaluation job for pending trades | Integration test | |
-| 1.5.7 | Create alert with MTM gain details | Unit test | |
-| 1.5.8 | Unit tests for Rule #2 (18+ tests) | Vitest | |
+| 1.5.1 | Create `rules/preMoveAdvantage.ts` skeleton | TypeScript compilation | ✅ |
+| 1.5.2 | Implement `evaluate(trade, market)` method | Unit test | ✅ |
+| 1.5.3 | Implement MTM calculation using priceHistoryService | Unit test | ✅ |
+| 1.5.4 | Implement volatility regime detection | Unit test | ✅ |
+| 1.5.5 | Implement lookback evaluation (schedulePendingEvaluation) | Unit test | ✅ |
+| 1.5.6 | Implement scheduled re-evaluation job (processPendingEvaluations) | Integration test | ✅ |
+| 1.5.7 | Create alert with MTM gain details | Unit test | ✅ |
+| 1.5.8 | Unit tests for Rule #2 (35 tests) | Vitest | ✅ |
 
 ### Phase 1.6: Rule #3 - Coordinated Cluster
 | # | Task | Test Strategy | Status |
@@ -392,15 +392,45 @@ confidence = (
 ## Progress Tracking
 
 **Total Subtasks:** 78
-**Completed:** 31
+**Completed:** 39
 **In Progress:** 0
-**Remaining:** 47
+**Remaining:** 39
 
 Last Updated: 2026-01-14
 
 ---
 
 ## Changelog
+
+### 2026-01-14 - Phase 1.5 Completed
+- Created `rules/preMoveAdvantage.ts` with full Rule #2 implementation:
+  - `schedulePendingEvaluation()` - schedules trades for delayed MTM evaluation
+  - `processPendingEvaluations()` - background job that processes pending evaluations
+  - `evaluate()` - core evaluation logic checking MTM gain thresholds
+  - `cleanupOldEvaluations()` - cleanup utility for old completed evaluations
+- Features implemented:
+  - MTM (Mark-to-Market) calculation using priceHistoryService
+  - Volatility regime detection - higher threshold in volatile markets
+  - Volatility-adjusted thresholds: base threshold * vol_multiplier in volatile markets
+  - Delayed evaluation workflow via pending_mtm_evaluations table
+  - YES/NO side handling for proper MTM direction
+- Confidence scoring weights:
+  - 40% MTM gain (higher gain = higher confidence)
+  - 25% trade size (larger = higher)
+  - 20% volatility regime (volatile = higher)
+  - 15% timing score (fixed moderate value for now)
+- Threshold defaults: $3,000 min trade, 8% MTM gain, 1 hour lookback, 1.5x vol multiplier
+- Created 35 unit tests for Rule #2 covering:
+  - Basic triggering conditions
+  - Volatility regime adjustments
+  - Pending evaluation scheduling and processing
+  - Confidence score calculations
+  - YES/NO side handling
+  - Input validation and edge cases
+  - Alert deduplication
+  - Configuration management
+- Added `side` field to `RuleEvaluationContext` type
+- All tests passing (288 insider detection tests)
 
 ### 2026-01-14 - Phase 1.4 Completed
 - Created `rules/ruleBase.ts` with abstract `BaseDetectionRule` class:

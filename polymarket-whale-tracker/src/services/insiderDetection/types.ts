@@ -513,6 +513,7 @@ export interface RuleEvaluationContext {
   entryPrice?: number;
   txHash?: string;
   timestamp?: Date;
+  side?: 'YES' | 'NO';
 }
 
 export interface RuleResult {

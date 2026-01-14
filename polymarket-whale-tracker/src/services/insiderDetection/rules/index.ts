@@ -13,5 +13,5 @@ export { BaseDetectionRule } from "./ruleBase.js";
 
 // Rule implementations
 export { FreshConcentratedDepthRule, freshConcentratedDepthRule } from "./freshConcentratedDepth.js";
-// export { preMoveAdvantageRule } from "./preMoveAdvantage.js";
+export { PreMoveAdvantageRule, preMoveAdvantageRule } from "./preMoveAdvantage.js";
 // export { coordinatedClusterRule } from "./coordinatedCluster.js";

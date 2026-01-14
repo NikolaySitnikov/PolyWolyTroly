@@ -459,8 +459,66 @@ if (result.triggered) {
 
 **Tests**: 37 new tests for Rule #1 (253 total insider detection tests)
 
+**Phase 1.5 - Rule #2: Pre-Move Advantage** ✅ COMPLETE
+
+Second detection rule implementation - detects trades that gain significant value shortly after execution:
+
+**New Files**:
+- `rules/preMoveAdvantage.ts` - Rule #2 implementation
+
+**Detection Logic**:
+Evaluates trades after a lookback window (default: 1 hour) to check for suspicious gains:
+1. Trade size ≥ $3,000
+2. MTM (Mark-to-Market) gain ≥ 8% (or 12% in volatile markets)
+
+**Key Methods**:
+- `schedulePendingEvaluation()` - Schedule trade for future MTM evaluation
+- `processPendingEvaluations()` - Background job to process pending evaluations
+- `evaluate()` - Core evaluation logic checking MTM gain thresholds
+- `cleanupOldEvaluations()` - Cleanup utility for old completed evaluations
+
+**Volatility Adjustment**:
+In volatile markets (recent volatility > 1.5x historical), the MTM threshold is increased by the volatility multiplier to reduce false positives.
+
+**Confidence Scoring**:
+- MTM gain: 40% weight (higher gain = higher)
+- Trade size: 25% weight (larger = higher)
+- Volatility regime: 20% weight (volatile = higher)
+- Timing: 15% weight (fixed moderate score)
+
+**Usage**:
+```typescript
+import { preMoveAdvantageRule } from "./rules/index.js";
+
+// Schedule a trade for future evaluation
+await preMoveAdvantageRule.schedulePendingEvaluation(
+  walletAddress,
+  conditionId,
+  entryPrice,
+  tradeSizeUsd,
+  tradeTimestamp,
+  txHash
+);
+
+// Process pending evaluations (run periodically)
+const results = await preMoveAdvantageRule.processPendingEvaluations(100);
+// results = { processed: 10, triggered: 2, errors: 0 }
+
+// Or evaluate directly (if price data already available)
+const result = await preMoveAdvantageRule.evaluate({
+  walletAddress: "0x...",
+  conditionId: "0x...",
+  entryPrice: 0.50,
+  tradeSize: 5000,
+  timestamp: new Date(),
+  txHash: "0x...",
+  side: "YES", // or "NO"
+});
+```
+
+**Tests**: 35 new tests for Rule #2 (288 total insider detection tests)
+
 **Upcoming Phases**:
-- Phase 1.5: Rule #2 - Pre-Move Advantage
 - Phase 1.6: Rule #3 - Coordinated Cluster
 - Phase 1.7: Detection Engine Orchestration
 - Phase 1.8-1.11: Integration, API, Frontend, Testing
@@ -527,6 +585,7 @@ Test files:
 - `insiderDetection/__tests__/priceHistoryService.test.ts` - 25 tests for price history service
 - `insiderDetection/__tests__/clusterService.test.ts` - 30 tests for wallet cluster service
 - `insiderDetection/__tests__/freshConcentratedDepth.test.ts` - 37 tests for Rule #1
+- `insiderDetection/__tests__/preMoveAdvantage.test.ts` - 35 tests for Rule #2
 
 ## Module System
 
