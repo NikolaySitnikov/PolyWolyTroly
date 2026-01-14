@@ -303,6 +303,8 @@ export interface PaginationParams {
   limit: number;
   sortBy?: string;
   sortDir?: 'asc' | 'desc';
+  /** Skip COUNT query for blazing fast pagination (returns total=-1) */
+  skipCount?: boolean;
 }
 
 export interface PaginatedResult<T> {

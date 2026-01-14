@@ -643,20 +643,32 @@ export async function fetchDetectionStats(): Promise<DetectionStatsResponse> {
 
 /**
  * Fetches paginated detection alerts with optional filters.
+ *
+ * PERFORMANCE OPTIMIZATION: When skipCount=true, the backend skips the COUNT query,
+ * making pagination navigation blazingly fast. Use this for page changes where
+ * the total hasn't changed (no filter changes).
+ *
  * @param page - Page number (1-indexed)
  * @param limit - Items per page
  * @param filters - Optional filters
- * @returns Promise resolving to paginated alerts
+ * @param skipCount - Skip COUNT query for faster pagination (default: false)
+ * @returns Promise resolving to paginated alerts (total=-1 if skipCount=true)
  */
 export async function fetchDetectionAlerts(
   page = 1,
   limit = 20,
-  filters?: AlertFilters
+  filters?: AlertFilters,
+  skipCount = false
 ): Promise<DetectionAlertsResponse> {
   const params = new URLSearchParams({
     page: String(page),
     limit: String(limit),
   });
+
+  // Add skipCount for blazing fast page navigation
+  if (skipCount) {
+    params.set('skipCount', 'true');
+  }
 
   if (filters?.status) {
     const statuses = Array.isArray(filters.status) ? filters.status : [filters.status];

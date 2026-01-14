@@ -3,6 +3,12 @@
  *
  * React hook for fetching and managing insider detection alerts.
  * Supports pagination and filtering with WebSocket for instant live updates.
+ *
+ * PERFORMANCE OPTIMIZATIONS:
+ * - Skips COUNT query on page navigation (uses cached total)
+ * - Only refreshes total on initial load and filter changes
+ * - Local filtering for instant UI response
+ * - Optimistic updates with WebSocket
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -37,6 +43,17 @@ function filterAlertsLocally(alerts: DetectionAlert[], filters: AlertFilters): D
       if (!types.includes(alert.alertType)) return false;
     }
     return true;
+  });
+}
+
+/**
+ * Create a stable filter key for tracking filter changes
+ */
+function getFilterKey(filters: AlertFilters): string {
+  return JSON.stringify({
+    severity: filters.severity || null,
+    status: filters.status || null,
+    alertType: filters.alertType || null,
   });
 }
 
@@ -76,6 +93,11 @@ export function useDetectionAlerts(
   pageRef.current = page;
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Track the last filter key to detect filter changes vs page changes
+  const lastFilterKeyRef = useRef<string>(getFilterKey(initialFilters || {}));
+  // Track if we need to refresh the total count (only on filter change, not page change)
+  const needsTotalRefreshRef = useRef(true);
+
   // Optimistically filter alerts locally for instant UI response
   // This ensures filters feel instant while API call is in flight
   const alerts = useMemo(() => {
@@ -85,7 +107,7 @@ export function useDetectionAlerts(
     return filterAlertsLocally(rawAlerts, filters);
   }, [rawAlerts, filters]);
 
-  // Debounced fetch to prevent excessive API calls when rapidly changing filters
+  // Optimized fetch - skips COUNT query on page navigation for blazing fast pagination
   const fetchData = useCallback(async (immediate = false) => {
     // Clear any pending debounce
     if (debounceTimerRef.current) {
@@ -94,15 +116,32 @@ export function useDetectionAlerts(
     }
 
     const doFetch = async () => {
+      // Check if filters changed (need to refresh total) or just page changed (skip count)
+      const currentFilterKey = getFilterKey(filters);
+      const filtersChanged = currentFilterKey !== lastFilterKeyRef.current;
+
+      if (filtersChanged) {
+        needsTotalRefreshRef.current = true;
+        lastFilterKeyRef.current = currentFilterKey;
+      }
+
+      // Only show loading on initial load - page changes should feel instant
       if (isInitialLoad.current) {
         setLoading(true);
       }
 
       try {
-        const data = await fetchDetectionAlerts(page, limit, filters);
+        // Pass skipCount=true when only page changed (not filters)
+        const skipCount = !needsTotalRefreshRef.current && !isInitialLoad.current;
+        const data = await fetchDetectionAlerts(page, limit, filters, skipCount);
         setRawAlerts(data.alerts);
-        setTotal(data.total);
-        setTotalPages(data.totalPages);
+
+        // Only update total/totalPages if we got fresh count data
+        if (data.total !== undefined && data.total !== -1) {
+          setTotal(data.total);
+          setTotalPages(data.totalPages);
+          needsTotalRefreshRef.current = false;
+        }
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -115,8 +154,8 @@ export function useDetectionAlerts(
     if (immediate || isInitialLoad.current) {
       await doFetch();
     } else {
-      // Debounce subsequent fetches by 150ms for smoother filter changes
-      debounceTimerRef.current = setTimeout(doFetch, 150);
+      // Debounce subsequent fetches by 50ms (reduced from 150ms) for faster response
+      debounceTimerRef.current = setTimeout(doFetch, 50);
     }
   }, [page, limit, filters]);
 

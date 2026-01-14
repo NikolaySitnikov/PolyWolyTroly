@@ -1,0 +1,188 @@
+# Testing Requirements for PolyWolyTroly
+
+This document defines mandatory testing requirements for all development work on this project. These requirements exist because of past issues where unit tests passed but real-world integrations failed.
+
+## Core Principle
+
+**Never assume external data formats or relationships. Always verify with real data first.**
+
+---
+
+## Mandatory Testing Checklist
+
+Before marking any feature as complete, the following must be verified:
+
+### 1. External API Integrations
+
+For any code that interacts with external APIs (Polymarket CLOB, Gamma, Polygonscan, etc.):
+
+- [ ] **Fetch real API responses** - Make actual API calls and log the response structure
+- [ ] **Verify field names and types** - Don't assume field names match documentation
+- [ ] **Test with edge cases** - What happens when data is missing, null, or malformed?
+- [ ] **Document the actual response format** in comments or types
+
+Example of what NOT to do:
+```typescript
+// BAD: Assumed tokenId could be used as conditionId
+const conditionId = tokenId.toString(16);
+```
+
+Example of what TO do:
+```typescript
+// GOOD: Verified with real Polygonscan transaction that token IDs
+// are NOT condition IDs. Must look up in markets table.
+// Real example: Token ID 17995803... maps to condition 0xc4f9c5ce...
+const marketLookup = await db.getMarketByTokenId(tokenId);
+```
+
+### 2. Blockchain Data
+
+For any code that processes blockchain events:
+
+- [ ] **Trace 2-3 real transactions end-to-end** before writing any code
+- [ ] **Use Polygonscan to verify** your understanding of event data
+- [ ] **Test with actual transaction hashes** from mainnet, not synthetic data
+- [ ] **Verify numeric conversions** (wei/gwei, decimals, BigInt handling)
+
+Required verification for this project:
+```bash
+# Example: Verify a CTF transfer event
+# 1. Find a real transfer on Polygonscan
+# 2. Decode the event data manually
+# 3. Confirm your code produces the same values
+```
+
+### 3. Integration Tests with Real Data
+
+Every major feature must have at least one integration test that:
+
+- [ ] Uses a **real transaction hash** or **real API response**
+- [ ] Verifies the **complete flow** from input to output
+- [ ] Includes **assertions on actual values**, not just "did it run without error"
+
+Example test structure:
+```typescript
+describe('CTF Transfer Processing - Real Data', () => {
+  it('should correctly calculate trade size for known transaction', async () => {
+    // Real transaction from Polygonscan
+    const realTxHash = '0x9a4df7cb8205e01f0cde1c87bfa7e5d783bd4a14d44101b2bc51e...';
+
+    // Known values from manual verification
+    const expectedConditionId = '0xc4f9c5ce504fe71a5ab7a870b39ce0dd13d527e9656a270bfc55e2ed5d33b83a';
+    const expectedShares = 57612.813286;
+    const expectedPrice = 0.0005; // YES price at time of trade
+    const expectedUsdValue = 28.81; // shares * price
+
+    const result = await processTransfer(realTxHash);
+
+    expect(result.conditionId).toBe(expectedConditionId);
+    expect(result.usdValue).toBeCloseTo(expectedUsdValue, 1);
+  });
+});
+```
+
+### 4. Sanity Check Assertions
+
+Add runtime sanity checks for values that should never occur:
+
+```typescript
+// Add warnings for suspicious values
+if (tradeSizeUsd > 10000 && priceSource === 'fallback') {
+  logger.warn({
+    msg: 'Large trade using fallback price - verify accuracy',
+    tradeSizeUsd,
+    txHash,
+    conditionId,
+  });
+}
+
+// Fail fast on impossible values
+if (price < 0 || price > 1) {
+  throw new Error(`Invalid price ${price} for condition ${conditionId}`);
+}
+```
+
+---
+
+## Testing Workflow
+
+### Before Starting Implementation
+
+1. **Research the external system** - Read docs, but verify with real data
+2. **Trace real examples manually** - Use Polygonscan, API explorers, etc.
+3. **Document your findings** - Write down actual field names, relationships, edge cases
+4. **Create test fixtures from real data** - Save actual API responses for tests
+
+### During Implementation
+
+1. **Log extensively during development** - Verify values match expectations
+2. **Test against real endpoints** - Not just mocks
+3. **Compare outputs to manual calculations** - Especially for financial values
+
+### Before Marking Complete
+
+1. **Run integration tests with real data**
+2. **Manually verify at least one end-to-end flow**
+3. **Check for sanity assertions** on critical values
+4. **Document any assumptions** that couldn't be fully verified
+
+---
+
+## Known Gotchas in This Project
+
+### Polymarket Token IDs vs Condition IDs
+
+**CRITICAL**: ERC-1155 token IDs are NOT condition IDs!
+
+- Token ID: `17995803542616038445492082801478540110557446957690828115634862604211622554070`
+- Condition ID: `0xc4f9c5ce504fe71a5ab7a870b39ce0dd13d527e9656a270bfc55e2ed5d33b83a`
+
+These are completely different values. Token IDs cannot be reverse-engineered to condition IDs. You must look up the mapping via:
+1. Our `markets` table (outcome_yes_token_id, outcome_no_token_id columns)
+2. Gamma API market metadata
+
+### Price Data Sources
+
+Prices can come from multiple sources with different formats:
+- CLOB API: `{ tokens: [{ outcome: 'Yes', price: 0.45 }, { outcome: 'No', price: 0.55 }] }`
+- Gamma API: Different structure
+- Our price_history table: Stored as decimal
+
+Always verify which source you're using and that the format matches.
+
+### Decimal Handling
+
+- USDC amounts from blockchain: 6 decimals (divide by 1e6)
+- CTF share amounts: 6 decimals (divide by 1e6)
+- Prices: Already normalized 0-1
+
+---
+
+## Required Test Files
+
+The following test files must exist and pass:
+
+1. `src/services/insiderDetection/__tests__/ctfEventListener.integration.test.ts`
+   - Tests with real transaction hashes
+   - Verifies token ID → condition ID mapping
+
+2. `src/services/insiderDetection/__tests__/detectionEngine.integration.test.ts`
+   - Tests trade size calculation with known values
+   - Verifies price lookups against real API
+
+3. `src/services/insiderDetection/__tests__/marketMetadataService.integration.test.ts`
+   - Tests Gamma API parsing with real responses
+   - Verifies market data is stored correctly
+
+---
+
+## Enforcement
+
+When reviewing code or implementing features:
+
+1. **Ask "How was this tested with real data?"**
+2. **Reject assumptions** - Require evidence from actual API calls or transactions
+3. **Require integration tests** for any external system interaction
+4. **Add sanity checks** for values that could indicate bugs
+
+This document should be updated whenever a new "gotcha" is discovered.

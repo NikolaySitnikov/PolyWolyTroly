@@ -94,15 +94,58 @@ export interface CtfListenerHealthStatus {
 }
 
 /**
- * Parse token ID to extract condition ID (first 32 bytes)
- * Polymarket token IDs encode: conditionId (32 bytes) + outcomeIndex (1 byte)
+ * Look up the real market condition ID from a token ID
+ *
+ * IMPORTANT: Polymarket token IDs are NOT the same as condition IDs!
+ * Token IDs are derived from condition IDs via a complex hash function and cannot
+ * be reverse-engineered. We must look up the mapping in our markets database.
+ *
+ * Returns the condition ID and outcome (YES/NO), or null if not found.
  */
-function parseTokenId(tokenId: bigint): { conditionId: string; outcomeIndex: number } {
-  // Token ID structure: conditionId is the full token ID
-  // Outcome is determined by checking against market's YES/NO token IDs
-  const conditionId = "0x" + tokenId.toString(16).padStart(64, "0");
-  // Outcome index can be derived from market metadata later
-  return { conditionId, outcomeIndex: 0 };
+async function lookupMarketByTokenId(tokenIdBigInt: bigint): Promise<{
+  conditionId: string;
+  outcome: 'YES' | 'NO';
+} | null> {
+  const tokenIdStr = tokenIdBigInt.toString();
+
+  try {
+    const result = await detectionDb.getMarketByTokenId(tokenIdStr);
+    if (result) {
+      return {
+        conditionId: result.market.conditionId,
+        outcome: result.outcome,
+      };
+    }
+
+    // Fallback: try looking up from marketMetadataService which can fetch from API
+    // This handles cases where the market isn't in our DB yet
+    const { marketMetadataService } = await import("./marketMetadataService.js");
+
+    // First sync markets if we haven't recently
+    await marketMetadataService.syncActiveMarkets();
+
+    // Try again after sync
+    const resultAfterSync = await detectionDb.getMarketByTokenId(tokenIdStr);
+    if (resultAfterSync) {
+      return {
+        conditionId: resultAfterSync.market.conditionId,
+        outcome: resultAfterSync.outcome,
+      };
+    }
+
+    logger.debug({
+      msg: "Could not find market for token ID",
+      tokenId: tokenIdStr.substring(0, 20) + "...",
+    });
+    return null;
+  } catch (error) {
+    logger.error({
+      msg: "Error looking up market by token ID",
+      tokenId: tokenIdStr.substring(0, 20) + "...",
+      error,
+    });
+    return null;
+  }
 }
 
 /**
@@ -175,8 +218,6 @@ async function processTransferSingle(log: Log): Promise<void> {
       logger.warn({ msg: "Failed to get block timestamp", error: err });
     }
 
-    // Parse token ID
-    const { conditionId } = parseTokenId(id);
     const transferType = classifyTransfer(from, to);
 
     // Skip mints and burns for now - focus on wallet-to-wallet transfers
@@ -184,6 +225,21 @@ async function processTransferSingle(log: Log): Promise<void> {
     if (transferType !== "transfer") {
       await detectionCache.markCtfTransferProcessed(dedupKey);
       return;
+    }
+
+    // Look up the real market condition ID from the token ID
+    // This is critical for accurate price lookups and trade size calculations
+    const marketLookup = await lookupMarketByTokenId(id);
+    const conditionId = marketLookup?.conditionId;
+    const outcome = marketLookup?.outcome;
+
+    if (!conditionId) {
+      logger.debug({
+        msg: "Unknown market for token - skipping detection evaluation",
+        tokenId: id.toString().substring(0, 20) + "...",
+        txHash: log.transactionHash,
+      });
+      // Still record the transfer but with null conditionId
     }
 
     // Create transfer record
@@ -194,6 +250,7 @@ async function processTransferSingle(log: Log): Promise<void> {
       tokenId: id.toString(),
       amount: value,
       conditionId,
+      outcome,
       blockNumber: Number(log.blockNumber),
       blockTimestamp,
       logIndex,
@@ -292,7 +349,6 @@ async function processTransferBatch(log: Log): Promise<void> {
         continue;
       }
 
-      const { conditionId } = parseTokenId(id);
       const transferType = classifyTransfer(from, to);
 
       // Skip mints and burns
@@ -301,6 +357,11 @@ async function processTransferBatch(log: Log): Promise<void> {
         continue;
       }
 
+      // Look up the real market condition ID from the token ID
+      const marketLookup = await lookupMarketByTokenId(id);
+      const conditionId = marketLookup?.conditionId;
+      const outcome = marketLookup?.outcome;
+
       const transfer: Omit<CtfTransfer, "id"> = {
         txHash: log.transactionHash,
         fromAddress: from,
@@ -308,6 +369,7 @@ async function processTransferBatch(log: Log): Promise<void> {
         tokenId: id.toString(),
         amount: value,
         conditionId,
+        outcome,
         blockNumber: Number(log.blockNumber),
         blockTimestamp,
         logIndex,

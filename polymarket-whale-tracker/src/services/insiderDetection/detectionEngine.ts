@@ -630,14 +630,52 @@ class DetectionEngine {
       });
     }
 
-    // Fallback: if no price data available, use 50% as average price
-    // This is a rough estimate and should be refined
-    logger.debug({
-      msg: "No price data available, using 50% average price",
+    // Fallback: Try fetching price directly from CLOB API
+    try {
+      const clobResponse = await fetch(`https://clob.polymarket.com/markets/${transfer.conditionId}`);
+      if (clobResponse.ok) {
+        const clobData = await clobResponse.json() as { tokens?: Array<{ outcome: string; price: number }> };
+        if (clobData.tokens && clobData.tokens.length >= 2) {
+          // Find the price for the correct outcome
+          const yesToken = clobData.tokens.find(t => t.outcome === 'Yes');
+          let price = yesToken?.price ?? 0.5;
+
+          if (transfer.outcome === 'NO') {
+            price = 1 - price;
+          }
+
+          const usdValue = shares * price;
+
+          logger.debug({
+            msg: "Calculated trade size from CLOB API fallback",
+            shares,
+            price,
+            outcome: transfer.outcome,
+            usdValue,
+            conditionId: transfer.conditionId,
+          });
+
+          return usdValue;
+        }
+      }
+    } catch (clobError) {
+      logger.debug({
+        msg: "CLOB API fallback failed",
+        conditionId: transfer.conditionId,
+        error: clobError,
+      });
+    }
+
+    // Final fallback: no price data available at all
+    // Return shares only (essentially assuming $1 per share) which is conservative
+    // This is better than 50% because it at least preserves the relative magnitude
+    logger.warn({
+      msg: "No price data available - returning raw share count as fallback",
       shares,
       conditionId: transfer.conditionId,
+      txHash: transfer.txHash,
     });
-    return shares * 0.5;
+    return shares;
   }
 
   /**

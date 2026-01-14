@@ -177,7 +177,7 @@ export function createApp(): Express {
   // Wallet trading data endpoint - fetches Polymarket trading metrics
   app.get("/api/wallets/:address/trading", async (req: Request, res: Response) => {
     try {
-      const { address } = req.params;
+      const address = req.params.address as string;
 
       // Validate Ethereum address format
       const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
@@ -200,7 +200,7 @@ export function createApp(): Express {
   // Single wallet endpoint - connected to database
   app.get("/api/wallets/:address", async (req: Request, res: Response) => {
     try {
-      const { address } = req.params;
+      const address = req.params.address as string;
 
       // Validate Ethereum address format
       const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
@@ -290,7 +290,7 @@ export function createApp(): Express {
   // Wallet activity endpoint - fetches paginated activity history
   app.get("/api/wallets/:address/activity", async (req: Request, res: Response) => {
     try {
-      const { address } = req.params;
+      const address = req.params.address as string;
 
       // Validate Ethereum address format
       const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
@@ -326,7 +326,7 @@ export function createApp(): Express {
   // Wallet closed positions endpoint - fetches historical settled positions
   app.get("/api/wallets/:address/closed-positions", async (req: Request, res: Response) => {
     try {
-      const { address } = req.params;
+      const address = req.params.address as string;
 
       // Validate Ethereum address format
       const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
@@ -396,10 +396,14 @@ export function createApp(): Express {
   });
 
   // Detection alerts list endpoint with pagination and filters
+  // PERFORMANCE: Supports skipCount=true for blazing fast page navigation
   app.get("/api/detection/alerts", async (req: Request, res: Response) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+
+      // Parse skipCount parameter for fast pagination
+      const skipCount = req.query.skipCount === "true";
 
       // Parse filters
       const status = req.query.status as string | undefined;
@@ -423,10 +427,11 @@ export function createApp(): Express {
           walletAddress,
           conditionId,
         },
-        { page, limit, sortBy, sortDir }
+        { page, limit, sortBy, sortDir, skipCount }
       );
 
       // Transform response to match frontend expectation (alerts instead of data)
+      // When skipCount=true, total=-1 signals frontend to use cached value
       res.json({
         alerts: result.data,
         total: result.total,
@@ -512,6 +517,23 @@ export function createApp(): Express {
     }
   });
 
+  // Delete ALL alerts (admin cleanup endpoint)
+  // CAUTION: This permanently deletes all detection alerts from the database
+  app.delete("/api/detection/alerts/all", async (_req: Request, res: Response) => {
+    try {
+      const deletedCount = await detectionDb.deleteAllAlerts();
+      console.log(`ADMIN: Deleted ALL ${deletedCount} detection alerts`);
+      res.json({
+        success: true,
+        deletedCount,
+        message: `Successfully deleted ALL ${deletedCount} detection alerts`,
+      });
+    } catch (error) {
+      console.error("Error deleting ALL alerts:", error);
+      res.status(500).json({ error: "Failed to delete ALL alerts" });
+    }
+  });
+
   // ===========================================
   // MARKET METADATA ENDPOINTS (Phase 0.3)
   // ===========================================
@@ -544,7 +566,7 @@ export function createApp(): Express {
   // Get single market by condition ID
   app.get("/api/detection/markets/:conditionId", async (req: Request, res: Response) => {
     try {
-      const conditionId = req.params.conditionId;
+      const conditionId = req.params.conditionId as string;
       const market = await marketMetadataService.getMarket(conditionId);
 
       if (!market) {
@@ -719,7 +741,7 @@ export function createApp(): Express {
   // Get wallet funding profile
   app.get("/api/detection/wallets/:address/funding", async (req: Request, res: Response) => {
     try {
-      const { address } = req.params;
+      const address = req.params.address as string;
       const forceRefresh = req.query.refresh === "true";
 
       const profile = await fundingAnalyzer.getFundingProfile(address);
@@ -737,7 +759,7 @@ export function createApp(): Express {
   // Analyze funding sources for a wallet (with optional force refresh)
   app.post("/api/detection/wallets/:address/funding/analyze", async (req: Request, res: Response) => {
     try {
-      const { address } = req.params;
+      const address = req.params.address as string;
       const { forceRefresh, minAmount } = req.body as {
         forceRefresh?: boolean;
         minAmount?: number;
@@ -762,7 +784,7 @@ export function createApp(): Express {
   // Check if wallet was recently funded
   app.get("/api/detection/wallets/:address/funding/recent", async (req: Request, res: Response) => {
     try {
-      const { address } = req.params;
+      const address = req.params.address as string;
       const hoursThreshold = parseInt(req.query.hours as string) || 24;
 
       const result = await fundingAnalyzer.isRecentlyFunded(address, hoursThreshold);
@@ -781,7 +803,7 @@ export function createApp(): Express {
   // Find wallets with the same funding source (cluster detection)
   app.get("/api/detection/funding/clusters/:sourceAddress", async (req: Request, res: Response) => {
     try {
-      const { sourceAddress } = req.params;
+      const sourceAddress = req.params.sourceAddress as string;
 
       const wallets = await fundingAnalyzer.findWalletsWithSameFunder(sourceAddress);
 
@@ -1037,7 +1059,7 @@ export function createApp(): Express {
   // GET /api/detection/clusters/:clusterId - Get cluster details
   app.get("/api/detection/clusters/:clusterId", async (req: Request, res: Response) => {
     try {
-      const { clusterId } = req.params;
+      const clusterId = req.params.clusterId as string;
       const cluster = await detectionDb.getClusterSummary(clusterId);
 
       if (!cluster) {
@@ -1058,7 +1080,7 @@ export function createApp(): Express {
   // GET /api/detection/wallets/:address/cluster - Get wallet's cluster membership
   app.get("/api/detection/wallets/:address/cluster", async (req: Request, res: Response) => {
     try {
-      const { address } = req.params;
+      const address = req.params.address as string;
 
       // Validate Ethereum address format
       const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
@@ -1092,7 +1114,7 @@ export function createApp(): Express {
   // GET /api/detection/markets/:conditionId/price-history - Get price history
   app.get("/api/detection/markets/:conditionId/price-history", async (req: Request, res: Response) => {
     try {
-      const { conditionId } = req.params;
+      const conditionId = req.params.conditionId as string;
       const hours = parseInt(req.query.hours as string) || 24;
 
       // Calculate time range

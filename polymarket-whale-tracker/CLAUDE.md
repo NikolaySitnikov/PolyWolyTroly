@@ -788,6 +788,18 @@ Navigation: Detection accessible via `/detection` route or clicking "Detection" 
 - `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` - Alert destination
 - `MIN_DEPOSIT_AMOUNT` - Threshold in USD (default: 7500)
 
+## MANDATORY: Testing Requirements
+
+**CRITICAL: Read `TESTING_REQUIREMENTS.md` before implementing any feature that integrates with external APIs or blockchain data.**
+
+Key rules:
+1. **Never assume data formats** - Always verify with real API responses first
+2. **Trace real transactions** - Before writing blockchain code, manually verify 2-3 real transactions on Polygonscan
+3. **Write integration tests with real data** - Use actual tx hashes and API responses, not synthetic mocks
+4. **Add sanity checks** - Runtime assertions for values that indicate bugs (e.g., trade size > $10k from fallback price)
+
+This requirement exists because of past bugs where unit tests passed but real-world integrations failed (e.g., token ID vs condition ID confusion).
+
 ## Testing Patterns
 
 Tests use vitest with extensive mocking. Each service mock follows this pattern:

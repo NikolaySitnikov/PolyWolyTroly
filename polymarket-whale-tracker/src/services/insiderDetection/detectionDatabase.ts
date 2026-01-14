@@ -243,6 +243,32 @@ export const detectionDb = {
     return result.rows.map(marketRowToModel);
   },
 
+  /**
+   * Look up market by token ID (YES or NO outcome token)
+   * Returns the market and which outcome the token represents
+   */
+  async getMarketByTokenId(tokenId: string): Promise<{ market: Market; outcome: 'YES' | 'NO' } | null> {
+    // First try YES token
+    const yesResult = await pool.query<MarketRow>(
+      "SELECT * FROM markets WHERE outcome_yes_token_id = $1",
+      [tokenId]
+    );
+    if (yesResult.rows[0]) {
+      return { market: marketRowToModel(yesResult.rows[0]), outcome: 'YES' };
+    }
+
+    // Then try NO token
+    const noResult = await pool.query<MarketRow>(
+      "SELECT * FROM markets WHERE outcome_no_token_id = $1",
+      [tokenId]
+    );
+    if (noResult.rows[0]) {
+      return { market: marketRowToModel(noResult.rows[0]), outcome: 'NO' };
+    }
+
+    return null;
+  },
+
   // ----------------------------------------
   // DEPTH SNAPSHOTS
   // ----------------------------------------
@@ -541,6 +567,13 @@ export const detectionDb = {
     return result.rows[0] ? alertRowToModel(result.rows[0]) : null;
   },
 
+  /**
+   * Get alerts with pagination and filtering.
+   *
+   * PERFORMANCE OPTIMIZATION: When skipCount=true, skips the COUNT query entirely
+   * for blazing fast page navigation. Returns total=-1 and totalPages=-1 to signal
+   * the frontend should use cached values.
+   */
   async getAlerts(
     filters: AlertFilters,
     pagination: PaginationParams
@@ -604,9 +637,9 @@ export const detectionDb = {
 
     // Pagination
     const offset = (pagination.page - 1) * pagination.limit;
-    params.push(pagination.limit, offset);
+    const dataParams = [...params, pagination.limit, offset];
 
-    // Execute queries
+    // Execute data query
     const dataQuery = `
       SELECT * FROM detection_alerts
       ${whereClause}
@@ -614,11 +647,25 @@ export const detectionDb = {
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
+    // PERFORMANCE: Skip COUNT query when skipCount=true for blazing fast pagination
+    if (pagination.skipCount) {
+      const dataResult = await pool.query<DetectionAlertRow>(dataQuery, dataParams);
+
+      return {
+        data: dataResult.rows.map(alertRowToModel),
+        total: -1, // Signal to frontend: use cached total
+        page: pagination.page,
+        limit: pagination.limit,
+        totalPages: -1, // Signal to frontend: use cached totalPages
+      };
+    }
+
+    // Normal path: run both queries in parallel
     const countQuery = `SELECT COUNT(*) as count FROM detection_alerts ${whereClause}`;
 
     const [dataResult, countResult] = await Promise.all([
-      pool.query<DetectionAlertRow>(dataQuery, params),
-      pool.query(countQuery, params.slice(0, -2)), // Exclude limit/offset for count
+      pool.query<DetectionAlertRow>(dataQuery, dataParams),
+      pool.query(countQuery, params), // Count query doesn't need limit/offset
     ]);
 
     const total = parseInt(countResult.rows[0]?.count || "0", 10);
@@ -657,6 +704,17 @@ export const detectionDb = {
   async deleteTestAlerts(): Promise<number> {
     const result = await pool.query(
       "DELETE FROM detection_alerts WHERE title LIKE '%[TEST]%' RETURNING id"
+    );
+    return result.rowCount ?? 0;
+  },
+
+  /**
+   * Delete all alerts from the database (admin cleanup)
+   * @returns Number of deleted alerts
+   */
+  async deleteAllAlerts(): Promise<number> {
+    const result = await pool.query(
+      "DELETE FROM detection_alerts RETURNING id"
     );
     return result.rowCount ?? 0;
   },
