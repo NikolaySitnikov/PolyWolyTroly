@@ -850,3 +850,29 @@ When recording deposits, wallet must exist in database first. `ensureWalletExist
 
 ### Output buffering
 Use `console.log` instead of pino logger for immediate output visibility during development.
+
+### Database Connection Pool Architecture
+The system uses **two separate PostgreSQL connection pools** by design:
+1. `src/services/database.ts` - Main whale tracker pool
+2. `src/services/insiderDetection/detectionDatabase.ts` - Separate detection system pool
+
+**Why separate pools**: Isolation ensures detection system issues don't affect the main whale tracker and vice versa during active development.
+
+**Connection Limits**: Supabase free tier has ~15-20 connections. Each pool defaults to 10 connections max.
+
+**IMPORTANT - Do NOT run standalone scripts while the server is running**:
+- The server uses both pools (~20 connections total)
+- Running a standalone script (e.g., migration, data cleanup) creates another pool
+- This will exceed connection limits and cause "connection pool exhausted" errors
+
+**Solution for admin operations**: Instead of standalone scripts, add API endpoints that reuse existing pools:
+```typescript
+// Example: DELETE /api/detection/alerts/test endpoint
+// Uses the existing detectionDatabase pool, no new connections
+app.delete("/api/detection/alerts/test", async (req, res) => {
+  const deletedCount = await detectionDb.deleteTestAlerts();
+  res.json({ success: true, deletedCount });
+});
+```
+
+**Future optimization** (post-Phase 1): Consider consolidating to a single pool or configuring smaller pool sizes once the detection system is stable.
