@@ -690,6 +690,15 @@ ctfEventListener.queueForDetection(transfer);
 const processed = await ctfEventListener.processDetectionQueue(100);
 ```
 
+**Server Startup Integration**:
+The detection engine is initialized on server startup in `server.ts` `startServer()`:
+```typescript
+// Initialize detection engine - loads rule configurations from database
+await detectionEngine.initialize();
+// Enable detection on CTF listener (async, non-blocking)
+ctfEventListener.setDetectionEnabled(true);
+```
+
 **Tests**: 12 new tests for CTF-Detection integration (375 total insider detection tests)
 - `ctfDetectionIntegration.test.ts` - Integration tests covering enable/disable, async queue, batch processing, health status
 

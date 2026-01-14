@@ -1227,6 +1227,20 @@ export async function startServer(port: number = 3001): Promise<void> {
     console.log('Market depth data will be unavailable');
   }
 
+  // Initialize detection engine and enable real-time detection (Phase 1.8)
+  try {
+    // Initialize detection engine - loads rule configurations from database
+    await detectionEngine.initialize();
+    console.log('Detection engine initialized - rules loaded from database');
+
+    // Enable detection on CTF listener (async, non-blocking)
+    ctfEventListener.setDetectionEnabled(true);
+    console.log('Detection enabled on CTF listener - real-time insider detection active');
+  } catch (error) {
+    console.error('Failed to initialize detection engine:', error);
+    console.log('Detection rules will not be available');
+  }
+
   // Keep the process alive
   process.on('SIGINT', () => {
     console.log('Shutting down...');

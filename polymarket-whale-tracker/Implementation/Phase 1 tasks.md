@@ -244,6 +244,7 @@ src/services/insiderDetection/
 | 1.8.4 | Implement batch evaluation for catch-up scenarios | Integration test | ✅ |
 | 1.8.5 | Add health status for detection engine | Integration test | ✅ |
 | 1.8.6 | Integration tests for CTF → Detection pipeline | Vitest | ✅ |
+| 1.8.7 | Initialize detection engine on server startup | Manual verification | ✅ |
 
 ### Phase 1.9: API Endpoints ✅ COMPLETED
 | # | Task | Test Strategy | Status |
@@ -391,8 +392,8 @@ confidence = (
 
 ## Progress Tracking
 
-**Total Subtasks:** 78
-**Completed:** 79
+**Total Subtasks:** 79
+**Completed:** 80
 **In Progress:** 0
 **Remaining:** 7 (Phase 1.11 integration tests)
 
@@ -401,6 +402,14 @@ Last Updated: 2026-01-14
 ---
 
 ## Changelog
+
+### 2026-01-14 - Phase 1.8 Fix: Server Startup Initialization
+- Added missing detection engine initialization to `server.ts` `startServer()`:
+  - Calls `detectionEngine.initialize()` to load rule configurations from database
+  - Enables detection on CTF listener via `ctfEventListener.setDetectionEnabled(true)`
+- This was a documentation gap - Phase 1.8 described the CTF listener integration but didn't
+  explicitly document that initialization needed to be called on server startup
+- Added task 1.8.7 to Phase 1.8 task list to reflect this
 
 ### 2026-01-14 - Phase 1.10 Completed
 - Created frontend components for detection enhancements:
