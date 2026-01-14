@@ -72,6 +72,13 @@ All three responses agree your thresholds need adjustment:
 - Added caching for all new data types
 - All tests passing (161 insider detection tests, 42 new for Phase 1.1)
 
+### Phase 1.2 - Price History Service ✅ COMPLETE (2026-01-13)
+- Created `priceHistoryService.ts` with full implementation for MTM calculations
+- Methods: `recordPrice()`, `getPrice()`, `getLatestPrice()`, `getPriceChange()`, `calculateMTM()`, `getVolatility()`, `isVolatileRegime()`
+- Hooked price recording into `marketDepthService.ts` (captures mid-price from order book)
+- Added Gamma API fallback polling for markets without active order books
+- All tests passing (186 insider detection tests, 25 new for Phase 1.2)
+
 See [Phase 1 tasks.md](./Phase%201%20tasks.md) for detailed implementation status.
 
 ### 1.1 MVP Rule #1: Fresh-Concentrated-Depth Impact

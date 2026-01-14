@@ -361,8 +361,31 @@ CoordinatedCluster:
 - `phase1Types.test.ts` - 27 tests for types and confidence helpers
 - `phase1Database.test.ts` - 15 integration tests for new database operations
 
+**Phase 1.2 - Price History Service** ✅ COMPLETE
+
+New service for tracking token prices over time for Mark-to-Market (MTM) calculations:
+
+**New Service** (`priceHistoryService.ts`):
+- `recordPrice(conditionId, price, tokenId, source)` - Store price snapshot
+- `getPrice(conditionId, timestamp)` - Get historical price closest to timestamp
+- `getLatestPrice(conditionId)` - Get most recent price (cached)
+- `getPriceChange(conditionId, fromTime, toTime)` - Calculate % change
+- `calculateMTM(conditionId, entryPrice, entryTime, afterHours, side)` - Mark-to-market gain calculation
+- `getVolatility(conditionId, hours)` - Calculate price volatility (std dev of returns)
+- `isVolatileRegime(conditionId, recentHours, historicalHours, multiplier)` - Detect volatile conditions
+- `recordPriceFromDepth(conditionId, midPrice, tokenId)` - Hook for marketDepthService
+- `pollGammaFallback(markets, maxAgeMinutes)` - Fallback to Gamma API for stale prices
+- `startGammaPolling(intervalMs)` / `stopGammaPolling()` - Background job management
+- `getStatus()` / `resetStats()` - Service monitoring
+
+**Integration with marketDepthService**:
+- Prices are automatically recorded when depth snapshots are captured
+- Mid-price from order book is stored with `source: 'clob'`
+- Lazy import pattern avoids circular dependencies
+
+**Tests**: 25 new tests for priceHistoryService (186 total insider detection tests)
+
 **Upcoming Phases**:
-- Phase 1.2: Price History Service
 - Phase 1.3: Cluster Service
 - Phase 1.4-1.6: Three Detection Rules
 - Phase 1.7: Detection Engine Orchestration
@@ -427,6 +450,7 @@ Test files:
 - `insiderDetection/__tests__/integration.test.ts` - 12 tests for full pipeline integration
 - `insiderDetection/__tests__/phase1Types.test.ts` - 27 tests for Phase 1 types and confidence helpers
 - `insiderDetection/__tests__/phase1Database.test.ts` - 15 integration tests for Phase 1 database operations
+- `insiderDetection/__tests__/priceHistoryService.test.ts` - 25 tests for price history service
 
 ## Module System
 

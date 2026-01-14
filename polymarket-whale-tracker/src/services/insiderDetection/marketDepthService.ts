@@ -21,6 +21,17 @@ import { detectionCache } from "./detectionCache.js";
 import { marketMetadataService } from "./marketMetadataService.js";
 import type { DepthSnapshot, OrderBookLevel, Market } from "./types.js";
 
+// Lazy import to avoid circular dependency
+let priceHistoryService: typeof import("./priceHistoryService.js").priceHistoryService | null = null;
+
+async function getPriceHistoryService() {
+  if (!priceHistoryService) {
+    const module = await import("./priceHistoryService.js");
+    priceHistoryService = module.priceHistoryService;
+  }
+  return priceHistoryService;
+}
+
 // CLOB API base URL
 const CLOB_API = "https://clob.polymarket.com";
 
@@ -240,6 +251,13 @@ async function captureMarketDepth(market: Market): Promise<boolean> {
 
     // Cache the latest snapshot
     await detectionCache.setLatestDepth(market.conditionId, snapshot);
+
+    // Record price for price history (Phase 1.2)
+    // This enables MTM calculations for Rule #2 (Pre-Move Advantage)
+    if (snapshot.midPrice !== undefined && snapshot.midPrice > 0 && snapshot.midPrice < 1) {
+      const priceService = await getPriceHistoryService();
+      await priceService.recordPriceFromDepth(market.conditionId, snapshot.midPrice, tokenId);
+    }
 
     return true;
   } catch (error) {

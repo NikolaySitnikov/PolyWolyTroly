@@ -38,6 +38,9 @@ export { marketMetadataService } from "./marketMetadataService.js";
 // Market Depth Service
 export { marketDepthService } from "./marketDepthService.js";
 
+// Price History Service (Phase 1.2)
+export { priceHistoryService } from "./priceHistoryService.js";
+
 // Wallet Activity Index
 export { walletActivityIndex } from "./walletActivityIndex.js";
 

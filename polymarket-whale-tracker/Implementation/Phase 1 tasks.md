@@ -161,17 +161,17 @@ src/services/insiderDetection/
 | 1.1.4 | Add price history and cluster DB operations to `detectionDatabase.ts` | Unit tests | ✅ |
 | 1.1.5 | Add cluster and price caching to `detectionCache.ts` | Unit tests | ✅ |
 
-### Phase 1.2: Price History Service
+### Phase 1.2: Price History Service ✅ COMPLETED
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 1.2.1 | Create `priceHistoryService.ts` skeleton | TypeScript compilation | |
-| 1.2.2 | Implement `recordPrice()` - store price snapshot | Unit test | |
-| 1.2.3 | Implement `getPrice(conditionId, timestamp)` - get historical price | Unit test | |
-| 1.2.4 | Implement `getPriceChange(conditionId, fromTime, toTime)` - calculate % change | Unit test | |
-| 1.2.5 | Implement `calculateMTM(trade, afterHours)` - mark-to-market calculation | Unit test | |
-| 1.2.6 | Hook price recording into market depth polling (reuse mid_price from snapshots) | Integration test | |
-| 1.2.7 | Add background job for Gamma API price polling (fallback) | Integration test | |
-| 1.2.8 | Unit tests for price history service (15+ tests) | Vitest | |
+| 1.2.1 | Create `priceHistoryService.ts` skeleton | TypeScript compilation | ✅ |
+| 1.2.2 | Implement `recordPrice()` - store price snapshot | Unit test | ✅ |
+| 1.2.3 | Implement `getPrice(conditionId, timestamp)` - get historical price | Unit test | ✅ |
+| 1.2.4 | Implement `getPriceChange(conditionId, fromTime, toTime)` - calculate % change | Unit test | ✅ |
+| 1.2.5 | Implement `calculateMTM(trade, afterHours)` - mark-to-market calculation | Unit test | ✅ |
+| 1.2.6 | Hook price recording into market depth polling (reuse mid_price from snapshots) | Integration test | ✅ |
+| 1.2.7 | Add background job for Gamma API price polling (fallback) | Integration test | ✅ |
+| 1.2.8 | Unit tests for price history service (15+ tests) | Vitest | ✅ |
 
 ### Phase 1.3: Cluster Service
 | # | Task | Test Strategy | Status |
@@ -392,15 +392,33 @@ confidence = (
 ## Progress Tracking
 
 **Total Subtasks:** 78
-**Completed:** 5
+**Completed:** 13
 **In Progress:** 0
-**Remaining:** 73
+**Remaining:** 65
 
 Last Updated: 2026-01-13
 
 ---
 
 ## Changelog
+
+### 2026-01-13 - Phase 1.2 Completed
+- Created `priceHistoryService.ts` with full implementation:
+  - `recordPrice()` - stores price snapshots from CLOB and Gamma
+  - `getPrice()` - retrieves historical price closest to timestamp
+  - `getLatestPrice()` - gets most recent price with caching
+  - `getPriceChange()` - calculates % change between two timestamps
+  - `calculateMTM()` - mark-to-market calculation for YES/NO positions
+  - `getVolatility()` - calculates price volatility using standard deviation
+  - `isVolatileRegime()` - detects volatile market conditions
+  - `recordPriceFromDepth()` - hook called from marketDepthService
+  - `pollGammaFallback()` - background job for Gamma API prices
+- Hooked price recording into marketDepthService:
+  - Lazy import to avoid circular dependencies
+  - Records mid-price from order book during depth capture
+- Added Gamma API fallback for markets without active order books
+- Created 25 unit tests for priceHistoryService
+- All tests passing (186 insider detection tests)
 
 ### 2026-01-13 - Phase 1.1 Completed
 - Created migration `003_add_detection_engine_tables.ts` with tables:
