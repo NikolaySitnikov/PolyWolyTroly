@@ -29,7 +29,34 @@ npm run db:setup     # Create PostgreSQL schema (wallets, deposits, notification
 npm test             # Run backend tests
 npm run test:watch   # Run tests in watch mode
 npm test -- src/services/blockchain.test.ts  # Run single test file
+
+# PM2 Process Management (Production)
+pm2 start ecosystem.config.cjs   # Start backend + frontend with auto-restart
+pm2 list                         # Check status
+pm2 logs polywoly-backend        # View backend logs
+pm2 restart polywoly-backend     # Restart after code changes
+pm2 stop all                     # Stop all services
+pm2 kill                         # Kill PM2 daemon
 ```
+
+### PM2 Auto-Restart (Recommended for Production)
+
+Use PM2 for reliable service uptime. Configuration in `ecosystem.config.cjs`:
+
+- **polywoly-backend**: Runs `dist/api/index.js` on port 3002
+- **polywoly-frontend**: Runs `npm run dev -- --host` for hot-reload
+
+Features:
+- Auto-restart on crash (max 10 restarts in 15 min)
+- Memory limit restart at 1GB
+- Logs in `./logs/pm2-*.log`
+
+**Important**: After code changes, rebuild and restart:
+```bash
+npm run build && pm2 restart polywoly-backend
+```
+
+See DEVELOPMENT.md for full PM2 command reference.
 
 ## Architecture
 

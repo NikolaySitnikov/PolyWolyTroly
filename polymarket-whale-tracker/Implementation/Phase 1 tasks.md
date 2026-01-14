@@ -779,6 +779,29 @@ Last Updated: 2026-01-14
   - `frontend/src/components/WalletProfileHeader.tsx` - Added `DetectionSourceBadge`
   - `frontend/src/components/WalletProfile.tsx` - Passes source prop to header
 
+### 2026-01-14 - PM2 Process Management Setup
+- **PURPOSE**: Services were going down and requiring manual restarts. User requested auto-restart capability.
+- **SOLUTION**: Implemented PM2 process manager for reliable service uptime
+- **FILES CREATED**:
+  - `ecosystem.config.cjs` - PM2 configuration file
+- **FILES UPDATED**:
+  - `DEVELOPMENT.md` - Added PM2 section with commands and manual control reference
+- **PM2 Configuration**:
+  - `polywoly-backend`: Runs `dist/api/index.js` on port 3002
+    - Auto-restart on crash (max 10 restarts in 15 min)
+    - Memory limit restart at 1GB
+    - Logs to `./logs/pm2-error.log` and `./logs/pm2-out.log`
+  - `polywoly-frontend`: Runs `npm run dev -- --host`
+    - Same restart and logging configuration
+- **Key Commands**:
+  - `pm2 start ecosystem.config.cjs` - Start both services
+  - `pm2 list` - Check status
+  - `pm2 logs` - View logs
+  - `pm2 restart polywoly-backend` - Restart after code changes
+  - `pm2 kill` - Complete shutdown
+  - `pm2 resurrect` - Restore saved process list
+- **Important**: Entry point is `dist/api/index.js` (not `server.js`) because `index.js` calls `startServer()` while `server.js` only exports it
+
 ### 2026-01-13 - Initial Plan Created
 - Analyzed existing Phase 0 implementation
 - Identified reusable components from walletRiskService, walletActivityIndex, marketDepthService
