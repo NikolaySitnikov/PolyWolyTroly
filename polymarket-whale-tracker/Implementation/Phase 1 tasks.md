@@ -173,18 +173,18 @@ src/services/insiderDetection/
 | 1.2.7 | Add background job for Gamma API price polling (fallback) | Integration test | ✅ |
 | 1.2.8 | Unit tests for price history service (15+ tests) | Vitest | ✅ |
 
-### Phase 1.3: Cluster Service
+### Phase 1.3: Cluster Service ✅ COMPLETED
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 1.3.1 | Create `clusterService.ts` skeleton | TypeScript compilation | |
-| 1.3.2 | Implement `buildSharedFunderEdges()` - find wallets with same funder | Unit test with mock data | |
-| 1.3.3 | Implement `buildTimingCorrelationEdges()` - find wallets trading same market in window | Unit test | |
-| 1.3.4 | Implement `buildClusterGraph()` - combine edges into clusters | Unit test | |
-| 1.3.5 | Implement `getWalletCluster(address)` - get cluster for wallet | Unit test | |
-| 1.3.6 | Implement `getClusterActivity(clusterId, conditionId)` - aggregate cluster trading | Unit test | |
-| 1.3.7 | Implement `refreshClusters()` - background job to rebuild clusters | Integration test | |
-| 1.3.8 | Cache cluster data for performance | Unit test | |
-| 1.3.9 | Unit tests for cluster service (20+ tests) | Vitest | |
+| 1.3.1 | Create `clusterService.ts` skeleton | TypeScript compilation | ✅ |
+| 1.3.2 | Implement `buildSharedFunderEdges()` - find wallets with same funder | Unit test with mock data | ✅ |
+| 1.3.3 | Implement `buildTimingCorrelationEdges()` - find wallets trading same market in window | Unit test | ✅ |
+| 1.3.4 | Implement `buildClusterGraph()` - combine edges into clusters | Unit test | ✅ |
+| 1.3.5 | Implement `getWalletCluster(address)` - get cluster for wallet | Unit test | ✅ |
+| 1.3.6 | Implement `getClusterActivity(clusterId, conditionId)` - aggregate cluster trading | Unit test | ✅ |
+| 1.3.7 | Implement `refreshClusters()` - background job to rebuild clusters | Integration test | ✅ |
+| 1.3.8 | Cache cluster data for performance | Unit test | ✅ |
+| 1.3.9 | Unit tests for cluster service (20+ tests) | Vitest | ✅ |
 
 ### Phase 1.4: Rule #1 - Fresh-Concentrated-Depth Impact
 | # | Task | Test Strategy | Status |
@@ -392,15 +392,35 @@ confidence = (
 ## Progress Tracking
 
 **Total Subtasks:** 78
-**Completed:** 13
+**Completed:** 22
 **In Progress:** 0
-**Remaining:** 65
+**Remaining:** 56
 
 Last Updated: 2026-01-13
 
 ---
 
 ## Changelog
+
+### 2026-01-13 - Phase 1.3 Completed
+- Created `clusterService.ts` with full implementation:
+  - Union-Find data structure for efficient cluster assignment
+  - `buildSharedFunderEdges()` - detects wallets funded from same source
+  - `buildTimingCorrelationEdges()` - detects wallets trading same direction within time window
+  - `buildClusterGraph()` - combines all edges and assigns cluster IDs
+  - `getWalletCluster()` - retrieves cluster membership with caching
+  - `getClusterActivity()` - aggregates trading metrics across cluster wallets
+  - `refreshClusters()` - background job to rebuild cluster graph
+  - `getAllClusters()` / `deleteCluster()` - cluster management
+- Strength calculation based on:
+  - Funding timing proximity (closer = stronger)
+  - Funding amount similarity
+  - Trade timing proximity
+  - Trade volume similarity
+- Skips CEX and bridge funders (many unrelated wallets)
+- Filters out small funding amounts (< $100)
+- Created 30 unit tests for clusterService
+- All tests passing (216 insider detection tests)
 
 ### 2026-01-13 - Phase 1.2 Completed
 - Created `priceHistoryService.ts` with full implementation:

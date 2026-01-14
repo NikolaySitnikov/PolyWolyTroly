@@ -174,7 +174,9 @@ polymarket-whale-tracker/
 │   │   └── insiderDetection/  # Insider trading detection module
 │   │       ├── ctfEventListener.ts    # ERC-1155 event listener
 │   │       ├── marketMetadataService.ts # Gamma API sync
-│   │       └── marketDepthService.ts    # CLOB order book polling
+│   │       ├── marketDepthService.ts    # CLOB order book polling
+│   │       ├── priceHistoryService.ts   # Price tracking for MTM
+│   │       └── clusterService.ts        # Wallet relationship clusters
 │   └── config/            # Environment config
 ├── frontend/              # React dashboard
 │   ├── src/

@@ -41,6 +41,9 @@ export { marketDepthService } from "./marketDepthService.js";
 // Price History Service (Phase 1.2)
 export { priceHistoryService } from "./priceHistoryService.js";
 
+// Cluster Service (Phase 1.3)
+export { clusterService } from "./clusterService.js";
+
 // Wallet Activity Index
 export { walletActivityIndex } from "./walletActivityIndex.js";
 

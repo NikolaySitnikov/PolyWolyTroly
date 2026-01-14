@@ -1512,6 +1512,169 @@ The system includes an insider trading detection module for monitoring suspiciou
     └────────────────────────────────────────────────────────────────────────┘
 ```
 
+### Price History Service (Phase 1.2)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     PRICE HISTORY SERVICE                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  PURPOSE                                                                │
+    │                                                                         │
+    │  Track token prices over time for Mark-to-Market (MTM) calculations.   │
+    │  Used by Rule #2 (Pre-Move Advantage) to detect trades that gain       │
+    │  significant value shortly after execution.                            │
+    │                                                                         │
+    │  Key Capabilities:                                                      │
+    │  • Record price snapshots from CLOB mid-price or Gamma API             │
+    │  • Retrieve historical prices for any timestamp                        │
+    │  • Calculate price changes over time windows                           │
+    │  • Calculate MTM gain for YES/NO positions                             │
+    │  • Measure volatility using standard deviation of returns              │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  DATA SOURCES                                                           │
+    │                                                                         │
+    │  Primary: CLOB Mid-Price                                                │
+    │  • Captured during depth polling via marketDepthService                │
+    │  • Most accurate real-time price                                       │
+    │                                                                         │
+    │  Fallback: Gamma API                                                    │
+    │  • For markets without active order books                              │
+    │  • Endpoint: https://gamma-api.polymarket.com/markets/{conditionId}    │
+    │  • Polls every 60 seconds for markets missing CLOB data               │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  MTM CALCULATION                                                        │
+    │                                                                         │
+    │  Formula: mtm_gain = (current_price - entry_price) / entry_price       │
+    │                                                                         │
+    │  YES Position: Gain when price goes up                                  │
+    │  NO Position: Gain when YES price goes down                             │
+    │                                                                         │
+    │  Example:                                                               │
+    │  • Entry price: 0.40 (YES)                                             │
+    │  • Price after 1 hour: 0.52                                            │
+    │  • MTM gain: (0.52 - 0.40) / 0.40 = 0.30 (30% gain)                    │
+    │                                                                         │
+    │  Insider Detection Use:                                                 │
+    │  • MTM > 8% within 1 hour = potential pre-move advantage               │
+    │  • Higher threshold (12%) during volatile regime                       │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  VOLATILITY DETECTION                                                   │
+    │                                                                         │
+    │  Measures standard deviation of price returns over time windows.       │
+    │                                                                         │
+    │  isVolatileRegime(conditionId):                                         │
+    │  • Compares 24h volatility to 7-day historical median                  │
+    │  • Returns true if recent vol > 1.5x historical median                 │
+    │  • Used to adjust MTM thresholds during volatile periods               │
+    └────────────────────────────────────────────────────────────────────────┘
+```
+
+### Cluster Service (Phase 1.3)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        CLUSTER SERVICE                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  PURPOSE                                                                │
+    │                                                                         │
+    │  Build and manage wallet relationship clusters for detecting            │
+    │  coordinated trading. Used by Rule #3 (Coordinated Cluster) to         │
+    │  identify groups of wallets trading together in suspicious patterns.   │
+    │                                                                         │
+    │  Key Capabilities:                                                      │
+    │  • Build cluster graphs from wallet relationships                      │
+    │  • Assign wallets to clusters using Union-Find algorithm               │
+    │  • Query cluster membership and aggregate activity                     │
+    │  • Refresh cluster data periodically                                   │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  RELATIONSHIP TYPES                                                     │
+    │                                                                         │
+    │  1. shared_funder                                                       │
+    │     • Wallets funded from the same EOA source address                  │
+    │     • Excludes CEX/bridge funders (too many unrelated wallets)         │
+    │     • Minimum funding: $100 USD                                        │
+    │                                                                         │
+    │  2. timing_correlation                                                  │
+    │     • Wallets trading same market within 6-hour window                 │
+    │     • Must be trading in the same direction (both YES or both NO)      │
+    │     • Stronger edge if trading within minutes of each other            │
+    │                                                                         │
+    │  3. shared_cashout (future)                                             │
+    │     • Wallets sending funds to the same destination                    │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  UNION-FIND ALGORITHM                                                   │
+    │                                                                         │
+    │  Efficient data structure for clustering:                               │
+    │  • O(α(n)) amortized time per operation (nearly O(1))                  │
+    │  • Path compression for fast lookups                                   │
+    │  • Union by rank for balanced trees                                    │
+    │                                                                         │
+    │  Operations:                                                            │
+    │  • makeSet(wallet) - Add wallet to structure                           │
+    │  • find(wallet) - Get cluster root/representative                      │
+    │  • union(w1, w2) - Merge two clusters                                  │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  EDGE STRENGTH CALCULATION                                              │
+    │                                                                         │
+    │  Shared Funder Edges:                                                   │
+    │  • Base strength: 0.5                                                  │
+    │  • +0.3 if funded within 1 hour of each other                          │
+    │  • +0.2 if funding amounts within 20% of each other                    │
+    │                                                                         │
+    │  Timing Correlation Edges:                                              │
+    │  • Base strength: 0.4                                                  │
+    │  • +0.3 if traded within 30 minutes of each other                      │
+    │  • +0.2 if trade volumes within 20% of each other                      │
+    │  • +0.1 if position sizes within 20% of each other                     │
+    │                                                                         │
+    │  Minimum threshold: 0.3 (edges below are discarded)                    │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  CLUSTER QUERIES                                                        │
+    │                                                                         │
+    │  getWalletCluster(address):                                             │
+    │  • Returns cluster summary with all member wallets                     │
+    │  • Includes relationship types and discovery timestamp                 │
+    │  • Cached in Redis for 15 minutes                                      │
+    │                                                                         │
+    │  getClusterActivity(clusterId, conditionId):                            │
+    │  • Aggregates trading metrics across all cluster wallets               │
+    │  • Returns: totalVolume, netPosition, tradeCount, dominantSide        │
+    │  • Detects if all wallets trading same direction (allSameSide)        │
+    └────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │  BACKGROUND REFRESH                                                     │
+    │                                                                         │
+    │  refreshClusters():                                                     │
+    │  • Rebuilds cluster graph from all edges                               │
+    │  • Stores relationships in wallet_clusters table                       │
+    │  • Invalidates cached cluster data                                     │
+    │  • Recommended frequency: hourly                                       │
+    │                                                                         │
+    │  Storage:                                                               │
+    │  • PostgreSQL: wallet_clusters table (relationships)                   │
+    │  • Redis: cluster summaries and wallet-to-cluster mappings             │
+    └────────────────────────────────────────────────────────────────────────┘
+```
+
 ### Detection API Endpoints
 
 ```
