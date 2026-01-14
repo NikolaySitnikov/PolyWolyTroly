@@ -210,6 +210,14 @@ async function processTransferSingle(log: Log): Promise<void> {
       logger.warn({ msg: "Failed to update wallet activity", error: err });
     }
 
+    // Trigger detection evaluation (async, non-blocking)
+    // This evaluates the transfer against all detection rules
+    if (detectionEnabled) {
+      ctfEventListener._evaluateTransfer(transfer).catch((err) => {
+        logger.warn({ msg: "Detection evaluation failed", error: err, txHash: transfer.txHash });
+      });
+    }
+
     // Mark as processed
     await detectionCache.markCtfTransferProcessed(dedupKey);
 
@@ -313,6 +321,13 @@ async function processTransferBatch(log: Log): Promise<void> {
         await walletActivityIndex.processTransfer(transfer);
       } catch (err) {
         logger.warn({ msg: "Failed to update wallet activity in batch", error: err });
+      }
+
+      // Trigger detection evaluation (async, non-blocking)
+      if (detectionEnabled) {
+        ctfEventListener._evaluateTransfer(transfer).catch((err) => {
+          logger.warn({ msg: "Detection evaluation failed in batch", error: err, txHash: transfer.txHash });
+        });
       }
 
       await detectionCache.markCtfTransferProcessed(dedupKey);

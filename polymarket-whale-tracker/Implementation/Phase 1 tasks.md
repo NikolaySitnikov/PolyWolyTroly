@@ -403,6 +403,17 @@ Last Updated: 2026-01-14
 
 ## Changelog
 
+### 2026-01-14 - Phase 1.8 Critical Fix: Wire Detection Evaluation into CTF Listener
+- **BUG DISCOVERED**: `_evaluateTransfer()` method existed but was NEVER called from the main transfer processing flow
+- The detection engine, rules, and evaluation logic were all implemented, but actual transfers were not being evaluated
+- **ROOT CAUSE**: Phase 1.8 task 1.8.1 "Add detection engine hook" was interpreted as creating the methods, not wiring them into the main flow
+- **FIX APPLIED**:
+  - Added `_evaluateTransfer()` call to `processTransferSingle()` (after wallet activity update, line ~215)
+  - Added `_evaluateTransfer()` call to `processTransferBatch()` (after wallet activity update in loop, line ~326)
+  - Both calls are async/non-blocking with error catching to prevent detection failures from blocking transfer processing
+- All 19 tests pass (7 unit + 12 integration)
+- This fix ensures detection rules are actually evaluated when CTF transfers are received
+
 ### 2026-01-14 - Phase 1.8 Fix: Server Startup Initialization
 - Added missing detection engine initialization to `server.ts` `startServer()`:
   - Calls `detectionEngine.initialize()` to load rule configurations from database
