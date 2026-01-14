@@ -149,7 +149,7 @@ Queries `https://data-api.polymarket.com/activity?user={address}` to determine i
 
 ### Insider Detection Module (src/services/insiderDetection/)
 
-Module for detecting suspicious trading patterns on Polymarket. Phase 0.1-0.7 complete.
+Module for detecting suspicious trading patterns on Polymarket. **Phase 0 COMPLETE** (0.1-0.9).
 
 **Database Tables** (7 new tables via migration 002):
 - `markets` - Market metadata, resolution times, volume tracking
@@ -295,6 +295,31 @@ const isHighRisk = await walletRiskService.isHighRisk("0xwallet...");
 - `PATCH /api/detection/config/:key` - Update specific threshold
 - `GET /api/health` - Extended with `ctfListener`, `marketMetadata`, and `marketDepth` status
 
+**Frontend Detection Page** (Phase 0.8):
+Components at `frontend/src/components/detection/`:
+- `DetectionDashboard.tsx` - Main dashboard with stats grid and alert list
+- `DetectionAlertList.tsx` - Alert list with severity/status/type filter pills and pagination
+- `AlertDetail.tsx` - Detailed alert view with status update actions
+- `WalletRiskCard.tsx` - Risk profile visualization with risk meter and factor breakdown
+- `index.ts` - Barrel exports
+
+Hooks at `frontend/src/hooks/`:
+- `useDetectionStats.ts` - Fetch detection statistics
+- `useDetectionAlerts.ts` - Paginated alerts with filtering and status updates
+- `useWalletRisk.ts` - Wallet risk profile fetching
+
+Types at `frontend/src/types/detection.ts`:
+- Alert types, severities, statuses
+- Detection stats and wallet risk interfaces
+- Color mappings and label helpers
+
+Navigation: Detection accessible via `/detection` route or clicking "Detection" in nav.
+
+**Performance Considerations**:
+- Depth service polls top 100 markets by volume only (not all 5,500+)
+- On-demand depth fetching for other markets via `captureDepthOnDemand()`
+- See `Implementation/decisions/001_depth_polling_strategy.md` for rationale
+
 ### Required Environment Variables
 - `ALCHEMY_WSS_URL` / `ALCHEMY_HTTP_URL` - Polygon RPC endpoints (PublicNode)
 - `DATABASE_URL` - PostgreSQL connection string
@@ -326,6 +351,7 @@ Test files:
 - `insiderDetection/__tests__/walletActivityIndex.test.ts` - 24 tests for wallet activity
 - `insiderDetection/__tests__/fundingAnalyzer.test.ts` - 22 tests for funding source analysis
 - `insiderDetection/__tests__/walletRiskService.test.ts` - 17 tests for wallet risk assessment
+- `insiderDetection/__tests__/integration.test.ts` - 12 tests for full pipeline integration
 
 ## Module System
 

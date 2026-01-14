@@ -40,6 +40,12 @@ const BATCH_SIZE = 10;
 // Cache TTL for depth data: 30 seconds
 const DEPTH_CACHE_TTL = 30;
 
+// Maximum number of markets to poll in background
+// See: Implementation/decisions/001_depth_polling_strategy.md
+// Rationale: Polling all 5,500+ markets causes DB connection pool exhaustion
+// Instead, we poll top markets by volume and fetch others on-demand
+const MAX_BACKGROUND_POLL_MARKETS = 100;
+
 // Tick levels to extract (in percentage points: 0.02 = 2%, 0.05 = 5%, 0.10 = 10%)
 const TICK_LEVELS = {
   LEVEL_2: 0.02,
@@ -303,14 +309,24 @@ async function calculateMedianLiquidity(conditionId: string): Promise<number | n
 }
 
 /**
- * Update median liquidity for all active markets
+ * Update median liquidity for top markets by volume
+ *
+ * Only calculates median for markets in the background polling set
+ * to avoid excessive database queries.
  */
 async function updateAllMedianLiquidity(): Promise<number> {
   try {
     const markets = await marketMetadataService.getActiveMarkets();
+
+    // Only update median for top markets (same as polling)
+    const topMarkets = markets
+      .filter(m => m.outcomeYesTokenId)
+      .sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0))
+      .slice(0, MAX_BACKGROUND_POLL_MARKETS);
+
     let updated = 0;
 
-    for (const market of markets) {
+    for (const market of topMarkets) {
       const median = await calculateMedianLiquidity(market.conditionId);
 
       if (median !== null) {
@@ -326,7 +342,7 @@ async function updateAllMedianLiquidity(): Promise<number> {
       }
     }
 
-    console.log(`[MarketDepth] Updated median liquidity for ${updated} markets`);
+    console.log(`[MarketDepth] Updated median liquidity for ${updated}/${topMarkets.length} top markets`);
     return updated;
   } catch (error) {
     console.error("[MarketDepth] Error updating median liquidity:", error);
@@ -339,8 +355,15 @@ async function updateAllMedianLiquidity(): Promise<number> {
  */
 export const marketDepthService = {
   /**
-   * Capture depth snapshots for all active markets
-   * Returns number of markets successfully polled
+   * Capture depth snapshots for top markets by volume
+   *
+   * Note: Only polls top MAX_BACKGROUND_POLL_MARKETS markets to avoid
+   * database connection pool exhaustion. Other markets can be fetched
+   * on-demand via captureDepth() or captureDepthOnDemand().
+   *
+   * See: Implementation/decisions/001_depth_polling_strategy.md
+   *
+   * @returns Number of markets successfully polled
    */
   async pollAllMarkets(): Promise<number> {
     const startTime = Date.now();
@@ -364,9 +387,19 @@ export const marketDepthService = {
         return 0;
       }
 
+      // Sort by 24h volume (descending) and take top N markets
+      // This ensures we capture depth for the most active markets
+      const topMarkets = marketsWithTokens
+        .sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0))
+        .slice(0, MAX_BACKGROUND_POLL_MARKETS);
+
+      console.log(
+        `[MarketDepth] Polling top ${topMarkets.length} markets by volume (of ${marketsWithTokens.length} total)`
+      );
+
       // Process with rate limiting
       const successCount = await processBatchWithRateLimit(
-        marketsWithTokens,
+        topMarkets,
         captureMarketDepth
       );
 
@@ -376,7 +409,7 @@ export const marketDepthService = {
       lastPollAt = new Date();
 
       console.log(
-        `[MarketDepth] Captured ${successCount}/${marketsWithTokens.length} depth snapshots in ${pollStats.lastPollDuration}ms`
+        `[MarketDepth] Captured ${successCount}/${topMarkets.length} depth snapshots in ${pollStats.lastPollDuration}ms`
       );
 
       return successCount;
@@ -405,6 +438,25 @@ export const marketDepthService = {
     }
 
     return null;
+  },
+
+  /**
+   * Fetch depth on-demand for a market (with caching)
+   *
+   * Use this for markets outside the top MAX_BACKGROUND_POLL_MARKETS.
+   * Returns cached depth if fresh (< 30s), otherwise fetches new data.
+   *
+   * @returns Depth snapshot or null if unavailable
+   */
+  async captureDepthOnDemand(conditionId: string): Promise<DepthSnapshot | null> {
+    // Check cache first
+    const cached = await detectionCache.getLatestDepth(conditionId);
+    if (cached) {
+      return cached;
+    }
+
+    // Not cached - fetch fresh data
+    return this.captureDepth(conditionId);
   },
 
   /**
