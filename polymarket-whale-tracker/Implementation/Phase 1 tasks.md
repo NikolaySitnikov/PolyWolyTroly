@@ -152,14 +152,14 @@ src/services/insiderDetection/
 
 ## Implementation Subtasks
 
-### Phase 1.1: Database & Types Setup
+### Phase 1.1: Database & Types Setup ✅ COMPLETED
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 1.1.1 | Create migration `003_add_detection_engine_tables.ts` | Run migration, verify tables exist | |
-| 1.1.2 | Add rule types to `types.ts` (RuleResult, RuleConfig, etc.) | TypeScript compilation | |
-| 1.1.3 | Create `rules/types.ts` with rule-specific interfaces | TypeScript compilation | |
-| 1.1.4 | Add price history and cluster DB operations to `detectionDatabase.ts` | Unit tests | |
-| 1.1.5 | Add cluster and price caching to `detectionCache.ts` | Unit tests | |
+| 1.1.1 | Create migration `003_add_detection_engine_tables.ts` | Run migration, verify tables exist | ✅ |
+| 1.1.2 | Add rule types to `types.ts` (RuleResult, RuleConfig, etc.) | TypeScript compilation | ✅ |
+| 1.1.3 | Create `rules/types.ts` with rule-specific interfaces | TypeScript compilation | ✅ |
+| 1.1.4 | Add price history and cluster DB operations to `detectionDatabase.ts` | Unit tests | ✅ |
+| 1.1.5 | Add cluster and price caching to `detectionCache.ts` | Unit tests | ✅ |
 
 ### Phase 1.2: Price History Service
 | # | Task | Test Strategy | Status |
@@ -392,15 +392,27 @@ confidence = (
 ## Progress Tracking
 
 **Total Subtasks:** 78
-**Completed:** 0
+**Completed:** 5
 **In Progress:** 0
-**Remaining:** 78
+**Remaining:** 73
 
 Last Updated: 2026-01-13
 
 ---
 
 ## Changelog
+
+### 2026-01-13 - Phase 1.1 Completed
+- Created migration `003_add_detection_engine_tables.ts` with tables:
+  - `price_history` for MTM calculations
+  - `wallet_clusters` for relationship tracking
+  - `detection_rule_config` for per-rule thresholds
+  - `pending_mtm_evaluations` for delayed rule evaluation
+- Added 14 new types to `types.ts` (PriceHistory, WalletCluster, RuleResult, etc.)
+- Created `rules/types.ts` with rule-specific interfaces and confidence helpers
+- Added 15+ database operations for price history, clusters, rule config, and MTM evaluations
+- Added price/cluster/rule caching to detectionCache.ts
+- All tests passing (161 insider detection tests, 42 new for Phase 1.1)
 
 ### 2026-01-13 - Initial Plan Created
 - Analyzed existing Phase 0 implementation

@@ -7,6 +7,9 @@
  * - Wallet profiles and risk analysis
  * - Funding analysis results
  * - Detection config
+ * - Price history (Phase 1)
+ * - Wallet clusters (Phase 1)
+ * - Rule configs (Phase 1)
  */
 
 import Redis from "ioredis";
@@ -18,6 +21,11 @@ import type {
   WalletFundingSource,
   DetectionConfig,
   WalletRiskProfile,
+  // Phase 1 types
+  PriceHistory,
+  ClusterSummary,
+  DetectionRuleConfig,
+  DetectionRuleName,
 } from "./types.js";
 
 const redis = new (Redis as any)(config.redis.url);
@@ -35,6 +43,12 @@ const PREFIX = {
   ctfProcessed: "det:ctf_processed:",
   ctfLock: "det:ctf_lock:",
   detectionStats: "det:stats",
+  // Phase 1 prefixes
+  price: "det:price:",
+  priceLatest: "det:price:latest:",
+  cluster: "det:cluster:",
+  clusterWallet: "det:cluster:wallet:",
+  ruleConfig: "det:rule:",
 } as const;
 
 // TTL values in seconds
@@ -49,6 +63,12 @@ const TTL = {
   ctfProcessed: 7 * 24 * 60 * 60, // 7 days
   ctfLock: 60,              // 60 seconds
   detectionStats: 30,       // 30 seconds (for fast UI updates)
+  // Phase 1 TTLs
+  price: 60,                // 1 minute (prices update frequently)
+  priceLatest: 30,          // 30 seconds (very fresh)
+  cluster: 15 * 60,         // 15 minutes (clusters are expensive to compute)
+  clusterWallet: 10 * 60,   // 10 minutes
+  ruleConfig: 5 * 60,       // 5 minutes
 } as const;
 
 export const detectionCache = {
@@ -332,6 +352,113 @@ export const detectionCache = {
   async getRecentAlertIds(limit: number = 20): Promise<number[]> {
     const ids = await redis.zrevrange(PREFIX.recentAlerts, 0, limit - 1);
     return ids.map((id: string) => parseInt(id));
+  },
+
+  // ----------------------------------------
+  // PRICE HISTORY CACHE (Phase 1)
+  // ----------------------------------------
+
+  async setLatestPrice(conditionId: string, price: PriceHistory): Promise<void> {
+    await redis.setex(
+      `${PREFIX.priceLatest}${conditionId}`,
+      TTL.priceLatest,
+      JSON.stringify(price)
+    );
+  },
+
+  async getLatestPrice(conditionId: string): Promise<PriceHistory | null> {
+    const data = await redis.get(`${PREFIX.priceLatest}${conditionId}`);
+    if (!data) return null;
+
+    const price = JSON.parse(data);
+    // Restore Date object
+    if (price.recordedAt) {
+      price.recordedAt = new Date(price.recordedAt);
+    }
+    return price;
+  },
+
+  async invalidateLatestPrice(conditionId: string): Promise<void> {
+    await redis.del(`${PREFIX.priceLatest}${conditionId}`);
+  },
+
+  // ----------------------------------------
+  // WALLET CLUSTER CACHE (Phase 1)
+  // ----------------------------------------
+
+  async setClusterSummary(clusterId: string, summary: ClusterSummary): Promise<void> {
+    await redis.setex(
+      `${PREFIX.cluster}${clusterId}`,
+      TTL.cluster,
+      JSON.stringify(summary)
+    );
+  },
+
+  async getClusterSummary(clusterId: string): Promise<ClusterSummary | null> {
+    const data = await redis.get(`${PREFIX.cluster}${clusterId}`);
+    if (!data) return null;
+
+    const summary = JSON.parse(data);
+    // Restore Date object
+    if (summary.discoveredAt) {
+      summary.discoveredAt = new Date(summary.discoveredAt);
+    }
+    return summary;
+  },
+
+  async invalidateCluster(clusterId: string): Promise<void> {
+    await redis.del(`${PREFIX.cluster}${clusterId}`);
+  },
+
+  async setWalletClusterId(walletAddress: string, clusterId: string): Promise<void> {
+    await redis.setex(
+      `${PREFIX.clusterWallet}${walletAddress.toLowerCase()}`,
+      TTL.clusterWallet,
+      clusterId
+    );
+  },
+
+  async getWalletClusterId(walletAddress: string): Promise<string | null> {
+    return redis.get(`${PREFIX.clusterWallet}${walletAddress.toLowerCase()}`);
+  },
+
+  async invalidateWalletCluster(walletAddress: string): Promise<void> {
+    await redis.del(`${PREFIX.clusterWallet}${walletAddress.toLowerCase()}`);
+  },
+
+  // ----------------------------------------
+  // RULE CONFIG CACHE (Phase 1)
+  // ----------------------------------------
+
+  async setRuleConfig(ruleName: DetectionRuleName, config: DetectionRuleConfig): Promise<void> {
+    await redis.setex(
+      `${PREFIX.ruleConfig}${ruleName}`,
+      TTL.ruleConfig,
+      JSON.stringify(config)
+    );
+  },
+
+  async getRuleConfig(ruleName: DetectionRuleName): Promise<DetectionRuleConfig | null> {
+    const data = await redis.get(`${PREFIX.ruleConfig}${ruleName}`);
+    if (!data) return null;
+
+    const ruleConfig = JSON.parse(data);
+    // Restore Date object
+    if (ruleConfig.updatedAt) {
+      ruleConfig.updatedAt = new Date(ruleConfig.updatedAt);
+    }
+    return ruleConfig;
+  },
+
+  async invalidateRuleConfig(ruleName: DetectionRuleName): Promise<void> {
+    await redis.del(`${PREFIX.ruleConfig}${ruleName}`);
+  },
+
+  async invalidateAllRuleConfigs(): Promise<void> {
+    const keys = await redis.keys(`${PREFIX.ruleConfig}*`);
+    if (keys.length > 0) {
+      await redis.del(...keys);
+    }
   },
 
   // ----------------------------------------

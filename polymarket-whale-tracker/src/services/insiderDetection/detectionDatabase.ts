@@ -5,6 +5,8 @@
  * - markets, depth_snapshots, wallet_activity
  * - wallet_funding_sources, ctf_transfers
  * - detection_alerts, detection_config
+ * - price_history, wallet_clusters, detection_rule_config (Phase 1)
+ * - pending_mtm_evaluations (Phase 1)
  */
 
 import pg from "pg";
@@ -30,6 +32,19 @@ import type {
   AlertType,
   AlertSeverity,
   AlertStatus,
+  // Phase 1 types
+  PriceHistory,
+  PriceHistoryRow,
+  PriceSource,
+  WalletCluster,
+  WalletClusterRow,
+  ClusterRelationshipType,
+  ClusterSummary,
+  DetectionRuleConfig,
+  DetectionRuleConfigRow,
+  DetectionRuleName,
+  PendingMtmEvaluation,
+  PendingMtmEvaluationRow,
 } from "./types.js";
 
 const { Pool } = pg;
@@ -730,6 +745,364 @@ export const detectionDb = {
     await detectionCache.setDetectionStats(stats);
 
     return stats;
+  },
+
+  // ----------------------------------------
+  // PRICE HISTORY (Phase 1)
+  // ----------------------------------------
+
+  async recordPrice(price: Omit<PriceHistory, 'id'>): Promise<number | null> {
+    try {
+      const result = await pool.query(
+        `INSERT INTO price_history (
+          condition_id, token_id, price, source, recorded_at
+        ) VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (condition_id, recorded_at) DO UPDATE SET
+          price = EXCLUDED.price,
+          token_id = EXCLUDED.token_id,
+          source = EXCLUDED.source
+        RETURNING id`,
+        [
+          price.conditionId,
+          price.tokenId,
+          price.price,
+          price.source,
+          price.recordedAt,
+        ]
+      );
+      return result.rows[0]?.id || null;
+    } catch (error: unknown) {
+      console.error("[DetectionDB] Error recording price:", error);
+      return null;
+    }
+  },
+
+  async getPrice(conditionId: string, timestamp: Date): Promise<PriceHistory | null> {
+    // Get the price closest to the requested timestamp (before or at that time)
+    const result = await pool.query<PriceHistoryRow>(
+      `SELECT * FROM price_history
+       WHERE condition_id = $1
+         AND recorded_at <= $2
+       ORDER BY recorded_at DESC
+       LIMIT 1`,
+      [conditionId, timestamp]
+    );
+
+    if (!result.rows[0]) return null;
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      conditionId: row.condition_id,
+      tokenId: row.token_id,
+      price: parseFloat(row.price),
+      source: row.source as PriceSource,
+      recordedAt: row.recorded_at,
+    };
+  },
+
+  async getPriceHistory(
+    conditionId: string,
+    fromTime: Date,
+    toTime: Date
+  ): Promise<PriceHistory[]> {
+    const result = await pool.query<PriceHistoryRow>(
+      `SELECT * FROM price_history
+       WHERE condition_id = $1
+         AND recorded_at >= $2
+         AND recorded_at <= $3
+       ORDER BY recorded_at ASC`,
+      [conditionId, fromTime, toTime]
+    );
+
+    return result.rows.map(row => ({
+      id: row.id,
+      conditionId: row.condition_id,
+      tokenId: row.token_id,
+      price: parseFloat(row.price),
+      source: row.source as PriceSource,
+      recordedAt: row.recorded_at,
+    }));
+  },
+
+  async getLatestPrice(conditionId: string): Promise<PriceHistory | null> {
+    const result = await pool.query<PriceHistoryRow>(
+      `SELECT * FROM price_history
+       WHERE condition_id = $1
+       ORDER BY recorded_at DESC
+       LIMIT 1`,
+      [conditionId]
+    );
+
+    if (!result.rows[0]) return null;
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      conditionId: row.condition_id,
+      tokenId: row.token_id,
+      price: parseFloat(row.price),
+      source: row.source as PriceSource,
+      recordedAt: row.recorded_at,
+    };
+  },
+
+  // ----------------------------------------
+  // WALLET CLUSTERS (Phase 1)
+  // ----------------------------------------
+
+  async recordClusterRelationship(cluster: Omit<WalletCluster, 'id'>): Promise<number | null> {
+    try {
+      const result = await pool.query(
+        `INSERT INTO wallet_clusters (
+          cluster_id, wallet_address, relationship_type,
+          related_wallet, evidence, strength, discovered_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (wallet_address, related_wallet, relationship_type) DO UPDATE SET
+          cluster_id = EXCLUDED.cluster_id,
+          evidence = EXCLUDED.evidence,
+          strength = EXCLUDED.strength,
+          discovered_at = EXCLUDED.discovered_at
+        RETURNING id`,
+        [
+          cluster.clusterId,
+          cluster.walletAddress.toLowerCase(),
+          cluster.relationshipType,
+          cluster.relatedWallet?.toLowerCase() || null,
+          cluster.evidence ? JSON.stringify(cluster.evidence) : null,
+          cluster.strength,
+          cluster.discoveredAt,
+        ]
+      );
+      return result.rows[0]?.id || null;
+    } catch (error: unknown) {
+      console.error("[DetectionDB] Error recording cluster relationship:", error);
+      return null;
+    }
+  },
+
+  async getWalletCluster(walletAddress: string): Promise<WalletCluster[]> {
+    const result = await pool.query<WalletClusterRow>(
+      `SELECT * FROM wallet_clusters
+       WHERE wallet_address = $1 OR related_wallet = $1
+       ORDER BY discovered_at DESC`,
+      [walletAddress.toLowerCase()]
+    );
+
+    return result.rows.map(row => ({
+      id: row.id,
+      clusterId: row.cluster_id,
+      walletAddress: row.wallet_address,
+      relationshipType: row.relationship_type as ClusterRelationshipType,
+      relatedWallet: row.related_wallet || undefined,
+      evidence: row.evidence || undefined,
+      strength: parseFloat(row.strength),
+      discoveredAt: row.discovered_at,
+    }));
+  },
+
+  async getClusterById(clusterId: string): Promise<WalletCluster[]> {
+    const result = await pool.query<WalletClusterRow>(
+      `SELECT * FROM wallet_clusters
+       WHERE cluster_id = $1
+       ORDER BY discovered_at ASC`,
+      [clusterId]
+    );
+
+    return result.rows.map(row => ({
+      id: row.id,
+      clusterId: row.cluster_id,
+      walletAddress: row.wallet_address,
+      relationshipType: row.relationship_type as ClusterRelationshipType,
+      relatedWallet: row.related_wallet || undefined,
+      evidence: row.evidence || undefined,
+      strength: parseFloat(row.strength),
+      discoveredAt: row.discovered_at,
+    }));
+  },
+
+  async getClusterSummary(clusterId: string): Promise<ClusterSummary | null> {
+    const relationships = await this.getClusterById(clusterId);
+
+    if (relationships.length === 0) return null;
+
+    // Collect unique wallets
+    const walletSet = new Set<string>();
+    const relationshipTypes = new Set<ClusterRelationshipType>();
+
+    for (const rel of relationships) {
+      walletSet.add(rel.walletAddress);
+      if (rel.relatedWallet) walletSet.add(rel.relatedWallet);
+      relationshipTypes.add(rel.relationshipType);
+    }
+
+    return {
+      clusterId,
+      wallets: Array.from(walletSet),
+      relationshipTypes: Array.from(relationshipTypes),
+      size: walletSet.size,
+      discoveredAt: relationships[0].discoveredAt,
+    };
+  },
+
+  async getAllClusters(): Promise<ClusterSummary[]> {
+    // Get unique cluster IDs
+    const result = await pool.query(
+      `SELECT DISTINCT cluster_id FROM wallet_clusters ORDER BY cluster_id`
+    );
+
+    const summaries: ClusterSummary[] = [];
+    for (const row of result.rows) {
+      const summary = await this.getClusterSummary(row.cluster_id);
+      if (summary) summaries.push(summary);
+    }
+
+    return summaries;
+  },
+
+  async deleteCluster(clusterId: string): Promise<number> {
+    const result = await pool.query(
+      `DELETE FROM wallet_clusters WHERE cluster_id = $1`,
+      [clusterId]
+    );
+    return result.rowCount ?? 0;
+  },
+
+  // ----------------------------------------
+  // DETECTION RULE CONFIG (Phase 1)
+  // ----------------------------------------
+
+  async getRuleConfig(ruleName: DetectionRuleName): Promise<DetectionRuleConfig | null> {
+    const result = await pool.query<DetectionRuleConfigRow>(
+      `SELECT * FROM detection_rule_config WHERE rule_name = $1`,
+      [ruleName]
+    );
+
+    if (!result.rows[0]) return null;
+
+    const row = result.rows[0];
+    return {
+      ruleName: row.rule_name as DetectionRuleName,
+      enabled: row.enabled,
+      thresholds: row.thresholds,
+      description: row.description || undefined,
+      updatedAt: row.updated_at,
+    };
+  },
+
+  async getAllRuleConfigs(): Promise<DetectionRuleConfig[]> {
+    const result = await pool.query<DetectionRuleConfigRow>(
+      `SELECT * FROM detection_rule_config ORDER BY rule_name`
+    );
+
+    return result.rows.map(row => ({
+      ruleName: row.rule_name as DetectionRuleName,
+      enabled: row.enabled,
+      thresholds: row.thresholds,
+      description: row.description || undefined,
+      updatedAt: row.updated_at,
+    }));
+  },
+
+  async updateRuleConfig(
+    ruleName: DetectionRuleName,
+    updates: { enabled?: boolean; thresholds?: Record<string, number> }
+  ): Promise<boolean> {
+    const setClauses: string[] = ['updated_at = NOW()'];
+    const params: unknown[] = [ruleName];
+    let paramIndex = 2;
+
+    if (updates.enabled !== undefined) {
+      setClauses.push(`enabled = $${paramIndex}`);
+      params.push(updates.enabled);
+      paramIndex++;
+    }
+
+    if (updates.thresholds !== undefined) {
+      setClauses.push(`thresholds = $${paramIndex}`);
+      params.push(JSON.stringify(updates.thresholds));
+      paramIndex++;
+    }
+
+    const result = await pool.query(
+      `UPDATE detection_rule_config SET ${setClauses.join(', ')} WHERE rule_name = $1`,
+      params
+    );
+
+    return (result.rowCount ?? 0) > 0;
+  },
+
+  // ----------------------------------------
+  // PENDING MTM EVALUATIONS (Phase 1)
+  // ----------------------------------------
+
+  async createPendingMtmEvaluation(
+    evaluation: Omit<PendingMtmEvaluation, 'id' | 'evaluated' | 'evaluationResult'>
+  ): Promise<number> {
+    const result = await pool.query(
+      `INSERT INTO pending_mtm_evaluations (
+        wallet_address, condition_id, trade_timestamp,
+        entry_price, trade_size_usd, tx_hash, evaluate_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id`,
+      [
+        evaluation.walletAddress.toLowerCase(),
+        evaluation.conditionId,
+        evaluation.tradeTimestamp,
+        evaluation.entryPrice,
+        evaluation.tradeSizeUsd,
+        evaluation.txHash || null,
+        evaluation.evaluateAt,
+      ]
+    );
+    return result.rows[0].id;
+  },
+
+  async getPendingMtmEvaluations(limit: number = 100): Promise<PendingMtmEvaluation[]> {
+    const result = await pool.query<PendingMtmEvaluationRow>(
+      `SELECT * FROM pending_mtm_evaluations
+       WHERE evaluated = FALSE
+         AND evaluate_at <= NOW()
+       ORDER BY evaluate_at ASC
+       LIMIT $1`,
+      [limit]
+    );
+
+    return result.rows.map(row => ({
+      id: row.id,
+      walletAddress: row.wallet_address,
+      conditionId: row.condition_id,
+      tradeTimestamp: row.trade_timestamp,
+      entryPrice: parseFloat(row.entry_price),
+      tradeSizeUsd: parseFloat(row.trade_size_usd),
+      txHash: row.tx_hash || undefined,
+      evaluateAt: row.evaluate_at,
+      evaluated: row.evaluated,
+      evaluationResult: row.evaluation_result as PendingMtmEvaluation['evaluationResult'],
+    }));
+  },
+
+  async markMtmEvaluationComplete(
+    id: number,
+    result: PendingMtmEvaluation['evaluationResult']
+  ): Promise<boolean> {
+    const queryResult = await pool.query(
+      `UPDATE pending_mtm_evaluations SET
+        evaluated = TRUE,
+        evaluation_result = $2
+      WHERE id = $1`,
+      [id, result ? JSON.stringify(result) : null]
+    );
+    return (queryResult.rowCount ?? 0) > 0;
+  },
+
+  async cleanupOldMtmEvaluations(daysOld: number = 30): Promise<number> {
+    const result = await pool.query(
+      `DELETE FROM pending_mtm_evaluations
+       WHERE evaluated = TRUE
+         AND created_at < NOW() - INTERVAL '${daysOld} days'`
+    );
+    return result.rowCount ?? 0;
   },
 
   // ----------------------------------------

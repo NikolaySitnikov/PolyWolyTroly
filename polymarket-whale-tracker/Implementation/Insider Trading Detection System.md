@@ -62,7 +62,17 @@ All three responses agree your thresholds need adjustment:
 
 ---
 
-## Phase 1: Core Detection Engine (Week 3-5)
+## Phase 1: Core Detection Engine (Week 3-5) - IN PROGRESS
+
+### Phase 1.1 - Database & Types Setup ✅ COMPLETE (2026-01-13)
+- Created migration `003_add_detection_engine_tables.ts` with 4 new tables
+- Added 14 new types to `types.ts`
+- Created `rules/types.ts` with rule interfaces and confidence helpers
+- Added 15+ database operations for price history, clusters, rule config, MTM evaluations
+- Added caching for all new data types
+- All tests passing (161 insider detection tests, 42 new for Phase 1.1)
+
+See [Phase 1 tasks.md](./Phase%201%20tasks.md) for detailed implementation status.
 
 ### 1.1 MVP Rule #1: Fresh-Concentrated-Depth Impact
 **Priority: CRITICAL | Complexity: MEDIUM**

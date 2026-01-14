@@ -295,6 +295,79 @@ const isHighRisk = await walletRiskService.isHighRisk("0xwallet...");
 - `PATCH /api/detection/config/:key` - Update specific threshold
 - `GET /api/health` - Extended with `ctfListener`, `marketMetadata`, and `marketDepth` status
 
+### Phase 1: Core Detection Engine (In Progress)
+
+**Phase 1.1 - Database & Types Setup** ✅ COMPLETE
+
+Added infrastructure for the three MVP detection rules:
+
+**New Database Tables** (Migration 003):
+- `price_history` - Token price tracking for Mark-to-Market (MTM) calculations
+- `wallet_clusters` - Wallet relationship tracking (shared funders, timing correlation)
+- `detection_rule_config` - Per-rule configuration with thresholds
+- `pending_mtm_evaluations` - Queue for delayed price movement evaluation
+
+**New Types** (in `types.ts`):
+- `PriceHistory`, `PriceSource` - Price tracking types
+- `WalletCluster`, `ClusterRelationshipType`, `ClusterSummary` - Cluster types
+- `DetectionRuleConfig` - Rule configuration type
+- `PendingMtmEvaluation` - Delayed evaluation tracking
+- Threshold types for each rule: `FreshConcentratedDepthThresholds`, `PreMoveAdvantageThresholds`, `CoordinatedClusterThresholds`
+- `RuleResult`, `RuleEvaluationContext` - Rule execution types
+
+**Rule Types** (new `rules/types.ts`):
+- `DetectionRule` interface - Base interface for all detection rules
+- Rule-specific context, data, and result interfaces
+- Confidence score helpers:
+  - `normalizeLinear(value, min, max)` - Linear normalization 0-1
+  - `normalizeLog(value, min, max)` - Log-scale normalization for heavy-tailed distributions
+  - `normalizeInverse(value, min, max)` - Inverse normalization (lower = higher score)
+  - `calculateWeightedScore(scores)` - Weighted average of multiple signals
+  - `confidenceToSeverity(confidence)` - Map confidence to alert severity
+
+**New Database Operations** (in `detectionDatabase.ts`):
+- Price: `recordPrice()`, `getPrice()`, `getPriceHistory()`, `getLatestPrice()`
+- Clusters: `recordClusterRelationship()`, `getWalletCluster()`, `getClusterById()`, `getClusterSummary()`, `getAllClusters()`, `deleteCluster()`
+- Rule Config: `getRuleConfig()`, `getAllRuleConfigs()`, `updateRuleConfig()`
+- MTM Evaluations: `createPendingMtmEvaluation()`, `getPendingMtmEvaluations()`, `markMtmEvaluationComplete()`, `cleanupOldMtmEvaluations()`
+
+**New Cache Operations** (in `detectionCache.ts`):
+- Price: `setLatestPrice()`, `getLatestPrice()`, `invalidateLatestPrice()`
+- Clusters: `setClusterSummary()`, `getClusterSummary()`, `invalidateCluster()`, `setWalletClusterId()`, `getWalletClusterId()`, `invalidateWalletCluster()`
+- Rule Config: `setRuleConfig()`, `getRuleConfig()`, `invalidateRuleConfig()`, `invalidateAllRuleConfigs()`
+
+**Default Rule Configurations** (seeded by migration):
+```
+FreshConcentratedDepthImpact:
+  max_wallet_age_days: 14
+  min_concentration_pct: 85
+  min_trade_size_usd: 3000
+  min_depth_ratio: 3.0
+
+PreMoveAdvantage:
+  min_trade_size_usd: 3000
+  min_mtm_gain_pct: 8
+  lookback_hours: 1
+  vol_multiplier: 1.5
+
+CoordinatedCluster:
+  min_cluster_size: 3
+  min_total_notional_usd: 50000
+  max_median_age_days: 45
+  time_window_hours: 6
+```
+
+**Tests**: 42 new tests for Phase 1.1 (161 total insider detection tests)
+- `phase1Types.test.ts` - 27 tests for types and confidence helpers
+- `phase1Database.test.ts` - 15 integration tests for new database operations
+
+**Upcoming Phases**:
+- Phase 1.2: Price History Service
+- Phase 1.3: Cluster Service
+- Phase 1.4-1.6: Three Detection Rules
+- Phase 1.7: Detection Engine Orchestration
+- Phase 1.8-1.11: Integration, API, Frontend, Testing
+
 **Frontend Detection Page** (Phase 0.8):
 Components at `frontend/src/components/detection/`:
 - `DetectionDashboard.tsx` - Main dashboard with stats grid and alert list
@@ -352,6 +425,8 @@ Test files:
 - `insiderDetection/__tests__/fundingAnalyzer.test.ts` - 22 tests for funding source analysis
 - `insiderDetection/__tests__/walletRiskService.test.ts` - 17 tests for wallet risk assessment
 - `insiderDetection/__tests__/integration.test.ts` - 12 tests for full pipeline integration
+- `insiderDetection/__tests__/phase1Types.test.ts` - 27 tests for Phase 1 types and confidence helpers
+- `insiderDetection/__tests__/phase1Database.test.ts` - 15 integration tests for Phase 1 database operations
 
 ## Module System
 

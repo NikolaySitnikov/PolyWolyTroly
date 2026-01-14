@@ -384,3 +384,189 @@ export interface WalletRiskProfile {
   // Assessment timestamp
   assessedAt: Date;
 }
+
+// ============================================
+// PRICE HISTORY TYPES
+// ============================================
+
+export type PriceSource = 'clob' | 'gamma' | 'calculated';
+
+export interface PriceHistory {
+  id?: number;
+  conditionId: string;
+  tokenId: string;
+  price: number;
+  source: PriceSource;
+  recordedAt: Date;
+}
+
+export interface PriceHistoryRow {
+  id: number;
+  condition_id: string;
+  token_id: string;
+  price: string;
+  source: string;
+  recorded_at: Date;
+  created_at: Date;
+}
+
+// ============================================
+// WALLET CLUSTER TYPES
+// ============================================
+
+export type ClusterRelationshipType = 'shared_funder' | 'shared_cashout' | 'timing_correlation';
+
+export interface WalletCluster {
+  id?: number;
+  clusterId: string;
+  walletAddress: string;
+  relationshipType: ClusterRelationshipType;
+  relatedWallet?: string;
+  evidence?: {
+    funder?: string;
+    txHash?: string;
+    timingDiffHours?: number;
+    sharedMarket?: string;
+    [key: string]: unknown;
+  };
+  strength: number;
+  discoveredAt: Date;
+}
+
+export interface WalletClusterRow {
+  id: number;
+  cluster_id: string;
+  wallet_address: string;
+  relationship_type: string;
+  related_wallet: string | null;
+  evidence: Record<string, unknown> | null;
+  strength: string;
+  discovered_at: Date;
+  created_at: Date;
+}
+
+export interface ClusterSummary {
+  clusterId: string;
+  wallets: string[];
+  relationshipTypes: ClusterRelationshipType[];
+  size: number;
+  totalVolume?: number;
+  discoveredAt: Date;
+}
+
+// ============================================
+// DETECTION RULE TYPES
+// ============================================
+
+export type DetectionRuleName =
+  | 'FreshConcentratedDepthImpact'
+  | 'PreMoveAdvantage'
+  | 'CoordinatedCluster';
+
+export interface DetectionRuleConfig {
+  ruleName: DetectionRuleName;
+  enabled: boolean;
+  thresholds: Record<string, number>;
+  description?: string;
+  updatedAt: Date;
+}
+
+export interface DetectionRuleConfigRow {
+  rule_name: string;
+  enabled: boolean;
+  thresholds: Record<string, number>;
+  description: string | null;
+  updated_at: Date;
+  created_at: Date;
+}
+
+// Rule-specific threshold types
+export interface FreshConcentratedDepthThresholds {
+  max_wallet_age_days: number;
+  min_concentration_pct: number;
+  min_trade_size_usd: number;
+  min_depth_ratio: number;
+}
+
+export interface PreMoveAdvantageThresholds {
+  min_trade_size_usd: number;
+  min_mtm_gain_pct: number;
+  lookback_hours: number;
+  vol_multiplier: number;
+}
+
+export interface CoordinatedClusterThresholds {
+  min_cluster_size: number;
+  min_total_notional_usd: number;
+  max_median_age_days: number;
+  time_window_hours: number;
+}
+
+// ============================================
+// RULE EVALUATION TYPES
+// ============================================
+
+export interface RuleEvaluationContext {
+  walletAddress: string;
+  conditionId?: string;
+  tradeSize?: number;
+  entryPrice?: number;
+  txHash?: string;
+  timestamp?: Date;
+}
+
+export interface RuleResult {
+  ruleName: DetectionRuleName;
+  triggered: boolean;
+  confidence: number; // 0-1
+  severity?: AlertSeverity;
+  triggerValues: Record<string, unknown>;
+  thresholdValues: Record<string, unknown>;
+  title?: string;
+  description?: string;
+  relatedWallets?: string[];
+  relatedTxHashes?: string[];
+}
+
+export interface DetectionEngineResult {
+  evaluated: boolean;
+  rulesTriggered: RuleResult[];
+  alertsCreated: number[];
+  errors?: string[];
+}
+
+// ============================================
+// PENDING MTM EVALUATION TYPES
+// ============================================
+
+export interface PendingMtmEvaluation {
+  id?: number;
+  walletAddress: string;
+  conditionId: string;
+  tradeTimestamp: Date;
+  entryPrice: number;
+  tradeSizeUsd: number;
+  txHash?: string;
+  evaluateAt: Date;
+  evaluated: boolean;
+  evaluationResult?: {
+    mtmGain: number;
+    priceAtEvaluation: number;
+    alertCreated: boolean;
+    alertId?: number;
+  };
+}
+
+export interface PendingMtmEvaluationRow {
+  id: number;
+  wallet_address: string;
+  condition_id: string;
+  trade_timestamp: Date;
+  entry_price: string;
+  trade_size_usd: string;
+  tx_hash: string | null;
+  evaluate_at: Date;
+  evaluated: boolean;
+  evaluation_result: Record<string, unknown> | null;
+  created_at: Date;
+}
