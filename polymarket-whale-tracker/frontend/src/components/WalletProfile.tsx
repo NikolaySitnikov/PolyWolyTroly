@@ -426,6 +426,7 @@ export function WalletProfile({
           isLive={isLive}
           lastActivityAt={metrics?.lastActivityAt}
           isMobile={isMobile}
+          source={wallet.source}
         />
       </div>
 

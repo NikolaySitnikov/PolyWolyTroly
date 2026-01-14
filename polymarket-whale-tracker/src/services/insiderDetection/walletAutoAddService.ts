@@ -186,6 +186,7 @@ export const walletAutoAddService = {
 
   /**
    * Add wallet to database with historical deposit data
+   * Marks wallet source as 'detection' to distinguish from deposit-tracking wallets
    */
   async addWalletToDatabase(
     walletAddress: string,
@@ -196,29 +197,26 @@ export const walletAutoAddService = {
 
     if (deposits.length > 0) {
       // Use createWalletWithHistory for wallets with deposit history
-      await db.createWalletWithHistory(walletAddress, deposits);
+      // Pass 'detection' as source to mark this wallet as added via insider detection
+      await db.createWalletWithHistory(walletAddress, deposits, 'detection');
 
       logger.debug({
-        msg: "Created wallet with historical deposits",
+        msg: "Created wallet with historical deposits (source: detection)",
         walletAddress,
         depositCount: deposits.length,
         totalDeposited: deposits.reduce((sum, d) => sum + d.amount, 0),
       });
     } else {
       // For wallets without deposits (e.g., funded differently), create minimal entry
-      // Use a placeholder deposit of $0 to create the wallet record
-      await db.createWallet(walletAddress, 0, `detection_${alert.id}`);
+      // Pass 'detection' as source to mark this wallet as added via insider detection
+      await db.createWallet(walletAddress, 0, `detection_${alert.id}`, 'detection');
 
       logger.debug({
-        msg: "Created wallet without deposit history (detection-triggered)",
+        msg: "Created wallet without deposit history (source: detection)",
         walletAddress,
         alertId: alert.id,
       });
     }
-
-    // Store detection metadata as a note
-    // TODO: In future, add proper tagging system
-    // For now, we rely on the detection_alerts table to track which wallets were flagged
 
     metrics.enrichmentTriggered++;
   },

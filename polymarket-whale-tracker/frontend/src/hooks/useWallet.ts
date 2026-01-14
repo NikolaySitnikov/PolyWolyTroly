@@ -7,12 +7,14 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchWallet, fetchDeposits, type WalletApiResponse, type DepositApiResponse } from '../services/api';
+import type { WalletSource } from '../types/whale';
 
 export interface WalletData {
   address: string;
   firstSeenAt: string;
   totalDeposited: number;
   depositCount: number;
+  source?: WalletSource;
 }
 
 export interface WalletDeposit {
@@ -43,6 +45,7 @@ function transformWallet(raw: WalletApiResponse): WalletData {
     firstSeenAt: raw.first_seen_at,
     totalDeposited: parseFloat(raw.total_deposited),
     depositCount: raw.deposit_count,
+    source: raw.source,
   };
 }
 

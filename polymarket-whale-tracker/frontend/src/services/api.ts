@@ -90,6 +90,8 @@ export interface WalletApiResponse {
   is_notified: boolean;
   created_at: string;
   updated_at: string;
+  // How the wallet was added: 'deposit_tracking' (default) or 'detection' (via insider detection)
+  source?: 'deposit_tracking' | 'detection';
   // Trading metrics (included in /api/wallets response, null if fetch failed)
   pnl: number | null;
   pnl7d: number | null;

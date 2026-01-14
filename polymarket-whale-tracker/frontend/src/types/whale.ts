@@ -8,6 +8,11 @@
 import type { PnlTimeWindow } from './polymarket';
 
 /**
+ * How the wallet was added to the database
+ */
+export type WalletSource = 'deposit_tracking' | 'detection';
+
+/**
  * Whale wallet data from the API (base)
  */
 export interface Whale {
@@ -15,6 +20,7 @@ export interface Whale {
   firstSeenAt: string;
   totalDeposited: number;
   depositCount: number;
+  source?: WalletSource;
 }
 
 /**
@@ -66,6 +72,7 @@ export interface WalletApiResponse {
   is_notified: boolean;
   created_at: string;
   updated_at: string;
+  source?: WalletSource;
 }
 
 /**

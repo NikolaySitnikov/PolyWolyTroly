@@ -19,6 +19,7 @@ import {
   truncateAddress,
   type UserProfile,
 } from '../types/profile';
+import type { WalletSource } from '../types/whale';
 
 export interface WalletProfileHeaderProps {
   /** Wallet address */
@@ -31,6 +32,8 @@ export interface WalletProfileHeaderProps {
   lastActivityAt?: string | null;
   /** Mobile layout */
   isMobile: boolean;
+  /** How the wallet was added to the database */
+  source?: WalletSource;
 }
 
 /**
@@ -101,12 +104,40 @@ function VerifiedBadge() {
   );
 }
 
+/**
+ * Detection source badge - shows when wallet was added via insider detection
+ */
+function DetectionSourceBadge() {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px',
+        padding: '4px 8px',
+        borderRadius: '4px',
+        background: `${tokens.colors.warning}20`,
+        border: `1px solid ${tokens.colors.warning}40`,
+        color: tokens.colors.warning,
+        fontSize: '11px',
+        fontWeight: 600,
+        fontFamily: tokens.fonts.body,
+        whiteSpace: 'nowrap',
+      }}
+      title="This wallet was added to the database via the insider detection system"
+    >
+      🔍 Detection
+    </span>
+  );
+}
+
 export function WalletProfileHeader({
   address,
   profile,
   isLive,
   lastActivityAt,
   isMobile,
+  source,
 }: WalletProfileHeaderProps) {
   const displayName = getDisplayName(profile, address);
   const hasUsername = hasHumanReadableName(profile);
@@ -239,7 +270,7 @@ export function WalletProfileHeader({
               minWidth: 0,
             }}
           >
-            {/* Name + Live badge */}
+            {/* Name + Live badge + Detection badge */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <h1 style={nameStyle}>
                 {hasUsername ? (
@@ -256,6 +287,7 @@ export function WalletProfileHeader({
                 lastActivityAt={lastActivityAt}
                 size="md"
               />
+              {source === 'detection' && <DetectionSourceBadge />}
             </div>
 
             {/* Twitter handle (if available) */}
@@ -328,7 +360,7 @@ export function WalletProfileHeader({
 
         {/* Info section */}
         <div style={infoContainerStyle}>
-          {/* Title row: Name + LiveBadge */}
+          {/* Title row: Name + LiveBadge + Detection badge */}
           <div style={titleRowStyle}>
             <h1 style={nameStyle}>
               {hasUsername ? (
@@ -345,6 +377,7 @@ export function WalletProfileHeader({
               lastActivityAt={lastActivityAt}
               size="md"
             />
+            {source === 'detection' && <DetectionSourceBadge />}
           </div>
 
           {/* Twitter handle (if available) */}

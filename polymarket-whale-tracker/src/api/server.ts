@@ -1323,6 +1323,30 @@ export function createApp(): Express {
     res.json(walletAutoAddService.getMetrics());
   });
 
+  // ============================================
+  // ADMIN ENDPOINTS
+  // ============================================
+
+  /**
+   * POST /api/admin/migrate/004
+   * Run migration 004 to add source column to wallets table
+   */
+  app.post("/api/admin/migrate/004", async (_req: Request, res: Response) => {
+    try {
+      const migration = `
+        -- Add source column to wallets table
+        ALTER TABLE wallets ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'deposit_tracking';
+        CREATE INDEX IF NOT EXISTS idx_wallets_source ON wallets(source);
+        COMMENT ON COLUMN wallets.source IS 'How the wallet was added: deposit_tracking (default) or detection (via insider alert)';
+      `;
+      await db.runQuery(migration);
+      res.json({ success: true, message: "Migration 004 completed successfully" });
+    } catch (error) {
+      console.error("Migration 004 failed:", error);
+      res.status(500).json({ error: "Migration failed", details: String(error) });
+    }
+  });
+
   // 404 handler for unknown API routes (Express 5 syntax)
   app.use("/api/{*path}", (_req: Request, res: Response) => {
     res.status(404).json({

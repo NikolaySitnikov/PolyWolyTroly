@@ -5,6 +5,8 @@ const { Pool } = pg;
 
 const pool = new Pool({ connectionString: config.database.url });
 
+export type WalletSource = 'deposit_tracking' | 'detection';
+
 export interface Wallet {
   address: string;
   firstSeenAt: Date;
@@ -12,6 +14,7 @@ export interface Wallet {
   totalDeposited: number;
   depositCount: number;
   isNotified: boolean;
+  source: WalletSource;
 }
 
 export const db = {
@@ -34,16 +37,18 @@ export const db = {
   },
 
   // Create new wallet record
+  // source: 'deposit_tracking' (default) or 'detection' (added via insider detection)
   async createWallet(
     address: string,
     depositAmount: number,
-    txHash: string
+    txHash: string,
+    source: 'deposit_tracking' | 'detection' = 'deposit_tracking'
   ): Promise<void> {
     await pool.query(
-      `INSERT INTO wallets (address, first_deposit_amount, first_deposit_tx, total_deposited, deposit_count)
-       VALUES ($1, $2, $3, $2, 1)
+      `INSERT INTO wallets (address, first_deposit_amount, first_deposit_tx, total_deposited, deposit_count, source)
+       VALUES ($1, $2, $3, $2, 1, $4)
        ON CONFLICT (address) DO NOTHING`,
-      [address.toLowerCase(), depositAmount, txHash]
+      [address.toLowerCase(), depositAmount, txHash, source]
     );
   },
 
@@ -285,6 +290,7 @@ export const db = {
 
   // Create wallet with full historical deposit data (bulk insert)
   // Used when a new whale is detected to backfill their complete deposit history
+  // source: 'deposit_tracking' (default) or 'detection' (added via insider detection)
   async createWalletWithHistory(
     address: string,
     deposits: Array<{
@@ -292,7 +298,8 @@ export const db = {
       amount: number;
       blockNumber: bigint;
       timestamp: number;
-    }>
+    }>,
+    source: 'deposit_tracking' | 'detection' = 'deposit_tracking'
   ): Promise<void> {
     const client = await pool.connect();
     try {
@@ -312,10 +319,10 @@ export const db = {
 
       // Insert wallet with pre-calculated totals
       await client.query(
-        `INSERT INTO wallets (address, first_deposit_amount, first_deposit_tx, total_deposited, deposit_count, first_seen_at)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO wallets (address, first_deposit_amount, first_deposit_tx, total_deposited, deposit_count, first_seen_at, source)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          ON CONFLICT (address) DO NOTHING`,
-        [normalizedAddress, firstDepositAmount, firstDepositTx, totalDeposited, depositCount, firstSeenAt]
+        [normalizedAddress, firstDepositAmount, firstDepositTx, totalDeposited, depositCount, firstSeenAt, source]
       );
 
       // Bulk insert all deposits if we have any
@@ -577,6 +584,11 @@ export const db = {
       [limit]
     );
     return result.rows.map((r) => r.address);
+  },
+
+  // Run arbitrary query (for migrations/admin tasks)
+  async runQuery(sql: string): Promise<void> {
+    await pool.query(sql);
   },
 
   // Close pool (for cleanup)
