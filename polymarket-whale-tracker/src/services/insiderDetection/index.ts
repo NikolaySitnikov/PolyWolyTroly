@@ -52,3 +52,9 @@ export { fundingAnalyzer } from "./fundingAnalyzer.js";
 
 // Wallet Risk Service
 export { walletRiskService } from "./walletRiskService.js";
+
+// Detection Rules (Phase 1.4-1.6)
+export * from "./rules/index.js";
+
+// Detection Engine (Phase 1.7)
+export { detectionEngine } from "./detectionEngine.js";

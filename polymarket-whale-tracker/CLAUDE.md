@@ -571,9 +571,72 @@ if (result.triggered) {
 
 **Tests**: 32 new tests for Rule #3 (320 total insider detection tests)
 
+**Phase 1.7 - Detection Engine** ✅ COMPLETE
+
+Core orchestration service that runs all detection rules:
+
+**New Files**:
+- `detectionEngine.ts` - Main detection engine service
+
+**Key Methods**:
+- `initialize()` - Loads and configures all rules on startup
+- `loadRules()` - Registers all 3 detection rules with configurations
+- `evaluateTrade(transfer)` - Evaluates CTF transfers against applicable rules
+- `evaluateWallet(address, conditionId?)` - Evaluates a wallet against all rules
+- `evaluateMarket(conditionId)` - Evaluates a market for coordinated cluster activity
+- `processPendingMtmEvaluations(limit)` - Processes delayed Rule #2 evaluations
+- `getMetrics()` / `resetMetrics()` - Metrics tracking
+- `getHealthStatus()` - Health status reporting
+- `setRuleEnabled(ruleName, enabled)` - Enable/disable rules
+- `setRuleThresholds(ruleName, thresholds)` - Update rule thresholds
+- `getRuleConfig(ruleName)` - Get single rule configuration
+- `getAllRuleConfigs()` - List all rule configurations with priorities
+- `reloadRules()` - Reload all rules after config changes
+
+**Features**:
+- **Rule Priority System**: CoordinatedCluster (3) > PreMoveAdvantage (2) > FreshConcentratedDepthImpact (1)
+- **Alert Deduplication**: 24-hour window to prevent duplicate alerts for same wallet/market/rule
+- **Evaluation Throttling**: 30-second interval between same wallet+market evaluations
+- **Metrics Tracking**: Evaluations (total/success/error), rules triggered, alerts created
+- **Auto Pre-Move Scheduling**: Schedules trades for delayed MTM evaluation when price available
+- **Error Handling**: Graceful degradation - continues processing after individual rule errors
+
+**Usage**:
+```typescript
+import { detectionEngine } from "./services/insiderDetection/index.js";
+
+// Initialize on startup
+await detectionEngine.initialize();
+
+// Evaluate a CTF transfer (called from CTF listener)
+const result = await detectionEngine.evaluateTrade(transfer);
+// result = { evaluated: true, rulesTriggered: [...], alertsCreated: [1, 2], errors: [] }
+
+// Manual wallet evaluation
+const result = await detectionEngine.evaluateWallet("0xwallet...", "0xcondition...");
+
+// Manual market cluster evaluation
+const result = await detectionEngine.evaluateMarket("0xcondition...");
+
+// Process pending Pre-Move evaluations (run periodically)
+const mtmResults = await detectionEngine.processPendingMtmEvaluations(100);
+// mtmResults = { processed: 10, triggered: 2, errors: 0 }
+
+// Health monitoring
+const health = detectionEngine.getHealthStatus();
+// { initialized: true, rulesLoaded: 3, enabledRules: 3, lastEvaluation: Date, metrics: {...} }
+
+// Rule management
+await detectionEngine.setRuleEnabled("FreshConcentratedDepthImpact", false);
+await detectionEngine.setRuleThresholds("PreMoveAdvantage", { min_mtm_gain_pct: 10 });
+const configs = await detectionEngine.getAllRuleConfigs();
+```
+
+**Tests**: 43 new tests for detection engine (363 total insider detection tests)
+
 **Upcoming Phases**:
-- Phase 1.7: Detection Engine Orchestration
-- Phase 1.8-1.11: Integration, API, Frontend, Testing
+- Phase 1.8: CTF Listener Integration
+- Phase 1.9-1.11: API, Frontend, Testing
 
 **Frontend Detection Page** (Phase 0.8):
 Components at `frontend/src/components/detection/`:
@@ -639,6 +702,7 @@ Test files:
 - `insiderDetection/__tests__/freshConcentratedDepth.test.ts` - 37 tests for Rule #1
 - `insiderDetection/__tests__/preMoveAdvantage.test.ts` - 35 tests for Rule #2
 - `insiderDetection/__tests__/coordinatedCluster.test.ts` - 32 tests for Rule #3
+- `insiderDetection/__tests__/detectionEngine.test.ts` - 43 tests for detection engine orchestration
 
 ## Module System
 

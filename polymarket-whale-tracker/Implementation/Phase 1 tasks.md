@@ -222,18 +222,18 @@ src/services/insiderDetection/
 | 1.6.6 | Create alert with cluster details and wallet list | Unit test | ✅ |
 | 1.6.7 | Unit tests for Rule #3 (32 tests) | Vitest | ✅ |
 
-### Phase 1.7: Detection Engine
+### Phase 1.7: Detection Engine ✅ COMPLETED
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 1.7.1 | Create `detectionEngine.ts` skeleton | TypeScript compilation | |
-| 1.7.2 | Implement `loadRules()` - load and configure all rules | Unit test | |
-| 1.7.3 | Implement `evaluateTrade(transfer)` - run all applicable rules | Unit test | |
-| 1.7.4 | Implement `evaluateWallet(address)` - evaluate wallet against all rules | Unit test | |
-| 1.7.5 | Implement `evaluateMarket(conditionId)` - evaluate market for cluster activity | Unit test | |
-| 1.7.6 | Implement alert deduplication (don't re-alert same pattern) | Unit test | |
-| 1.7.7 | Implement rule priority and conflict resolution | Unit test | |
-| 1.7.8 | Add metrics tracking (rules triggered, alerts created) | Unit test | |
-| 1.7.9 | Unit tests for detection engine (20+ tests) | Vitest | |
+| 1.7.1 | Create `detectionEngine.ts` skeleton | TypeScript compilation | ✅ |
+| 1.7.2 | Implement `loadRules()` - load and configure all rules | Unit test | ✅ |
+| 1.7.3 | Implement `evaluateTrade(transfer)` - run all applicable rules | Unit test | ✅ |
+| 1.7.4 | Implement `evaluateWallet(address)` - evaluate wallet against all rules | Unit test | ✅ |
+| 1.7.5 | Implement `evaluateMarket(conditionId)` - evaluate market for cluster activity | Unit test | ✅ |
+| 1.7.6 | Implement alert deduplication (don't re-alert same pattern) | Unit test | ✅ |
+| 1.7.7 | Implement rule priority and conflict resolution | Unit test | ✅ |
+| 1.7.8 | Add metrics tracking (rules triggered, alerts created) | Unit test | ✅ |
+| 1.7.9 | Unit tests for detection engine (43 tests) | Vitest | ✅ |
 
 ### Phase 1.8: CTF Listener Integration
 | # | Task | Test Strategy | Status |
@@ -392,15 +392,52 @@ confidence = (
 ## Progress Tracking
 
 **Total Subtasks:** 78
-**Completed:** 46
+**Completed:** 55
 **In Progress:** 0
-**Remaining:** 32
+**Remaining:** 23
 
 Last Updated: 2026-01-14
 
 ---
 
 ## Changelog
+
+### 2026-01-14 - Phase 1.7 Completed
+- Created `detectionEngine.ts` - Core orchestration service for all detection rules:
+  - `initialize()` - loads and configures all rules on startup
+  - `loadRules()` - registers and configures all 3 detection rules
+  - `evaluateTrade()` - evaluates CTF transfers against applicable rules
+  - `evaluateWallet()` - evaluates a wallet against all rules
+  - `evaluateMarket()` - evaluates a market for coordinated cluster activity
+  - `processPendingMtmEvaluations()` - processes delayed Rule #2 evaluations
+  - `getMetrics()` / `resetMetrics()` - metrics tracking
+  - `getHealthStatus()` - health status reporting
+  - `setRuleEnabled()` / `setRuleThresholds()` - rule configuration
+  - `getAllRuleConfigs()` - list all rule configurations
+- Features implemented:
+  - Rule priority system: CoordinatedCluster (3) > PreMoveAdvantage (2) > FreshConcentratedDepthImpact (1)
+  - Alert deduplication: 24-hour window to prevent duplicate alerts
+  - Evaluation throttling: 30-second interval between same wallet+market evaluations
+  - Metrics tracking: evaluations, triggered rules, alerts created
+  - Automatic Pre-Move scheduling: schedules trades for delayed MTM evaluation
+  - Error handling with graceful degradation
+- Entry points:
+  - `evaluateTrade()` - called when CTF transfer is processed
+  - `evaluateWallet()` - manual wallet evaluation
+  - `evaluateMarket()` - manual market cluster evaluation
+- Exported from `index.ts` with rules module
+- Created 43 unit tests for detection engine covering:
+  - Initialization and rule loading
+  - Rule management (get, enable/disable, thresholds)
+  - Trade evaluation and throttling
+  - Wallet evaluation
+  - Market evaluation
+  - Alert deduplication
+  - Metrics tracking
+  - Health status
+  - Error handling
+  - Edge cases
+- All tests passing (363 insider detection tests)
 
 ### 2026-01-14 - Phase 1.6 Completed
 - Created `rules/coordinatedCluster.ts` with full Rule #3 implementation:
