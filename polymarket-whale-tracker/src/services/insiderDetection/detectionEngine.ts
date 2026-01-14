@@ -578,6 +578,11 @@ class DetectionEngine {
    *
    * The amount in transfer is raw shares (no decimals adjustment needed for the trade value calculation).
    * However, ERC-1155 amounts from the contract may have decimals for precision.
+   *
+   * IMPORTANT: We ALWAYS fetch fresh price from CLOB API first because:
+   * 1. Cached price_history may be stale or incorrect (e.g., 0.5 default when order book is one-sided)
+   * 2. Price accuracy is critical for alert quality - wrong prices cause false positives
+   * 3. Real-time price ensures we evaluate trades at their actual market value
    */
   private async estimateTradeSize(transfer: CtfTransfer): Promise<number> {
     // Get the share amount from the transfer
@@ -595,13 +600,77 @@ class DetectionEngine {
       return shares;
     }
 
+    // ALWAYS fetch fresh price from CLOB API first - this is the source of truth
     try {
-      // Get the latest price for this market
+      const clobResponse = await fetch(`https://clob.polymarket.com/markets/${transfer.conditionId}`);
+      if (clobResponse.ok) {
+        const clobData = await clobResponse.json() as { tokens?: Array<{ outcome: string; price: number }> };
+        if (clobData.tokens && clobData.tokens.length >= 2) {
+          // Find the price for the correct outcome
+          const yesToken = clobData.tokens.find(t => t.outcome === 'Yes');
+          const noToken = clobData.tokens.find(t => t.outcome === 'No');
+
+          // Get the appropriate price based on outcome
+          // CtfTransfer.outcome is 'YES' | 'NO' (uppercase)
+          let price: number;
+          if (transfer.outcome === 'YES') {
+            price = yesToken?.price ?? 0;
+          } else {
+            // For NO tokens, use the NO price directly (not 1 - YES price)
+            // This is more accurate as it reflects the actual market for NO tokens
+            price = noToken?.price ?? 0;
+          }
+
+          // Sanity check: price should be between 0 and 1
+          if (price < 0 || price > 1) {
+            logger.warn({
+              msg: "Invalid price from CLOB API, falling back",
+              price,
+              conditionId: transfer.conditionId,
+            });
+          } else {
+            const usdValue = shares * price;
+
+            logger.debug({
+              msg: "Calculated trade size from CLOB API (real-time)",
+              shares,
+              price,
+              outcome: transfer.outcome,
+              usdValue,
+              conditionId: transfer.conditionId,
+            });
+
+            return usdValue;
+          }
+        }
+      }
+    } catch (clobError) {
+      logger.debug({
+        msg: "CLOB API failed, trying price_history fallback",
+        conditionId: transfer.conditionId,
+        error: clobError,
+      });
+    }
+
+    // Fallback: Try cached price_history (may be stale or incorrect)
+    try {
       const priceData = await priceHistoryService.getLatestPrice(transfer.conditionId);
 
       if (priceData) {
+        // IMPORTANT: Validate the price makes sense
+        // If the cached price is exactly 0.5, it might be the default fallback from one-sided order books
+        // In this case, log a warning and be cautious
+        if (priceData.price === 0.5) {
+          logger.warn({
+            msg: "Cached price is exactly 0.5 - may be default fallback, using with caution",
+            conditionId: transfer.conditionId,
+            priceSource: priceData.source,
+          });
+        }
+
         // For YES outcomes, use the price directly
         // For NO outcomes, the price is (1 - YES price)
+        // CtfTransfer.outcome is 'YES' | 'NO' (uppercase)
         let price = priceData.price;
         if (transfer.outcome === 'NO') {
           // NO tokens are priced as complement of YES price
@@ -612,70 +681,41 @@ class DetectionEngine {
         const usdValue = shares * price;
 
         logger.debug({
-          msg: "Calculated trade size from price data",
+          msg: "Calculated trade size from cached price_history (fallback)",
           shares,
           price,
           outcome: transfer.outcome,
           usdValue,
           conditionId: transfer.conditionId,
+          priceSource: priceData.source,
+          priceAge: Date.now() - priceData.recordedAt.getTime(),
         });
 
         return usdValue;
       }
     } catch (error) {
       logger.debug({
-        msg: "Error fetching price for trade size estimation",
+        msg: "Error fetching price from price_history",
         conditionId: transfer.conditionId,
         error,
       });
     }
 
-    // Fallback: Try fetching price directly from CLOB API
-    try {
-      const clobResponse = await fetch(`https://clob.polymarket.com/markets/${transfer.conditionId}`);
-      if (clobResponse.ok) {
-        const clobData = await clobResponse.json() as { tokens?: Array<{ outcome: string; price: number }> };
-        if (clobData.tokens && clobData.tokens.length >= 2) {
-          // Find the price for the correct outcome
-          const yesToken = clobData.tokens.find(t => t.outcome === 'Yes');
-          let price = yesToken?.price ?? 0.5;
-
-          if (transfer.outcome === 'NO') {
-            price = 1 - price;
-          }
-
-          const usdValue = shares * price;
-
-          logger.debug({
-            msg: "Calculated trade size from CLOB API fallback",
-            shares,
-            price,
-            outcome: transfer.outcome,
-            usdValue,
-            conditionId: transfer.conditionId,
-          });
-
-          return usdValue;
-        }
-      }
-    } catch (clobError) {
-      logger.debug({
-        msg: "CLOB API fallback failed",
-        conditionId: transfer.conditionId,
-        error: clobError,
-      });
-    }
-
     // Final fallback: no price data available at all
-    // Return shares only (essentially assuming $1 per share) which is conservative
-    // This is better than 50% because it at least preserves the relative magnitude
+    // For very low-probability markets, shares might be worth almost nothing
+    // Using shares as-is would massively overstate the value
+    // Better to return 0 and skip the detection than create a false positive
     logger.warn({
-      msg: "No price data available - returning raw share count as fallback",
+      msg: "No price data available - cannot estimate trade size accurately",
       shares,
       conditionId: transfer.conditionId,
       txHash: transfer.txHash,
     });
-    return shares;
+
+    // Return 0 to indicate we couldn't get a reliable price
+    // This will cause the trade to fail the min_trade_size_usd threshold check
+    // which is better than creating a false positive alert with inflated values
+    return 0;
   }
 
   /**

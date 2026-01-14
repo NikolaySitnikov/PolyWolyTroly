@@ -190,6 +190,16 @@ function extractLevelsWithinTicks(
 
 /**
  * Extract depth snapshot from order book data
+ *
+ * IMPORTANT: When order book is one-sided (no bids or no asks), we do NOT
+ * default to 0.5 for mid_price. This caused critical bugs where markets
+ * trading at near-zero (e.g., YES at 0.05%) would show as 50% price,
+ * leading to 1000x overestimation of trade values.
+ *
+ * Instead, we:
+ * 1. Return undefined for midPrice when order book is one-sided
+ * 2. Use the best available price (best bid or best ask) as reference for depth calculations
+ * 3. This prevents price_history from recording incorrect 0.5 values
  */
 function extractDepthSnapshot(
   conditionId: string,
@@ -198,8 +208,23 @@ function extractDepthSnapshot(
   const midPrice = calculateMidPrice(orderBook.bids, orderBook.asks);
   const spread = calculateSpread(orderBook.bids, orderBook.asks);
 
-  // Default to 0.5 if no mid price (for edge cases)
-  const refPrice = midPrice ?? 0.5;
+  // DO NOT default to 0.5 - this causes critical pricing bugs!
+  // If no mid price (one-sided order book), use best available price for depth calc
+  // but leave midPrice as undefined so it doesn't get recorded incorrectly
+  let refPrice: number;
+  if (midPrice !== undefined) {
+    refPrice = midPrice;
+  } else if (orderBook.bids.length > 0) {
+    // Only bids exist - use best bid as reference
+    refPrice = parseFloat(orderBook.bids[0].price);
+  } else if (orderBook.asks.length > 0) {
+    // Only asks exist - use best ask as reference
+    refPrice = parseFloat(orderBook.asks[0].price);
+  } else {
+    // Completely empty order book - use 0.5 as last resort for depth calc only
+    // midPrice will still be undefined (not stored)
+    refPrice = 0.5;
+  }
 
   // Extract levels at different tick depths
   const bids2 = extractLevelsWithinTicks(orderBook.bids, refPrice, TICK_LEVELS.LEVEL_2, true);

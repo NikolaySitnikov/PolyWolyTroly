@@ -178,6 +178,24 @@ This is an accepted limitation given the rarity of multi-outcome markets.
 
 This introduces some inaccuracy in MTM gain calculations.
 
+### One-Sided Order Books (CRITICAL)
+
+**CRITICAL BUG FIXED 2026-01-14**: One-sided order books cause incorrect price calculations.
+
+When a market has no bids (e.g., YES trading at 0.05%), the old code defaulted to `0.5` (50%) for mid-price calculation. This caused a **1000x overestimation** of trade values:
+
+- Actual YES price: 0.0005 (0.05%)
+- Stored price: 0.50 (50%)
+- 1,000,000 shares × 0.50 = **$500,000** (WRONG!)
+- 1,000,000 shares × 0.0005 = **$500** (correct)
+
+**The Fix**:
+1. `marketDepthService.ts` - Never default to 0.5 for one-sided order books
+2. `detectionEngine.ts` - Always fetch fresh price from CLOB API first (source of truth)
+3. Return 0 for trade size if no reliable price found (fails threshold, no false positive)
+
+**Lesson**: Always validate prices against the actual CLOB API. Cached prices may be corrupted by edge cases like one-sided order books.
+
 ### CEX/Bridge Address Lists
 
 The hardcoded CEX and bridge addresses in `fundingAnalyzer.ts` may be incomplete:

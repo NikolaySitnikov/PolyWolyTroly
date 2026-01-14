@@ -915,3 +915,21 @@ app.delete("/api/detection/alerts/test", async (req, res) => {
 ```
 
 **Future optimization** (post-Phase 1): Consider consolidating to a single pool or configuring smaller pool sizes once the detection system is stable.
+
+### One-Sided Order Book Price Bug (Fixed 2026-01-14)
+
+**CRITICAL BUG**: When markets have no bids (e.g., YES at 0.05%), the old code defaulted mid-price to 0.5 (50%), causing 1000x trade value overestimation.
+
+**Root Cause Chain**:
+1. `calculateMidPrice()` returns `undefined` for one-sided order books
+2. Old code: `const refPrice = midPrice ?? 0.5;` defaulted to 50%
+3. This 0.5 was stored in `depth_snapshots.mid_price` and passed to `priceHistoryService`
+4. `detectionEngine.estimateTradeSize()` used cached price (0.5) instead of real CLOB price (0.0005)
+5. Result: $500 trade reported as $500,000
+
+**Fix Applied**:
+1. `marketDepthService.ts` - No more 0.5 default. Uses best bid/ask for depth calc, `midPrice` stays `undefined`
+2. `detectionEngine.ts` - CLOB API fetched first (source of truth), cache is fallback only
+3. Returns 0 for trade size if no reliable price (fails threshold, prevents false positive)
+
+**Lesson**: Never trust cached prices for critical calculations. Always verify against the authoritative source (CLOB API).
