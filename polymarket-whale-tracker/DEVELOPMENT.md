@@ -24,6 +24,54 @@ npm run dev -- --host
 - Local: http://localhost:5173
 - Network: http://<your-ip>:5173
 
+### Production Mode with PM2 (Recommended)
+
+For reliable auto-restart on crash, use PM2:
+
+```bash
+cd polymarket-whale-tracker
+
+# Start both services with auto-restart
+pm2 start ecosystem.config.cjs
+
+# Check status
+pm2 list
+
+# View logs
+pm2 logs polywoly-backend
+pm2 logs polywoly-frontend
+
+# Stop all
+pm2 stop all
+
+# Restart after code changes
+npm run build && pm2 restart polywoly-backend
+```
+
+**PM2 Features:**
+- Auto-restarts on crash (max 10 restarts in 15 min)
+- Restarts if memory exceeds 1GB
+- Logs saved to `./logs/pm2-*.log`
+- Process list saved for easy restart: `pm2 save` then `pm2 resurrect`
+
+**To enable auto-start on system boot:**
+```bash
+pm2 save
+sudo env PATH=$PATH:/opt/homebrew/Cellar/node/24.3.0/bin /opt/homebrew/lib/node_modules/pm2/bin/pm2 startup launchd -u nikolaysitnikov --hp /Users/nikolaysitnikov
+```
+
+### Development Mode (manual start)
+
+For development with hot-reload:
+
+```bash
+# Backend (from polymarket-whale-tracker directory)
+npm run dev:api
+
+# Frontend (from polymarket-whale-tracker/frontend directory)
+npm run dev -- --host
+```
+
 ### Starting Services via Claude Code
 
 When using Claude Code to start services, use `nohup` to prevent processes from being killed when the conversation progresses:
@@ -43,6 +91,8 @@ To check logs:
 tail -f /tmp/polywoly-api.log      # Backend logs
 tail -f /tmp/polywoly-frontend.log # Frontend logs
 ```
+
+**Better option**: Use PM2 instead of nohup - it provides auto-restart and better logging.
 
 ### Access from Other Devices (same WiFi)
 
