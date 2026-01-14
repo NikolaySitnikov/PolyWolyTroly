@@ -30,8 +30,24 @@ export interface HealthResponse {
   };
 }
 
+/**
+ * Dynamically determine API base URL based on how the frontend was accessed.
+ * - If VITE_API_URL is set, use that (for production/custom configs)
+ * - Otherwise, use the same hostname as the browser with port 3002
+ * This allows both localhost and network IP access to work automatically.
+ */
+function getApiBaseUrl(): string {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // Use same host as the browser, but with API port
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  return `${protocol}//${hostname}:3002`;
+}
+
 export const api = {
-  baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:3002',
+  baseUrl: getApiBaseUrl(),
 };
 
 /**
