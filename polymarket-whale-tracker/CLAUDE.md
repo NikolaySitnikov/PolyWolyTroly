@@ -298,7 +298,7 @@ const isHighRisk = await walletRiskService.isHighRisk("0xwallet...");
 ### Required Environment Variables
 - `ALCHEMY_WSS_URL` / `ALCHEMY_HTTP_URL` - Polygon RPC endpoints (PublicNode)
 - `DATABASE_URL` - PostgreSQL connection string
-- `REDIS_URL` - Redis connection string
+- `REDIS_URL` - Redis connection string (local: `redis://localhost:6379`)
 - `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` - Alert destination
 - `MIN_DEPOSIT_AMOUNT` - Threshold in USD (default: 7500)
 
@@ -330,6 +330,18 @@ Test files:
 ## Module System
 
 ES Modules with `.js` extensions in imports (e.g., `import { x } from "./file.js"`). The `main()` function in index.ts uses `decodeURIComponent(import.meta.url)` to handle paths with spaces and avoid auto-execution during tests.
+
+## MCP Browser Testing Guidelines
+
+When using MCP tools (Playwright or Chrome DevTools) for testing or verification:
+
+**DO NOT take screenshots.** Instead:
+- Use `browser_snapshot` (Playwright) or `take_snapshot` (Chrome DevTools) for accessibility tree snapshots
+- Use `browser_console_messages` or `list_console_messages` to check for errors
+- Use `browser_network_requests` or `list_network_requests` to verify API calls
+- Read the snapshot text output to verify UI state
+
+Screenshots waste storage and are rarely needed when snapshots provide the same information in a more useful text format.
 
 ## Common Issues
 

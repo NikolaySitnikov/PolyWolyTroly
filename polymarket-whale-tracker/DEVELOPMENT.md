@@ -71,6 +71,71 @@ Key environment variables in `.env`:
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token for alerts | Required |
 | `TELEGRAM_CHAT_ID` | Telegram chat ID for alerts | Required |
 
+### Redis Setup (Local Development)
+
+This project uses Redis for caching trading data, detection stats, and event deduplication. For local development, we recommend running Redis locally via Homebrew.
+
+#### Install and Start Redis
+
+```bash
+# Install via Homebrew (macOS)
+brew install redis
+
+# Start Redis as a background service
+brew services start redis
+
+# Verify Redis is running
+redis-cli ping  # Should return "PONG"
+```
+
+#### Configure .env
+
+Set the `REDIS_URL` to use local Redis:
+
+```
+REDIS_URL=redis://localhost:6379
+```
+
+#### Managing Redis
+
+```bash
+# Check Redis status
+brew services list | grep redis
+
+# Stop Redis
+brew services stop redis
+
+# Restart Redis
+brew services restart redis
+
+# View Redis logs
+tail -f /opt/homebrew/var/log/redis.log
+
+# Clear all Redis data (useful for testing)
+redis-cli FLUSHALL
+```
+
+#### Alternative: Docker
+
+If you prefer Docker:
+
+```bash
+docker run -d --name polywoly-redis -p 6379:6379 redis:alpine
+
+# With persistence (data survives restarts)
+docker run -d --name polywoly-redis -p 6379:6379 -v redis-data:/data redis:alpine redis-server --appendonly yes
+```
+
+#### Redis Data
+
+Redis stores:
+- **Trading data cache**: P&L, win rate, portfolio values (5-min TTL)
+- **Detection cache**: Market metadata, depth snapshots, wallet activity
+- **Event deduplication**: Prevents duplicate processing of blockchain events
+- **Stats cache**: Dashboard statistics (30-second TTL)
+
+All data is ephemeral cache - losing Redis data just means slower initial loads while caches rebuild.
+
 ### Changing Alert Threshold
 
 To change the minimum deposit amount for Telegram alerts:

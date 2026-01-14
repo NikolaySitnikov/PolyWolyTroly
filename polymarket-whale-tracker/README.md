@@ -28,6 +28,24 @@ Real-time monitoring of large USDC deposits to Polymarket on Polygon. Sends Tele
 
 ## Quick Start
 
+### Prerequisites
+
+- **Node.js** 18+
+- **PostgreSQL** - Database for wallet and transaction history
+- **Redis** - Cache for fast lookups and deduplication
+
+#### Install Redis (macOS)
+
+```bash
+brew install redis
+brew services start redis
+redis-cli ping  # Should return "PONG"
+```
+
+See [DEVELOPMENT.md](DEVELOPMENT.md#redis-setup-local-development) for Docker alternative and more details.
+
+### Setup
+
 ```bash
 # Install dependencies
 npm install
@@ -58,7 +76,7 @@ Open http://localhost:5173 to view the dashboard.
 | `ALCHEMY_WSS_URL` | Polygon WebSocket RPC endpoint (PublicNode) |
 | `ALCHEMY_HTTP_URL` | Polygon HTTP RPC endpoint (PublicNode) |
 | `DATABASE_URL` | PostgreSQL connection string |
-| `REDIS_URL` | Redis connection string |
+| `REDIS_URL` | Redis connection string (e.g., `redis://localhost:6379`) |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token from @BotFather |
 | `TELEGRAM_CHAT_ID` | Telegram chat ID to send alerts to |
 | `MIN_DEPOSIT_AMOUNT` | Minimum deposit in USD to trigger alert (default: 7500) |
