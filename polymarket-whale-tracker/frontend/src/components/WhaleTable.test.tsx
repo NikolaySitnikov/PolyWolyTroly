@@ -647,5 +647,65 @@ describe('WhaleTable Component', () => {
       );
       expect(firstCard).toHaveStyle({ cursor: 'pointer' });
     });
+
+    it('should have red left border on mobile cards for losing whales (negative P&L)', () => {
+      // Create a whale with negative P&L
+      const losingWhale: WhaleWithTrading = {
+        address: '0xloser1234567890abcdef1234567890abcdef12',
+        firstSeenAt: '2026-01-01T00:00:00.000Z',
+        totalDeposited: 100000,
+        depositCount: 5,
+        pnl: -15000, // Negative P&L = losing
+        pnl7d: -5000,
+        pnl30d: -10000,
+        winRate: 30,
+        portfolioValue: 85000,
+        totalTrades: 20,
+        lastActivityAt: '2026-01-05T10:00:00.000Z',
+        isLive: true,
+      };
+      render(
+        <WhaleTable
+          whales={[losingWhale]}
+          isMobile={true}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      const card = screen.getByTestId(
+        'whale-card-0xloser1234567890abcdef1234567890abcdef12'
+      );
+      // Should have 3px red left border (tokens.colors.loss = #ff3366 = rgb(255, 51, 102))
+      expect(card).toHaveStyle({ borderLeft: '3px solid rgb(255, 51, 102)' });
+    });
+
+    it('should have green left border on mobile cards for profitable whales (positive P&L)', () => {
+      // Create a whale with positive P&L
+      const profitableWhale: WhaleWithTrading = {
+        address: '0xwinner123456789abcdef1234567890abcdef12',
+        firstSeenAt: '2026-01-01T00:00:00.000Z',
+        totalDeposited: 100000,
+        depositCount: 5,
+        pnl: 25000, // Positive P&L = profitable
+        pnl7d: 10000,
+        pnl30d: 20000,
+        winRate: 70,
+        portfolioValue: 125000,
+        totalTrades: 30,
+        lastActivityAt: '2026-01-05T10:00:00.000Z',
+        isLive: true,
+      };
+      render(
+        <WhaleTable
+          whales={[profitableWhale]}
+          isMobile={true}
+          onWhaleClick={mockOnWhaleClick}
+        />
+      );
+      const card = screen.getByTestId(
+        'whale-card-0xwinner123456789abcdef1234567890abcdef12'
+      );
+      // Should have 3px green left border (tokens.colors.profit = #00ff88 = rgb(0, 255, 136))
+      expect(card).toHaveStyle({ borderLeft: '3px solid rgb(0, 255, 136)' });
+    });
   });
 });

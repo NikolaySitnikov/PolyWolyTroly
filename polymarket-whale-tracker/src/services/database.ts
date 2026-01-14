@@ -188,7 +188,7 @@ export const db = {
   async getAllWallets(
     page: number,
     limit: number,
-    sortBy: 'total_deposited' | 'deposit_count' | 'first_seen_at' = 'total_deposited',
+    sortBy: 'total_deposited' | 'deposit_count' | 'first_seen_at' | 'pnl' = 'total_deposited',
     sortDir: 'asc' | 'desc' = 'desc'
   ): Promise<{
     wallets: Wallet[];
@@ -198,16 +198,19 @@ export const db = {
   }> {
     const offset = (page - 1) * limit;
 
-    // Map frontend field names to database column names (they match in this case)
-    const validSortFields = ['total_deposited', 'deposit_count', 'first_seen_at'];
+    // Map frontend field names to database column names
+    const validSortFields = ['total_deposited', 'deposit_count', 'first_seen_at', 'pnl'];
     const validSortDirs = ['asc', 'desc'];
 
     // Validate and sanitize sort parameters to prevent SQL injection
     const safeSortBy = validSortFields.includes(sortBy) ? sortBy : 'total_deposited';
     const safeSortDir = validSortDirs.includes(sortDir) ? sortDir.toUpperCase() : 'DESC';
 
+    // Handle NULL values in sort - put NULLs last for pnl sorting
+    const nullsLast = safeSortBy === 'pnl' ? 'NULLS LAST' : '';
+
     const walletsResult = await pool.query(
-      `SELECT * FROM wallets WHERE is_market_maker = FALSE ORDER BY ${safeSortBy} ${safeSortDir} LIMIT $1 OFFSET $2`,
+      `SELECT * FROM wallets WHERE is_market_maker = FALSE ORDER BY ${safeSortBy} ${safeSortDir} ${nullsLast} LIMIT $1 OFFSET $2`,
       [limit, offset]
     );
 
@@ -382,6 +385,198 @@ export const db = {
       depositCount: parseInt(row.deposit_count, 10),
       largestDeposit: parseFloat(row.largest_deposit),
     };
+  },
+
+  // Update trading metrics for a wallet (called by cache warmer)
+  async updateTradingMetrics(
+    address: string,
+    metrics: {
+      pnl: number;
+      pnl7d: number;
+      pnl30d: number;
+      winRate: number;
+      portfolioValue: number;
+      totalTrades: number;
+      lastActivityAt: string | null;
+      isLive: boolean;
+    }
+  ): Promise<void> {
+    await pool.query(
+      `UPDATE wallets SET
+        pnl = $2,
+        pnl_7d = $3,
+        pnl_30d = $4,
+        win_rate = $5,
+        portfolio_value = $6,
+        total_trades = $7,
+        last_activity_at = $8,
+        is_live = $9,
+        trading_data_updated_at = NOW(),
+        updated_at = NOW()
+      WHERE address = $1`,
+      [
+        address.toLowerCase(),
+        metrics.pnl,
+        metrics.pnl7d,
+        metrics.pnl30d,
+        metrics.winRate,
+        metrics.portfolioValue,
+        metrics.totalTrades,
+        metrics.lastActivityAt,
+        metrics.isLive,
+      ]
+    );
+  },
+
+  // Batch update trading metrics for multiple wallets (more efficient)
+  async batchUpdateTradingMetrics(
+    updates: Array<{
+      address: string;
+      pnl: number;
+      pnl7d: number;
+      pnl30d: number;
+      winRate: number;
+      portfolioValue: number;
+      totalTrades: number;
+      lastActivityAt: string | null;
+      isLive: boolean;
+    }>
+  ): Promise<void> {
+    if (updates.length === 0) return;
+
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      for (const u of updates) {
+        await client.query(
+          `UPDATE wallets SET
+            pnl = $2,
+            pnl_7d = $3,
+            pnl_30d = $4,
+            win_rate = $5,
+            portfolio_value = $6,
+            total_trades = $7,
+            last_activity_at = $8,
+            is_live = $9,
+            trading_data_updated_at = NOW(),
+            updated_at = NOW()
+          WHERE address = $1`,
+          [
+            u.address.toLowerCase(),
+            u.pnl,
+            u.pnl7d,
+            u.pnl30d,
+            u.winRate,
+            u.portfolioValue,
+            u.totalTrades,
+            u.lastActivityAt,
+            u.isLive,
+          ]
+        );
+      }
+
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  },
+
+  // Get wallets with trading-based filters (uses cached DB metrics)
+  async getFilteredWallets(
+    page: number,
+    limit: number,
+    sortBy: 'total_deposited' | 'deposit_count' | 'first_seen_at' | 'pnl' = 'total_deposited',
+    sortDir: 'asc' | 'desc' = 'desc',
+    filters: ('profitable' | 'losing' | 'live')[] = []
+  ): Promise<{
+    wallets: any[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const offset = (page - 1) * limit;
+
+    // Build WHERE clause based on filters
+    const conditions: string[] = ['is_market_maker = FALSE'];
+
+    // Filters require trading data to be present (pnl IS NOT NULL)
+    if (filters.length > 0) {
+      conditions.push('pnl IS NOT NULL');
+    }
+
+    if (filters.includes('profitable')) {
+      conditions.push('pnl > 0');
+    }
+    if (filters.includes('losing')) {
+      conditions.push('pnl < 0');
+    }
+    if (filters.includes('live')) {
+      conditions.push('is_live = TRUE');
+    }
+
+    const whereClause = conditions.join(' AND ');
+
+    // Map sort field to column name
+    const sortColumns: Record<string, string> = {
+      total_deposited: 'total_deposited',
+      deposit_count: 'deposit_count',
+      first_seen_at: 'first_seen_at',
+      pnl: 'pnl',
+    };
+    const safeSortBy = sortColumns[sortBy] || 'total_deposited';
+    const safeSortDir = sortDir === 'asc' ? 'ASC' : 'DESC';
+
+    // Handle NULL values in sort - put NULLs last
+    const nullsLast = sortBy === 'pnl' ? 'NULLS LAST' : '';
+
+    const walletsResult = await pool.query(
+      `SELECT * FROM wallets
+       WHERE ${whereClause}
+       ORDER BY ${safeSortBy} ${safeSortDir} ${nullsLast}
+       LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*) as count FROM wallets WHERE ${whereClause}`
+    );
+    const total = parseInt(countResult.rows[0]?.count || "0", 10);
+
+    return {
+      wallets: walletsResult.rows,
+      total,
+      page,
+      limit,
+    };
+  },
+
+  // Get count of wallets that have trading data cached
+  async getWalletsWithTradingDataCount(): Promise<number> {
+    const result = await pool.query(
+      "SELECT COUNT(*) as count FROM wallets WHERE pnl IS NOT NULL AND is_market_maker = FALSE"
+    );
+    return parseInt(result.rows[0]?.count || "0", 10);
+  },
+
+  // Get wallets that need trading data refresh (oldest first)
+  async getWalletsNeedingTradingRefresh(
+    limit: number,
+    maxAgeMinutes: number = 5
+  ): Promise<string[]> {
+    const result = await pool.query(
+      `SELECT address FROM wallets
+       WHERE is_market_maker = FALSE
+         AND (trading_data_updated_at IS NULL
+              OR trading_data_updated_at < NOW() - INTERVAL '${maxAgeMinutes} minutes')
+       ORDER BY trading_data_updated_at ASC NULLS FIRST
+       LIMIT $1`,
+      [limit]
+    );
+    return result.rows.map((r) => r.address);
   },
 
   // Close pool (for cleanup)

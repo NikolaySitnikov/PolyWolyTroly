@@ -12,7 +12,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchWhales, type WalletsResponse, type WhaleSortField, type SortDirection } from '../services/api';
+import { fetchWhales, type WalletsResponse, type WhaleSortField, type SortDirection, type WhaleFilterType } from '../services/api';
 import type { Whale, WhaleWithTrading } from '../types/whale';
 
 interface UseWhalesResult {
@@ -66,7 +66,8 @@ function transformWallet(wallet: WalletsResponse['wallets'][0]): Whale | WhaleWi
 export function useWhales(
   limit = 1000,
   sortBy: WhaleSortField = 'total_deposited',
-  sortDir: SortDirection = 'desc'
+  sortDir: SortDirection = 'desc',
+  filters: WhaleFilterType[] = ['all']
 ): UseWhalesResult {
   const [whales, setWhales] = useState<(Whale | WhaleWithTrading)[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,17 +79,20 @@ export function useWhales(
   const pageRef = useRef(page);
   pageRef.current = page;
 
-  // Reset to page 1 when sort changes
+  // Reset to page 1 when sort or filters change
   const prevSortBy = useRef(sortBy);
   const prevSortDir = useRef(sortDir);
+  const prevFilters = useRef(filters);
 
   useEffect(() => {
-    if (prevSortBy.current !== sortBy || prevSortDir.current !== sortDir) {
+    const filtersChanged = JSON.stringify(prevFilters.current) !== JSON.stringify(filters);
+    if (prevSortBy.current !== sortBy || prevSortDir.current !== sortDir || filtersChanged) {
       setPage(1);
       prevSortBy.current = sortBy;
       prevSortDir.current = sortDir;
+      prevFilters.current = filters;
     }
-  }, [sortBy, sortDir]);
+  }, [sortBy, sortDir, filters]);
 
   // Track abort controller to cancel pending requests on sort/page change
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -108,7 +112,7 @@ export function useWhales(
     // Don't clear error until fetch succeeds to prevent flicker on retry
 
     try {
-      const response = await fetchWhales(page, limit, sortBy, sortDir, controller.signal);
+      const response = await fetchWhales(page, limit, sortBy, sortDir, filters, controller.signal);
       // Only update if not aborted
       if (!controller.signal.aborted) {
         setWhales(response.wallets.map(transformWallet));
@@ -127,7 +131,7 @@ export function useWhales(
       setLoading(false);
       isInitialLoad.current = false;
     }
-  }, [page, limit, sortBy, sortDir]);
+  }, [page, limit, sortBy, sortDir, filters]);
 
   useEffect(() => {
     fetchData();

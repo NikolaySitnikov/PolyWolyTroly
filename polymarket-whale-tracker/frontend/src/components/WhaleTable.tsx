@@ -24,6 +24,7 @@ import { CopyableAddress } from './CopyableAddress';
 import { AchievementBadges, getWhaleAchievements } from './AchievementBadge';
 import { LiveBadge } from './LiveBadge';
 import { useNewItemAnimation } from '../hooks/useNewItemAnimation';
+import { FilterPills, type WhaleFilter } from './FilterPills';
 import type { Whale, WhaleWithTrading, WhaleSortField, SortDirection } from '../types/whale';
 
 /**
@@ -39,6 +40,14 @@ function hasTrading(whale: Whale | WhaleWithTrading): whale is WhaleWithTrading 
  */
 function isTradingLoading(whale: Whale | WhaleWithTrading): boolean {
   return 'pnl' in whale && whale.pnl === null;
+}
+
+/**
+ * Check if whale is "losing" (has negative P&L)
+ * Returns false if trading data is not loaded or P&L is null
+ */
+function isLosingWhale(whale: Whale | WhaleWithTrading): boolean {
+  return hasTrading(whale) && whale.pnl < 0;
 }
 
 /**
@@ -104,6 +113,17 @@ function formatWinRate(winRate: number | null, totalTrades: number | null): stri
 }
 
 /**
+ * Check if whale is "profitable" (has positive P&L)
+ * Returns false if trading data is not loaded or P&L is null
+ */
+function isProfitableWhale(whale: Whale | WhaleWithTrading): boolean {
+  return hasTrading(whale) && whale.pnl > 0;
+}
+
+// Note: Filter functions (isProfitableWhale, isLosingWhale, isLiveWhale) moved to server-side
+// Server-side filtering happens in /api/wallets endpoint with filter query parameter
+
+/**
  * Shimmer placeholder for loading trading data
  * Cyan/magenta gradient animation
  */
@@ -142,6 +162,10 @@ interface WhaleTableProps {
   sortDir?: SortDirection;
   /** Callback when sort changes */
   onSortChange?: (field: WhaleSortField, direction: SortDirection) => void;
+  /** Active filters (server-side filtering) */
+  activeFilters?: WhaleFilter[];
+  /** Callback when filters change */
+  onFilterChange?: (filters: WhaleFilter[]) => void;
   /** Callback when user swipes right to follow a whale (mobile only) */
   onFollowWhale?: (address: string) => void;
   /** Callback when user swipes left to hide a whale (mobile only) */
@@ -165,23 +189,35 @@ export function WhaleTable({
   sortBy = 'totalDeposited',
   sortDir = 'desc',
   onSortChange,
+  activeFilters = ['all'],
+  onFilterChange,
   onFollowWhale,
   onHideWhale,
 }: WhaleTableProps) {
-  const [filter, setFilter] = useState('');
+  const [searchFilter, setSearchFilter] = useState('');
   const lastPointerSortRef = useRef<{ field: WhaleSortField | null; at: number }>({
     field: null,
     at: 0,
   });
 
+  // Handler for filter changes - calls parent callback or logs warning
+  const handleFilterChange = (filters: WhaleFilter[]) => {
+    if (onFilterChange) {
+      onFilterChange(filters);
+    }
+  };
+
   // Track new items for animation (only animate truly new whales, not on initial load)
   const getWhaleKey = useCallback((whale: Whale) => whale.address, []);
   const shouldAnimateWhale = useNewItemAnimation(whales, getWhaleKey);
 
-  // Filter whales (sorting is now done server-side)
+  // Filter whales by search query only (trading filters are now server-side)
   const filteredWhales = useMemo(() => {
-    return whales.filter((w) => w.address.toLowerCase().includes(filter.toLowerCase()));
-  }, [whales, filter]);
+    if (!searchFilter) return whales;
+    return whales.filter((w) =>
+      w.address.toLowerCase().includes(searchFilter.toLowerCase())
+    );
+  }, [whales, searchFilter]);
 
   // Calculate pagination
   const actualTotal = totalItems ?? filteredWhales.length;
@@ -259,8 +295,9 @@ export function WhaleTable({
     );
   }
 
-  // No search results
-  if (filteredWhales.length === 0 && filter) {
+  // No search results or filter results
+  const hasActiveFilters = !activeFilters.includes('all');
+  if (filteredWhales.length === 0 && (searchFilter || hasActiveFilters)) {
     return (
       <div
         data-testid="whale-table"
@@ -296,8 +333,8 @@ export function WhaleTable({
             <input
               type="text"
               placeholder="Search by address..."
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
               style={{
                 flex: 1,
                 background: 'transparent',
@@ -309,9 +346,9 @@ export function WhaleTable({
                 minWidth: 0,
               }}
             />
-            {filter && (
+            {searchFilter && (
               <button
-                onClick={() => setFilter('')}
+                onClick={() => setSearchFilter('')}
                 aria-label="Clear search"
                 style={{
                   background: 'transparent',
@@ -344,7 +381,7 @@ export function WhaleTable({
             color: tokens.colors.textSecondary,
           }}
         >
-          No whales found matching "{filter}"
+          No whales found matching "{searchFilter}"
         </div>
       </div>
     );
@@ -436,8 +473,8 @@ export function WhaleTable({
             <input
               type="text"
               placeholder="Search by address..."
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
               style={{
                 flex: 1,
                 background: 'transparent',
@@ -448,9 +485,9 @@ export function WhaleTable({
                 color: tokens.colors.textPrimary,
               }}
             />
-            {filter && (
+            {searchFilter && (
               <button
-                onClick={() => setFilter('')}
+                onClick={() => setSearchFilter('')}
                 aria-label="Clear search"
                 style={{
                   width: '28px',
@@ -526,11 +563,17 @@ export function WhaleTable({
               );
             })}
           </div>
+
+          {/* Filter Pills */}
+          <FilterPills
+            activeFilters={activeFilters}
+            onChange={handleFilterChange}
+          />
         </div>
 
         {/* ===== WHALE CARDS ===== */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {filteredWhales.length === 0 && filter ? (
+          {filteredWhales.length === 0 && (searchFilter || hasActiveFilters) ? (
             <div
               style={{
                 padding: '48px 20px',
@@ -542,7 +585,9 @@ export function WhaleTable({
             >
               <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.5 }}>🔍</div>
               <div style={{ color: tokens.colors.textSecondary }}>
-                No whales found matching "{filter}"
+                {searchFilter
+                  ? `No whales found matching "${searchFilter}"`
+                  : 'No whales match the selected filters'}
               </div>
             </div>
           ) : (
@@ -551,6 +596,17 @@ export function WhaleTable({
               const hasSwipe = onFollowWhale && onHideWhale;
 
               // Card content (extracted for reuse with/without swipe wrapper)
+              const isProfitable = isProfitableWhale(whale);
+              const isLosing = isLosingWhale(whale);
+              const hasSpecialBorder = isProfitable || isLosing;
+
+              // Determine left border style: green for profitable, red for losing, normal otherwise
+              const getLeftBorder = () => {
+                if (isProfitable) return `3px solid ${tokens.colors.profit}`;
+                if (isLosing) return `3px solid ${tokens.colors.loss}`;
+                return `1px solid ${tokens.colors.border}`;
+              };
+
               const cardContent = (
                 <div
                   data-testid={`whale-card-${whale.address}`}
@@ -558,8 +614,12 @@ export function WhaleTable({
                   style={{
                     background: tokens.colors.surface,
                     border: `1px solid ${tokens.colors.border}`,
+                    // Green left border for profitable, red for losing whales
+                    borderLeft: getLeftBorder(),
                     borderRadius: '14px',
                     padding: '16px',
+                    // Adjust left padding to compensate for thicker border
+                    paddingLeft: hasSpecialBorder ? '14px' : '16px',
                     cursor: 'pointer',
                     transition: `all ${tokens.animation.durationFast} ${tokens.animation.easeOutExpo}`,
                     // Only animate new items
@@ -580,13 +640,23 @@ export function WhaleTable({
                   onMouseEnter={(e) => {
                     if (window.matchMedia('(hover: hover)').matches) {
                       e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.borderColor = tokens.colors.cyan;
+                      // Preserve colored left border for profitable/losing whales
+                      e.currentTarget.style.borderTop = `1px solid ${tokens.colors.cyan}`;
+                      e.currentTarget.style.borderRight = `1px solid ${tokens.colors.cyan}`;
+                      e.currentTarget.style.borderBottom = `1px solid ${tokens.colors.cyan}`;
+                      if (!hasSpecialBorder) {
+                        e.currentTarget.style.borderLeft = `1px solid ${tokens.colors.cyan}`;
+                      }
                       e.currentTarget.style.boxShadow = `0 0 30px ${tokens.colors.cyanGlow}, inset 0 1px 0 ${tokens.colors.cyan}`;
                     }
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.borderColor = tokens.colors.border;
+                    // Restore borders, keeping colored left border for profitable/losing whales
+                    e.currentTarget.style.borderTop = `1px solid ${tokens.colors.border}`;
+                    e.currentTarget.style.borderRight = `1px solid ${tokens.colors.border}`;
+                    e.currentTarget.style.borderBottom = `1px solid ${tokens.colors.border}`;
+                    e.currentTarget.style.borderLeft = getLeftBorder();
                     e.currentTarget.style.boxShadow = 'none';
                     e.currentTarget.style.background = tokens.colors.surface;
                   }}
@@ -986,6 +1056,11 @@ export function WhaleTable({
             Whale Directory
           </span>
         </div>
+        {/* Filter Pills */}
+        <FilterPills
+          activeFilters={activeFilters}
+          onChange={handleFilterChange}
+        />
         {/* Spacer */}
         <div style={{ flex: 1 }} />
         {/* Search input */}
@@ -1005,8 +1080,8 @@ export function WhaleTable({
           <input
             type="text"
             placeholder="Search address..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            value={searchFilter}
+            onChange={(e) => setSearchFilter(e.target.value)}
             style={{
               flex: 1,
               background: 'transparent',
@@ -1018,9 +1093,9 @@ export function WhaleTable({
               minWidth: '120px',
             }}
           />
-          {filter && (
+          {searchFilter && (
             <button
-              onClick={() => setFilter('')}
+              onClick={() => setSearchFilter('')}
               aria-label="Clear search"
               style={{
                 background: 'transparent',
