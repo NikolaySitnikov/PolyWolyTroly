@@ -245,31 +245,31 @@ src/services/insiderDetection/
 | 1.8.5 | Add health status for detection engine | Integration test | ✅ |
 | 1.8.6 | Integration tests for CTF → Detection pipeline | Vitest | ✅ |
 
-### Phase 1.9: API Endpoints
+### Phase 1.9: API Endpoints ✅ COMPLETED
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 1.9.1 | Add `GET /api/detection/rules` endpoint | API test | |
-| 1.9.2 | Add `GET /api/detection/rules/:name` endpoint | API test | |
-| 1.9.3 | Add `PATCH /api/detection/rules/:name` endpoint | API test | |
-| 1.9.4 | Add `POST /api/detection/rules/:name/evaluate` endpoint | API test | |
-| 1.9.5 | Add `GET /api/detection/clusters` endpoint | API test | |
-| 1.9.6 | Add `GET /api/detection/clusters/:clusterId` endpoint | API test | |
-| 1.9.7 | Add `GET /api/detection/wallets/:address/cluster` endpoint | API test | |
-| 1.9.8 | Add `GET /api/detection/markets/:conditionId/price-history` endpoint | API test | |
-| 1.9.9 | Add `POST /api/detection/evaluate` manual evaluation endpoint | API test | |
+| 1.9.1 | Add `GET /api/detection/rules` endpoint | API test | ✅ |
+| 1.9.2 | Add `GET /api/detection/rules/:name` endpoint | API test | ✅ |
+| 1.9.3 | Add `PATCH /api/detection/rules/:name` endpoint | API test | ✅ |
+| 1.9.4 | Add `POST /api/detection/rules/:name/evaluate` endpoint | API test | ✅ |
+| 1.9.5 | Add `GET /api/detection/clusters` endpoint | API test | ✅ |
+| 1.9.6 | Add `GET /api/detection/clusters/:clusterId` endpoint | API test | ✅ |
+| 1.9.7 | Add `GET /api/detection/wallets/:address/cluster` endpoint | API test | ✅ |
+| 1.9.8 | Add `GET /api/detection/markets/:conditionId/price-history` endpoint | API test | ✅ |
+| 1.9.9 | Add `POST /api/detection/evaluate` manual evaluation endpoint | API test | ✅ |
 
-### Phase 1.10: Frontend Enhancements
+### Phase 1.10: Frontend Enhancements ✅ COMPLETED
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 1.10.1 | Create `RuleCard.tsx` component for detection rules | Component test | |
-| 1.10.2 | Create `ClusterView.tsx` component for wallet clusters | Component test | |
-| 1.10.3 | Create `PriceChart.tsx` component for price history | Component test | |
-| 1.10.4 | Add rules list to Detection dashboard | Component test | |
-| 1.10.5 | Add cluster info to AlertDetail component | Component test | |
-| 1.10.6 | Add MTM gain visualization to AlertDetail | Component test | |
-| 1.10.7 | Create hooks: `useDetectionRules`, `useWalletCluster` | Hook tests | |
-| 1.10.8 | Add frontend API functions for new endpoints | Unit tests | |
-| 1.10.9 | Browser E2E verification via MCP | Manual test | |
+| 1.10.1 | Create `RuleCard.tsx` component for detection rules | Component test | ✅ |
+| 1.10.2 | Create `ClusterView.tsx` component for wallet clusters | Component test | ✅ |
+| 1.10.3 | Create `PriceChart.tsx` component for price history | Component test | ✅ |
+| 1.10.4 | Add rules list to Detection dashboard | Component test | ✅ |
+| 1.10.5 | Add cluster info to AlertDetail component | Component test | ✅ |
+| 1.10.6 | Add MTM gain visualization to AlertDetail | Component test | ✅ |
+| 1.10.7 | Create hooks: `useDetectionRules`, `useWalletCluster`, `usePriceHistory` | Hook tests | ✅ |
+| 1.10.8 | Add frontend API functions for new endpoints | Unit tests | ✅ |
+| 1.10.9 | Browser E2E verification via MCP | Manual test | ✅ |
 
 ### Phase 1.11: Integration & Testing
 | # | Task | Test Strategy | Status |
@@ -392,15 +392,59 @@ confidence = (
 ## Progress Tracking
 
 **Total Subtasks:** 78
-**Completed:** 61
+**Completed:** 79
 **In Progress:** 0
-**Remaining:** 17
+**Remaining:** 7 (Phase 1.11 integration tests)
 
 Last Updated: 2026-01-14
 
 ---
 
 ## Changelog
+
+### 2026-01-14 - Phase 1.10 Completed
+- Created frontend components for detection enhancements:
+  - `RuleCard.tsx` - Displays detection rule with config, thresholds, toggle switch
+  - `RuleCardList.tsx` - Grid layout for multiple rule cards
+  - `ClusterView.tsx` - Displays wallet cluster info with relationships and strength meter
+  - `ClusterBadge.tsx` - Compact badge for cluster summary
+  - `PriceChart.tsx` - SVG-based price history chart with gradient fill and highlight points
+  - `PriceSparkline.tsx` - Compact sparkline for inline use
+- Created frontend hooks:
+  - `useDetectionRules.ts` - Fetch/toggle/update detection rules with polling
+  - `useWalletCluster.ts` - Fetch cluster membership with relationship details
+  - `usePriceHistory.ts` - Fetch price history with helper functions (calculatePriceChange, getLatestPrice, getPriceAt)
+- Updated existing components:
+  - `DetectionDashboard.tsx` - Added "Detection Rules" section with RuleCardList
+  - `AlertDetail.tsx` - Added cluster info, price history chart, and MTM gain visualization
+- Added frontend API functions in `api.ts`:
+  - `fetchDetectionRules`, `fetchDetectionRule`, `updateDetectionRule`, `evaluateDetectionRule`
+  - `fetchClusters`, `fetchCluster`, `fetchWalletCluster`
+  - `fetchDetectionPriceHistory`
+- Added types to `detection.ts`:
+  - Rule types: `DetectionRuleName`, `DetectionRuleConfig`, `DetectionRulesResponse`
+  - Cluster types: `ClusterSummary`, `ClusterRelationship`, `ClusterDetails`
+  - Price types: `PriceHistoryPoint`, `PriceHistoryResponse`
+  - UI helpers: `RULE_NAME_LABELS`, `RULE_DESCRIPTIONS`, `CLUSTER_RELATIONSHIP_LABELS`
+- Browser E2E verification via MCP:
+  - Detection dashboard displays stats, alerts by type, rules section, and alerts list
+  - API endpoints returning correct data (stats, rules)
+  - Frontend build passes with no TypeScript errors
+
+### 2026-01-14 - Phase 1.9 Completed
+- Added 9 new API endpoints for detection rules, clusters, and price history:
+  - `GET /api/detection/rules` - List all detection rules with config and status
+  - `GET /api/detection/rules/:name` - Get specific rule details
+  - `PATCH /api/detection/rules/:name` - Update rule enabled/thresholds
+  - `POST /api/detection/rules/:name/evaluate` - Trigger manual rule evaluation
+  - `GET /api/detection/clusters` - List all wallet clusters
+  - `GET /api/detection/clusters/:clusterId` - Get cluster details
+  - `GET /api/detection/wallets/:address/cluster` - Get wallet's cluster membership
+  - `GET /api/detection/markets/:conditionId/price-history` - Get price history
+  - `POST /api/detection/evaluate` - Manual detection evaluation
+- Added imports for `detectionEngine`, `clusterService`, `priceHistoryService` to server.ts
+- Created 52 API tests in `detectionRulesApi.test.ts` covering all endpoints
+- All tests passing (375 insider detection tests + 52 API tests)
 
 ### 2026-01-14 - Phase 1.8 Completed
 - Integrated detection engine with CTF event listener:

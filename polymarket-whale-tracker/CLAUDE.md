@@ -693,9 +693,58 @@ const processed = await ctfEventListener.processDetectionQueue(100);
 **Tests**: 12 new tests for CTF-Detection integration (375 total insider detection tests)
 - `ctfDetectionIntegration.test.ts` - Integration tests covering enable/disable, async queue, batch processing, health status
 
+**Phase 1.9 - API Endpoints** ✅ COMPLETE
+
+New API endpoints for detection rules, clusters, and price history:
+
+**New Endpoints**:
+- `GET /api/detection/rules` - List all detection rules with config and status
+- `GET /api/detection/rules/:name` - Get specific rule details
+- `PATCH /api/detection/rules/:name` - Update rule enabled/thresholds
+- `POST /api/detection/rules/:name/evaluate` - Trigger manual rule evaluation
+- `GET /api/detection/clusters` - List all wallet clusters
+- `GET /api/detection/clusters/:clusterId` - Get cluster details
+- `GET /api/detection/wallets/:address/cluster` - Get wallet's cluster membership
+- `GET /api/detection/markets/:conditionId/price-history` - Get price history
+- `POST /api/detection/evaluate` - Manual detection evaluation
+
+**Tests**: 52 API tests in `detectionRulesApi.test.ts` (427 total insider detection tests)
+
+**Phase 1.10 - Frontend Enhancements** ✅ COMPLETE
+
+New frontend components and hooks for detection rule management and visualization:
+
+**New Components** (`frontend/src/components/detection/`):
+- `RuleCard.tsx` - Detection rule card with config display, threshold info, toggle switch
+- `RuleCardList.tsx` - Grid layout for multiple rule cards
+- `ClusterView.tsx` - Wallet cluster visualization with relationship display and strength meter
+- `ClusterBadge.tsx` - Compact badge showing cluster wallet count and average strength
+- `PriceChart.tsx` - SVG-based price history chart with gradient fill and highlight points
+- `PriceSparkline.tsx` - Compact sparkline for inline use in lists
+
+**New Hooks** (`frontend/src/hooks/`):
+- `useDetectionRules.ts` - Fetch rules, toggle enabled state, update thresholds (with polling)
+- `useWalletCluster.ts` - Fetch cluster membership with relationship details
+- `usePriceHistory.ts` - Fetch price history with helper functions (calculatePriceChange, getLatestPrice, getPriceAt)
+
+**New API Functions** (`frontend/src/services/api.ts`):
+- `fetchDetectionRules()`, `fetchDetectionRule()`, `updateDetectionRule()`, `evaluateDetectionRule()`
+- `fetchClusters()`, `fetchCluster()`, `fetchWalletCluster()`
+- `fetchDetectionPriceHistory()`
+
+**New Types** (`frontend/src/types/detection.ts`):
+- Rule types: `DetectionRuleName`, `DetectionRuleConfig`, `DetectionRulesResponse`
+- Cluster types: `ClusterSummary`, `ClusterRelationship`, `ClusterDetails`, `WalletClusterResponse`
+- Price types: `PriceHistoryPoint`, `PriceHistoryResponse`
+- UI helpers: `RULE_NAME_LABELS`, `RULE_DESCRIPTIONS`, `CLUSTER_RELATIONSHIP_LABELS`
+
+**Updated Components**:
+- `DetectionDashboard.tsx` - Added "Detection Rules" section with RuleCardList
+- `AlertDetail.tsx` - Added cluster info section, price history chart, MTM gain visualization
+
+**Tests**: Frontend build passes with no TypeScript errors. E2E verified via MCP browser testing.
+
 **Upcoming Phases**:
-- Phase 1.9: API Endpoints
-- Phase 1.10: Frontend Enhancements
 - Phase 1.11: Integration & Testing
 
 **Frontend Detection Page** (Phase 0.8):
@@ -764,6 +813,7 @@ Test files:
 - `insiderDetection/__tests__/coordinatedCluster.test.ts` - 32 tests for Rule #3
 - `insiderDetection/__tests__/detectionEngine.test.ts` - 43 tests for detection engine orchestration
 - `insiderDetection/__tests__/ctfDetectionIntegration.test.ts` - 12 tests for CTF-Detection integration
+- `insiderDetection/__tests__/detectionRulesApi.test.ts` - 52 tests for Phase 1.9 API endpoints
 
 ## Module System
 

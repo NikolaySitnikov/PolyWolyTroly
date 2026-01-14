@@ -12,11 +12,14 @@ import { Skeleton } from '../Skeleton';
 import { DetectionIcon, AlertsIcon } from '../icons';
 import { useDetectionStats } from '../../hooks/useDetectionStats';
 import { useDetectionAlerts } from '../../hooks/useDetectionAlerts';
+import { useDetectionRules } from '../../hooks/useDetectionRules';
 import { DetectionAlertList } from './DetectionAlertList';
+import { RuleCardList } from './RuleCard';
 import {
   ALERT_SEVERITY_COLORS,
   ALERT_TYPE_LABELS,
   type DetectionAlert,
+  type DetectionRuleName,
 } from '../../types/detection';
 
 interface DetectionDashboardProps {
@@ -47,9 +50,20 @@ export function DetectionDashboard({
     updateStatus,
   } = useDetectionAlerts(10);
 
+  const {
+    rules,
+    loading: rulesLoading,
+    toggleRule,
+    updating: updatingRule,
+  } = useDetectionRules();
+
   const handleRetry = () => {
     refetchStats();
     refetchAlerts();
+  };
+
+  const handleToggleRule = async (ruleName: DetectionRuleName, enabled: boolean) => {
+    await toggleRule(ruleName, enabled);
   };
 
   // Loading state
@@ -292,6 +306,67 @@ export function DetectionDashboard({
           </div>
         </div>
       )}
+
+      {/* Detection Rules section */}
+      <div style={{ marginBottom: tokens.spacing[6] }}>
+        <h2
+          style={{
+            fontFamily: tokens.fonts.display,
+            fontSize: isMobile ? tokens.fontSizes.xl : tokens.fontSizes['2xl'],
+            fontWeight: 700,
+            color: tokens.colors.textPrimary,
+            marginBottom: tokens.spacing[4],
+          }}
+        >
+          Detection <GlowText>Rules</GlowText>
+        </h2>
+
+        {rulesLoading ? (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fit, minmax(320px, 1fr))',
+              gap: tokens.spacing[4],
+            }}
+          >
+            {[1, 2, 3].map((i) => (
+              <Skeleton
+                key={i}
+                height="200px"
+                style={{ borderRadius: '12px' }}
+              />
+            ))}
+          </div>
+        ) : rules.length > 0 ? (
+          <RuleCardList
+            rules={rules}
+            isMobile={isMobile}
+            onToggle={handleToggleRule}
+            updatingRule={updatingRule}
+          />
+        ) : (
+          <div
+            style={{
+              background: tokens.colors.surface,
+              border: `1px solid ${tokens.colors.border}`,
+              borderRadius: '12px',
+              padding: tokens.spacing[4],
+              textAlign: 'center',
+            }}
+          >
+            <p
+              style={{
+                fontFamily: tokens.fonts.body,
+                fontSize: tokens.fontSizes.sm,
+                color: tokens.colors.textMuted,
+                margin: 0,
+              }}
+            >
+              No detection rules configured
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Recent alerts section */}
       <div>

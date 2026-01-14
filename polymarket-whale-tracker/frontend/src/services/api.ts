@@ -599,6 +599,14 @@ import type {
   WalletRiskProfile,
   AlertFilters,
   AlertStatus,
+  DetectionRulesResponse,
+  DetectionRuleResponse,
+  DetectionRuleName,
+  RuleEvaluationResult,
+  ClustersResponse,
+  ClusterDetails,
+  WalletClusterResponse,
+  PriceHistoryResponse as DetectionPriceHistoryResponse,
 } from '../types/detection';
 
 /**
@@ -719,6 +727,221 @@ export async function fetchWalletRisk(address: string): Promise<WalletRiskProfil
       throw new Error('Wallet not found');
     }
     throw new Error(`Failed to fetch wallet risk: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// ============================================
+// DETECTION RULES API (Phase 1.9)
+// ============================================
+
+/**
+ * Fetches all detection rules with their configurations.
+ * @returns Promise resolving to list of detection rules
+ */
+export async function fetchDetectionRules(): Promise<DetectionRulesResponse> {
+  const response = await fetch(`${api.baseUrl}/api/detection/rules`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch detection rules: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetches a single detection rule configuration.
+ * @param ruleName - Name of the rule
+ * @returns Promise resolving to rule configuration
+ */
+export async function fetchDetectionRule(
+  ruleName: DetectionRuleName
+): Promise<DetectionRuleResponse> {
+  const response = await fetch(`${api.baseUrl}/api/detection/rules/${ruleName}`);
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Rule not found');
+    }
+    throw new Error(`Failed to fetch rule: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Updates a detection rule configuration.
+ * @param ruleName - Name of the rule
+ * @param updates - Fields to update (enabled, thresholds)
+ * @returns Promise resolving to updated rule config
+ */
+export async function updateDetectionRule(
+  ruleName: DetectionRuleName,
+  updates: { enabled?: boolean; thresholds?: Record<string, number> }
+): Promise<DetectionRuleResponse> {
+  const response = await fetch(`${api.baseUrl}/api/detection/rules/${ruleName}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updates),
+  });
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Rule not found');
+    }
+    if (response.status === 400) {
+      throw new Error('Invalid update request');
+    }
+    throw new Error(`Failed to update rule: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Manually evaluates a detection rule against a target.
+ * @param ruleName - Name of the rule
+ * @param target - Target to evaluate (walletAddress and/or conditionId)
+ * @returns Promise resolving to evaluation results
+ */
+export async function evaluateDetectionRule(
+  ruleName: DetectionRuleName,
+  target: { walletAddress?: string; conditionId?: string }
+): Promise<RuleEvaluationResult> {
+  const response = await fetch(`${api.baseUrl}/api/detection/rules/${ruleName}/evaluate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(target),
+  });
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Rule not found');
+    }
+    if (response.status === 400) {
+      throw new Error('Invalid evaluation target');
+    }
+    throw new Error(`Failed to evaluate rule: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Manually evaluates all detection rules against a target.
+ * @param target - Target to evaluate (walletAddress and/or conditionId)
+ * @returns Promise resolving to evaluation results
+ */
+export async function evaluateDetection(
+  target: { walletAddress?: string; conditionId?: string }
+): Promise<RuleEvaluationResult> {
+  const response = await fetch(`${api.baseUrl}/api/detection/evaluate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(target),
+  });
+
+  if (!response.ok) {
+    if (response.status === 400) {
+      throw new Error('Invalid evaluation target');
+    }
+    throw new Error(`Failed to evaluate detection: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// ============================================
+// CLUSTER API (Phase 1.9)
+// ============================================
+
+/**
+ * Fetches all wallet clusters.
+ * @returns Promise resolving to list of clusters
+ */
+export async function fetchClusters(): Promise<ClustersResponse> {
+  const response = await fetch(`${api.baseUrl}/api/detection/clusters`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch clusters: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetches a single cluster by ID.
+ * @param clusterId - Cluster ID
+ * @returns Promise resolving to cluster details
+ */
+export async function fetchCluster(clusterId: string): Promise<ClusterDetails> {
+  const response = await fetch(`${api.baseUrl}/api/detection/clusters/${clusterId}`);
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Cluster not found');
+    }
+    throw new Error(`Failed to fetch cluster: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Fetches the cluster a wallet belongs to.
+ * @param address - Wallet address
+ * @returns Promise resolving to wallet's cluster info
+ */
+export async function fetchWalletCluster(address: string): Promise<WalletClusterResponse> {
+  const normalizedAddress = address.toLowerCase();
+  const response = await fetch(
+    `${api.baseUrl}/api/detection/wallets/${normalizedAddress}/cluster`
+  );
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Wallet is not part of any cluster');
+    }
+    if (response.status === 400) {
+      throw new Error('Invalid wallet address');
+    }
+    throw new Error(`Failed to fetch wallet cluster: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// ============================================
+// PRICE HISTORY API (Phase 1.9)
+// ============================================
+
+/**
+ * Fetches price history for a market from detection system.
+ * @param conditionId - Market condition ID
+ * @param hours - Hours of history to fetch (default 24)
+ * @returns Promise resolving to price history
+ */
+export async function fetchDetectionPriceHistory(
+  conditionId: string,
+  hours = 24
+): Promise<DetectionPriceHistoryResponse> {
+  const params = new URLSearchParams({
+    hours: String(hours),
+  });
+
+  const response = await fetch(
+    `${api.baseUrl}/api/detection/markets/${conditionId}/price-history?${params.toString()}`
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch price history: ${response.status}`);
   }
 
   return response.json();

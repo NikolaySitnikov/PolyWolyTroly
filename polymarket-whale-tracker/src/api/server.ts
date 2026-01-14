@@ -15,7 +15,8 @@ import { trendingMarketsService } from "../services/trendingMarkets.js";
 import { blockchain } from "../services/blockchain.js";
 import { tradingCache } from "../services/polymarketTradingCache.js";
 import { polymarketApi } from "../services/polymarketApi.js";
-import { ctfEventListener, detectionDb, marketMetadataService, marketDepthService, fundingAnalyzer, walletRiskService, loadConfig, updateConfig } from "../services/insiderDetection/index.js";
+import { ctfEventListener, detectionDb, marketMetadataService, marketDepthService, fundingAnalyzer, walletRiskService, loadConfig, updateConfig, detectionEngine, clusterService, priceHistoryService } from "../services/insiderDetection/index.js";
+import type { DetectionRuleName } from "../services/insiderDetection/types.js";
 
 /**
  * Creates and configures the Express application.
@@ -857,6 +858,281 @@ export function createApp(): Express {
     } catch (error) {
       console.error("Error updating detection config:", error);
       res.status(500).json({ error: "Failed to update detection config" });
+    }
+  });
+
+  // ============================================
+  // DETECTION RULES API (Phase 1.9)
+  // ============================================
+
+  // GET /api/detection/rules - List all detection rules with status
+  app.get("/api/detection/rules", async (_req: Request, res: Response) => {
+    try {
+      const rules = await detectionEngine.getAllRuleConfigs();
+      res.json({
+        rules,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error fetching detection rules:", error);
+      res.status(500).json({ error: "Failed to fetch detection rules" });
+    }
+  });
+
+  // GET /api/detection/rules/:name - Get rule details and config
+  app.get("/api/detection/rules/:name", async (req: Request, res: Response) => {
+    try {
+      const ruleName = req.params.name as DetectionRuleName;
+      const config = await detectionEngine.getRuleConfig(ruleName);
+
+      if (!config) {
+        res.status(404).json({ error: "Rule not found" });
+        return;
+      }
+
+      res.json({
+        name: ruleName,
+        ...config,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error fetching rule config:", error);
+      res.status(500).json({ error: "Failed to fetch rule config" });
+    }
+  });
+
+  // PATCH /api/detection/rules/:name - Update rule config (thresholds, enabled)
+  app.patch("/api/detection/rules/:name", async (req: Request, res: Response) => {
+    try {
+      const ruleName = req.params.name as DetectionRuleName;
+      const { enabled, thresholds } = req.body;
+
+      // Check if rule exists
+      const existingConfig = await detectionEngine.getRuleConfig(ruleName);
+      if (!existingConfig) {
+        res.status(404).json({ error: "Rule not found" });
+        return;
+      }
+
+      // Validate request body
+      if (enabled === undefined && !thresholds) {
+        res.status(400).json({ error: "No update fields provided. Use 'enabled' and/or 'thresholds'" });
+        return;
+      }
+
+      // Update enabled status if provided
+      if (enabled !== undefined) {
+        await detectionEngine.setRuleEnabled(ruleName, enabled);
+      }
+
+      // Update thresholds if provided
+      if (thresholds && typeof thresholds === "object") {
+        await detectionEngine.setRuleThresholds(ruleName, thresholds);
+      }
+
+      // Return updated config
+      const updatedConfig = await detectionEngine.getRuleConfig(ruleName);
+      res.json({
+        name: ruleName,
+        ...updatedConfig,
+        message: "Rule updated successfully",
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error updating rule config:", error);
+      res.status(500).json({ error: "Failed to update rule config" });
+    }
+  });
+
+  // POST /api/detection/rules/:name/evaluate - Manually trigger rule evaluation
+  app.post("/api/detection/rules/:name/evaluate", async (req: Request, res: Response) => {
+    try {
+      const ruleName = req.params.name as DetectionRuleName;
+      const { walletAddress, conditionId } = req.body;
+
+      // Check if rule exists
+      const existingConfig = await detectionEngine.getRuleConfig(ruleName);
+      if (!existingConfig) {
+        res.status(404).json({ error: "Rule not found" });
+        return;
+      }
+
+      // Validate target
+      if (!walletAddress && !conditionId) {
+        res.status(400).json({ error: "Must provide 'walletAddress' or 'conditionId'" });
+        return;
+      }
+
+      let result;
+
+      // For CoordinatedCluster with only conditionId, use evaluateMarket
+      if (ruleName === "CoordinatedCluster" && conditionId && !walletAddress) {
+        result = await detectionEngine.evaluateMarket(conditionId);
+      } else if (walletAddress) {
+        // Validate wallet address format
+        const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+        if (!ethAddressRegex.test(walletAddress)) {
+          res.status(400).json({ error: "Invalid wallet address format" });
+          return;
+        }
+        result = await detectionEngine.evaluateWallet(walletAddress, conditionId);
+      } else {
+        // Market-only evaluation
+        result = await detectionEngine.evaluateMarket(conditionId);
+      }
+
+      res.json({
+        ...result,
+        ruleName,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error evaluating rule:", error);
+      res.status(500).json({ error: "Failed to evaluate rule" });
+    }
+  });
+
+  // ============================================
+  // CLUSTER API (Phase 1.9)
+  // ============================================
+
+  // GET /api/detection/clusters - List wallet clusters
+  app.get("/api/detection/clusters", async (_req: Request, res: Response) => {
+    try {
+      const clusters = await clusterService.getAllClusters();
+      res.json({
+        clusters,
+        total: clusters.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error fetching clusters:", error);
+      res.status(500).json({ error: "Failed to fetch clusters" });
+    }
+  });
+
+  // GET /api/detection/clusters/:clusterId - Get cluster details
+  app.get("/api/detection/clusters/:clusterId", async (req: Request, res: Response) => {
+    try {
+      const { clusterId } = req.params;
+      const cluster = await detectionDb.getClusterSummary(clusterId);
+
+      if (!cluster) {
+        res.status(404).json({ error: "Cluster not found" });
+        return;
+      }
+
+      res.json({
+        ...cluster,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error fetching cluster:", error);
+      res.status(500).json({ error: "Failed to fetch cluster" });
+    }
+  });
+
+  // GET /api/detection/wallets/:address/cluster - Get wallet's cluster membership
+  app.get("/api/detection/wallets/:address/cluster", async (req: Request, res: Response) => {
+    try {
+      const { address } = req.params;
+
+      // Validate Ethereum address format
+      const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+      if (!ethAddressRegex.test(address)) {
+        res.status(400).json({ error: "Invalid wallet address format" });
+        return;
+      }
+
+      const cluster = await clusterService.getWalletCluster(address);
+
+      if (!cluster) {
+        res.status(404).json({ error: "Wallet is not part of any cluster" });
+        return;
+      }
+
+      res.json({
+        walletAddress: address,
+        ...cluster,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error fetching wallet cluster:", error);
+      res.status(500).json({ error: "Failed to fetch wallet cluster" });
+    }
+  });
+
+  // ============================================
+  // PRICE HISTORY API (Phase 1.9)
+  // ============================================
+
+  // GET /api/detection/markets/:conditionId/price-history - Get price history
+  app.get("/api/detection/markets/:conditionId/price-history", async (req: Request, res: Response) => {
+    try {
+      const { conditionId } = req.params;
+      const hours = parseInt(req.query.hours as string) || 24;
+
+      // Calculate time range
+      const toTime = new Date();
+      const fromTime = new Date(toTime.getTime() - hours * 60 * 60 * 1000);
+
+      const prices = await priceHistoryService.getPriceHistory(conditionId, fromTime, toTime);
+
+      res.json({
+        conditionId,
+        hours,
+        count: prices.length,
+        prices,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error fetching price history:", error);
+      res.status(500).json({ error: "Failed to fetch price history" });
+    }
+  });
+
+  // ============================================
+  // MANUAL DETECTION EVALUATION (Phase 1.9)
+  // ============================================
+
+  // POST /api/detection/evaluate - Manually evaluate a wallet/trade
+  app.post("/api/detection/evaluate", async (req: Request, res: Response) => {
+    try {
+      const { walletAddress, conditionId } = req.body;
+
+      // Validate at least one target is provided
+      if (!walletAddress && !conditionId) {
+        res.status(400).json({ error: "Must provide 'walletAddress' or 'conditionId'" });
+        return;
+      }
+
+      // Validate wallet address format if provided
+      if (walletAddress) {
+        const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+        if (!ethAddressRegex.test(walletAddress)) {
+          res.status(400).json({ error: "Invalid wallet address format" });
+          return;
+        }
+      }
+
+      let result;
+
+      if (walletAddress) {
+        // Evaluate wallet against all rules
+        result = await detectionEngine.evaluateWallet(walletAddress, conditionId);
+      } else {
+        // Evaluate market for cluster activity
+        result = await detectionEngine.evaluateMarket(conditionId);
+      }
+
+      res.json({
+        ...result,
+        target: walletAddress ? { walletAddress, conditionId } : { conditionId },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error evaluating detection:", error);
+      res.status(500).json({ error: "Failed to evaluate detection" });
     }
   });
 

@@ -220,3 +220,125 @@ export const FUNDING_SOURCE_LABELS: Record<FundingSourceType, string> = {
   eoa: 'EOA',
   unknown: 'Unknown',
 };
+
+// ============================================
+// DETECTION RULE TYPES (Phase 1.9)
+// ============================================
+
+export type DetectionRuleName =
+  | 'FreshConcentratedDepthImpact'
+  | 'PreMoveAdvantage'
+  | 'CoordinatedCluster';
+
+export interface DetectionRuleConfig {
+  name: DetectionRuleName;
+  description: string;
+  enabled: boolean;
+  thresholds: Record<string, number>;
+  priority: number;
+}
+
+export interface DetectionRulesResponse {
+  rules: DetectionRuleConfig[];
+  timestamp: string;
+}
+
+export interface DetectionRuleResponse {
+  name: DetectionRuleName;
+  enabled: boolean;
+  thresholds: Record<string, number>;
+  timestamp: string;
+}
+
+export interface RuleEvaluationResult {
+  evaluated: boolean;
+  rulesTriggered: Array<{
+    ruleName: DetectionRuleName;
+    triggered: boolean;
+    confidence?: number;
+    severity?: AlertSeverity;
+  }>;
+  alertsCreated: number[];
+  errors?: string[];
+  timestamp: string;
+}
+
+// ============================================
+// CLUSTER TYPES (Phase 1.9)
+// ============================================
+
+export type ClusterRelationshipType = 'shared_funder' | 'shared_cashout' | 'timing_correlation';
+
+export interface ClusterSummary {
+  clusterId: string;
+  wallets: string[];
+  walletCount: number;
+  avgStrength: number;
+  dominantRelationship: ClusterRelationshipType;
+}
+
+export interface ClusterRelationship {
+  wallet1: string;
+  wallet2: string;
+  type: ClusterRelationshipType;
+  strength: number;
+  evidence?: Record<string, unknown>;
+}
+
+export interface ClusterDetails extends ClusterSummary {
+  relationships: ClusterRelationship[];
+}
+
+export interface ClustersResponse {
+  clusters: ClusterSummary[];
+  total: number;
+  timestamp: string;
+}
+
+export interface WalletClusterResponse extends ClusterSummary {
+  walletAddress: string;
+  timestamp: string;
+}
+
+// ============================================
+// PRICE HISTORY TYPES (Phase 1.9)
+// ============================================
+
+export interface PriceHistoryPoint {
+  price: number;
+  recordedAt: string;
+  source: 'clob' | 'gamma' | 'calculated';
+}
+
+export interface PriceHistoryResponse {
+  conditionId: string;
+  hours: number;
+  count: number;
+  prices: PriceHistoryPoint[];
+  timestamp: string;
+}
+
+// ============================================
+// RULE UI HELPERS
+// ============================================
+
+export const RULE_NAME_LABELS: Record<DetectionRuleName, string> = {
+  FreshConcentratedDepthImpact: 'Fresh Wallet + Depth Impact',
+  PreMoveAdvantage: 'Pre-Move Advantage',
+  CoordinatedCluster: 'Coordinated Cluster',
+};
+
+export const RULE_DESCRIPTIONS: Record<DetectionRuleName, string> = {
+  FreshConcentratedDepthImpact:
+    'Detects new wallets with high portfolio concentration making impactful trades relative to market liquidity',
+  PreMoveAdvantage:
+    'Detects trades that gain significant value (MTM) shortly after execution, indicating advance knowledge',
+  CoordinatedCluster:
+    'Detects coordinated trading from related wallets (shared funding, timing correlation)',
+};
+
+export const CLUSTER_RELATIONSHIP_LABELS: Record<ClusterRelationshipType, string> = {
+  shared_funder: 'Shared Funder',
+  shared_cashout: 'Shared Cashout',
+  timing_correlation: 'Timing Correlation',
+};

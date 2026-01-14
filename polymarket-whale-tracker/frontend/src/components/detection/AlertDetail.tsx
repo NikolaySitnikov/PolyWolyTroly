@@ -16,6 +16,10 @@ import {
   ALERT_TYPE_LABELS,
   ALERT_STATUS_LABELS,
 } from '../../types/detection';
+import { useWalletCluster } from '../../hooks/useWalletCluster';
+import { usePriceHistory } from '../../hooks/usePriceHistory';
+import { ClusterView, ClusterBadge } from './ClusterView';
+import { PriceChart } from './PriceChart';
 
 interface AlertDetailProps {
   alert: DetectionAlert;
@@ -35,6 +39,22 @@ export function AlertDetail({
   const [updating, setUpdating] = useState(false);
   const [notes, setNotes] = useState(alert.notes || '');
   const severityColor = ALERT_SEVERITY_COLORS[alert.severity];
+
+  // Fetch cluster info for the wallet
+  const {
+    cluster,
+    relationships,
+    loading: clusterLoading,
+    error: clusterError,
+    notInCluster,
+  } = useWalletCluster(alert.walletAddress);
+
+  // Fetch price history if we have a market condition ID
+  const {
+    priceHistory: prices,
+    loading: priceLoading,
+    error: priceError,
+  } = usePriceHistory(alert.conditionId || null, 24); // Last 24 hours
 
   const handleStatusUpdate = async (newStatus: AlertStatus) => {
     setUpdating(true);
@@ -382,6 +402,93 @@ export function AlertDetail({
             </div>
           </div>
         )}
+
+        {/* Price History / MTM Context */}
+        {alert.conditionId && (
+          <div style={{ marginBottom: tokens.spacing[4] }}>
+            <h3 style={sectionTitleStyle}>Price History (24h)</h3>
+            <PriceChart
+              prices={prices}
+              loading={priceLoading}
+              error={priceError}
+              height={140}
+              showLabels
+              highlightTime={new Date(alert.detectedAt)}
+              isMobile={isMobile}
+            />
+            {/* MTM Gain Display */}
+            {alert.triggerValues?.mtmGainUsd !== undefined && (
+              <div
+                style={{
+                  marginTop: tokens.spacing[3],
+                  padding: tokens.spacing[3],
+                  background: tokens.colors.void,
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: tokens.fonts.mono,
+                    fontSize: tokens.fontSizes.xs,
+                    color: tokens.colors.textSecondary,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                  }}
+                >
+                  Mark-to-Market Gain
+                </span>
+                <span
+                  style={{
+                    fontFamily: tokens.fonts.display,
+                    fontSize: tokens.fontSizes.xl,
+                    fontWeight: 700,
+                    color: Number(alert.triggerValues.mtmGainUsd) >= 0
+                      ? tokens.colors.profit
+                      : tokens.colors.loss,
+                  }}
+                >
+                  {Number(alert.triggerValues.mtmGainUsd) >= 0 ? '+' : ''}
+                  ${Number(alert.triggerValues.mtmGainUsd).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Wallet Cluster */}
+        <div style={{ marginBottom: tokens.spacing[4] }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: tokens.spacing[2],
+            }}
+          >
+            <h3 style={{ ...sectionTitleStyle, marginBottom: 0 }}>Wallet Cluster</h3>
+            {cluster && !clusterLoading && (
+              <ClusterBadge
+                walletCount={cluster.walletCount}
+                avgStrength={cluster.avgStrength}
+              />
+            )}
+          </div>
+          <ClusterView
+            cluster={cluster}
+            relationships={relationships}
+            loading={clusterLoading}
+            error={clusterError}
+            notInCluster={notInCluster}
+            isMobile={isMobile}
+            onWalletClick={onWalletClick}
+          />
+        </div>
 
         {/* Notes */}
         <div style={{ marginBottom: tokens.spacing[4] }}>
