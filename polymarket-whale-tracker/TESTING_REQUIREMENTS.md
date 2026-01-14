@@ -156,6 +156,41 @@ Always verify which source you're using and that the format matches.
 - CTF share amounts: 6 decimals (divide by 1e6)
 - Prices: Already normalized 0-1
 
+### Multi-Outcome Markets
+
+**KNOWN LIMITATION**: The database schema only supports YES/NO markets.
+
+- Most markets (~97%) are binary YES/NO
+- Multi-outcome markets (e.g., "Who will win the election?" with 3+ candidates) exist but are rare
+- For multi-outcome markets, only the first 2 token IDs are stored (incorrectly labeled as YES/NO)
+- Trades on 3rd+ outcomes will NOT be found by `getMarketByTokenId`
+
+This is an accepted limitation given the rarity of multi-outcome markets.
+
+### Price Recording Timing Latency
+
+**IMPORTANT**: Entry prices may be up to 30 seconds stale.
+
+- Prices are recorded every 30s during depth polling
+- Trades can happen at any time between recordings
+- The "entry price" used for MTM calculations is the most recent recorded price, not the actual trade price
+- In volatile markets, 30 seconds can mean 1-5% price difference
+
+This introduces some inaccuracy in MTM gain calculations.
+
+### CEX/Bridge Address Lists
+
+The hardcoded CEX and bridge addresses in `fundingAnalyzer.ts` may be incomplete:
+
+- Binance has ~10+ hot wallets on Polygon, but only 3 are in our list
+- New hot wallets are created periodically
+- Missing addresses may cause false positives in cluster detection (treating CEX funding as shared funder)
+
+Consider:
+1. Using a third-party API for address labeling (e.g., Etherscan labels)
+2. Periodically auditing and updating the address lists
+3. Adding more conservative logic for high-volume funders
+
 ---
 
 ## Required Test Files
