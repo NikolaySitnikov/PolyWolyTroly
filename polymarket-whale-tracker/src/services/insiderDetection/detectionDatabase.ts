@@ -650,6 +650,17 @@ export const detectionDb = {
     return (result.rowCount ?? 0) > 0;
   },
 
+  /**
+   * Delete all TEST alerts from the database
+   * @returns Number of deleted alerts
+   */
+  async deleteTestAlerts(): Promise<number> {
+    const result = await pool.query(
+      "DELETE FROM detection_alerts WHERE title LIKE '%[TEST]%' RETURNING id"
+    );
+    return result.rowCount ?? 0;
+  },
+
   // ----------------------------------------
   // DETECTION CONFIG
   // ----------------------------------------

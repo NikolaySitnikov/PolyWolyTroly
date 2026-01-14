@@ -102,7 +102,7 @@ export const CopyableAddress: React.FC<CopyableAddressProps> = ({
     }
   }, [address]);
 
-  const { handlers, isPressed, isLongPressed } = useLongPress(handleCopy, {
+  const { handlers, isPressed, isLongPressed, wasLongPressed } = useLongPress(handleCopy, {
     threshold: 500,
   });
 
@@ -150,7 +150,8 @@ export const CopyableAddress: React.FC<CopyableAddressProps> = ({
     // Stop propagation to prevent parent card click
     e.stopPropagation();
     // Only trigger click if it wasn't a long press
-    if (!isLongPressed && onClick) {
+    // Use wasLongPressed() which persists through the release -> click sequence
+    if (!wasLongPressed() && onClick) {
       onClick();
     }
   };

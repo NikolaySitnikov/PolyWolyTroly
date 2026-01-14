@@ -133,6 +133,43 @@ describe('CopyableAddress', () => {
 
       expect(handleClick).toHaveBeenCalled();
     });
+
+    it('does NOT call onClick after a long press and release', async () => {
+      const handleClick = vi.fn();
+      render(<CopyableAddress address={testAddress} onClick={handleClick} />);
+      const element = screen.getByTestId('copyable-address');
+
+      // Start long press with mouseDown
+      await act(async () => {
+        fireEvent.mouseDown(element);
+      });
+
+      // Wait for threshold to trigger copy
+      await act(async () => {
+        vi.advanceTimersByTime(500);
+      });
+
+      // Allow async clipboard call to resolve
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      // Copy should have happened
+      expect(mockWriteText).toHaveBeenCalledWith(testAddress);
+
+      // Release the press
+      await act(async () => {
+        fireEvent.mouseUp(element);
+      });
+
+      // Now the click event fires (browser behavior after mouseUp)
+      await act(async () => {
+        fireEvent.click(element);
+      });
+
+      // onClick should NOT have been called because we just did a long press
+      expect(handleClick).not.toHaveBeenCalled();
+    });
   });
 
   describe('Visual Feedback', () => {

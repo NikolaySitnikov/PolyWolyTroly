@@ -58,3 +58,6 @@ export * from "./rules/index.js";
 
 // Detection Engine (Phase 1.7)
 export { detectionEngine } from "./detectionEngine.js";
+
+// Wallet Auto-Add Service
+export { walletAutoAddService } from "./walletAutoAddService.js";

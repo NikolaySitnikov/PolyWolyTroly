@@ -2185,4 +2185,41 @@ const RANK_COLORS = ['#ffd700', '#c0c0c0', '#cd7f32'];
 
 ---
 
+### Task: Detection System Bug Fixes and UI Improvements
+
+**Status**: ✅ COMPLETED
+
+**Date**: 2026-01-14
+
+**Goal**: Fix critical bugs in detection system and improve UX.
+
+**Bug Fixes**:
+
+1. **Long-Press Copy vs Navigation Conflict** (CopyableAddress.tsx, useLongPress.ts):
+   - **Problem**: After copying wallet address via long-press, releasing mouse would trigger navigation
+   - **Root Cause**: `isLongPressed` state was reset before click event fired
+   - **Fix**: Added `wasLongPressedRef` that persists through release → click sequence
+   - Added `wasLongPressed()` function to check if long press occurred
+   - Now: Long-press copies, release doesn't navigate. Quick click still navigates.
+
+2. **Filter Responsiveness on Detection Page** (useDetectionAlerts.ts):
+   - **Problem**: Filters on Severity, Status, Type had noticeable delay
+   - **Fix 1**: Optimistic local filtering via `filterAlertsLocally()` function
+     - Filters `rawAlerts` instantly via `useMemo`
+     - UI updates immediately while API call happens in background
+   - **Fix 2**: Debounced API calls (150ms) to prevent excessive requests
+   - **Fix 3**: Functional state updates `setFilters((prev) => ...)` to avoid stale closures
+
+**Files Modified**:
+- `src/hooks/useLongPress.ts` - Added `wasLongPressedRef` and `wasLongPressed()` function
+- `src/components/CopyableAddress.tsx` - Use `wasLongPressed()` in click handler
+- `src/components/CopyableAddress.test.tsx` - Added test for long-press/click conflict
+- `src/hooks/useDetectionAlerts.ts` - Added local filtering, debouncing, functional updates
+
+**Tests**: 12 tests passing for CopyableAddress (1 new test added)
+
+**Total Tests**: 627+ passing
+
+---
+
 *"In the void, whales move in silence. We see them."*

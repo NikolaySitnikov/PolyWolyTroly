@@ -695,6 +695,65 @@ Last Updated: 2026-01-14
 - Added price/cluster/rule caching to detectionCache.ts
 - All tests passing (161 insider detection tests, 42 new for Phase 1.1)
 
+### 2026-01-14 - Bug Fixes and UI Improvements (Post-Phase 1.10)
+
+#### 1. Deleted TEST Alerts from Database
+- Added `deleteTestAlerts()` method to `detectionDatabase.ts` for cleaning up test data
+- Added `DELETE /api/detection/alerts/test` endpoint to `server.ts` for admin cleanup
+- Successfully removed 4 TEST alerts from production database
+
+#### 2. Fixed Trade Size Calculation Bug (CRITICAL)
+- **Problem**: `estimateTradeSize()` in `detectionEngine.ts` was incorrectly calculating USD value
+  - Was treating raw share amounts as USDC (34,182 shares → $17,091)
+  - Formula was: `shares / 1e6 * 0.5` (hardcoded 50% price assumption)
+- **Fix**: Now properly calculates `USD = shares × price` by looking up actual market prices
+  - Uses `priceHistoryService.getLatestPrice()` to get current market price
+  - For YES outcomes: uses price directly
+  - For NO outcomes: uses `(1 - price)` to get the complement
+  - Falls back to 50% average only if no price data is available
+- This ensures detection alerts show accurate trade values
+
+#### 3. Fixed Long-Press Copy vs Navigation Conflict
+- **Problem**: After copying wallet address via long-press, releasing the mouse would trigger navigation
+- **Root Cause**: `isLongPressed` state was reset in `endPress()` before the `click` event fired
+- **Fix**:
+  - Added `wasLongPressedRef` to `useLongPress.ts` hook that persists through the release → click sequence
+  - Added `wasLongPressed()` function that returns true if long press occurred in current interaction
+  - Updated `CopyableAddress.tsx` to use `wasLongPressed()` instead of `isLongPressed` state
+  - Added test case: "does NOT call onClick after a long press and release"
+- Now: Long-press copies address, release doesn't navigate. Quick click still navigates.
+
+#### 4. Improved Filter Responsiveness on Detection Page
+- **Problem**: Filters on Severity, Status, Type had noticeable delay before updating
+- **Fixes Applied**:
+  1. **Optimistic Local Filtering**: Added `filterAlertsLocally()` function in `useDetectionAlerts.ts`
+     - Filters `rawAlerts` instantly via `useMemo`, so filter changes appear instant in UI
+     - API call happens in background to fetch accurate paginated results
+  2. **Debounced API Calls**: Added 150ms debounce to prevent excessive API calls when rapidly changing filters
+  3. **Functional State Updates**: Filter setters now use `setFilters((prev) => ...)` pattern
+     - Avoids stale closure issues that caused delayed filter responses
+- Now: Filters respond instantly while API fetches correct paginated data in background
+
+#### 5. Wallet Auto-Add Service
+- **Purpose**: Automatically adds wallets that trigger detection alerts to the whale tracking database
+- **File**: `src/services/insiderDetection/walletAutoAddService.ts`
+- **Integration**:
+  - Called by `detectionEngine.ts` when creating alerts (non-blocking via `.catch()`)
+  - Evaluates each alert against configurable thresholds before adding
+- **Configuration**:
+  - `minSeverityToAdd`: MEDIUM (only MEDIUM, HIGH, CRITICAL alerts trigger auto-add)
+  - `minConfidenceToAdd`: 0.5 (50% minimum confidence score)
+  - `enabledRules`: All 3 detection rules enabled for auto-add
+- **Features**:
+  - Skips TEST alerts
+  - Deduplication with 5-minute window to prevent rapid duplicates
+  - Fetches historical deposits via `historicalDeposits.getHistoricalDeposits()`
+  - Creates wallet with deposit history or minimal entry if no deposits found
+  - Metrics tracking: walletsAdded, walletsSkipped, walletsAlreadyExist, enrichmentTriggered, errors
+- **API Endpoints**:
+  - `GET /api/detection/wallet-auto-add/config` - Returns current configuration
+  - `GET /api/detection/wallet-auto-add/metrics` - Returns service metrics
+
 ### 2026-01-13 - Initial Plan Created
 - Analyzed existing Phase 0 implementation
 - Identified reusable components from walletRiskService, walletActivityIndex, marketDepthService

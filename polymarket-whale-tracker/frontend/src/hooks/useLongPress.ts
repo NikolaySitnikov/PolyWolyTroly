@@ -32,6 +32,8 @@ export interface UseLongPressResult {
   isPressed: boolean;
   /** Whether the long press threshold has been reached */
   isLongPressed: boolean;
+  /** Whether a long press occurred in the most recent interaction (persists until next press) */
+  wasLongPressed: () => boolean;
 }
 
 /**
@@ -64,6 +66,8 @@ export function useLongPress(
   const [isLongPressed, setIsLongPressed] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isPressedRef = useRef(false);
+  // Track if a long press occurred in the current interaction (persists through release -> click)
+  const wasLongPressedRef = useRef(false);
 
   const clearTimer = useCallback(() => {
     if (timeoutRef.current) {
@@ -79,11 +83,13 @@ export function useLongPress(
       }
 
       isPressedRef.current = true;
+      wasLongPressedRef.current = false; // Reset at start of new interaction
       setIsPressed(true);
       setIsLongPressed(false);
 
       timeoutRef.current = setTimeout(() => {
         if (isPressedRef.current) {
+          wasLongPressedRef.current = true; // Mark that long press occurred
           setIsLongPressed(true);
           callback();
         }
@@ -133,10 +139,23 @@ export function useLongPress(
     onMouseLeave: (_e: React.MouseEvent) => cancelPress(),
   };
 
+  // Function to check if the most recent interaction was a long press
+  // This is used by click handlers to determine if they should fire
+  const wasLongPressed = useCallback(() => {
+    const result = wasLongPressedRef.current;
+    // Reset after reading to prepare for next interaction
+    // Use a small delay to ensure click handler has time to read the value
+    setTimeout(() => {
+      wasLongPressedRef.current = false;
+    }, 0);
+    return result;
+  }, []);
+
   return {
     handlers,
     isPressed,
     isLongPressed,
+    wasLongPressed,
   };
 }
 

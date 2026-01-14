@@ -15,7 +15,7 @@ import { trendingMarketsService } from "../services/trendingMarkets.js";
 import { blockchain } from "../services/blockchain.js";
 import { tradingCache } from "../services/polymarketTradingCache.js";
 import { polymarketApi } from "../services/polymarketApi.js";
-import { ctfEventListener, detectionDb, marketMetadataService, marketDepthService, fundingAnalyzer, walletRiskService, loadConfig, updateConfig, detectionEngine, clusterService, priceHistoryService } from "../services/insiderDetection/index.js";
+import { ctfEventListener, detectionDb, marketMetadataService, marketDepthService, fundingAnalyzer, walletRiskService, loadConfig, updateConfig, detectionEngine, clusterService, priceHistoryService, walletAutoAddService } from "../services/insiderDetection/index.js";
 import type { DetectionRuleName } from "../services/insiderDetection/types.js";
 
 /**
@@ -493,6 +493,22 @@ export function createApp(): Express {
     } catch (error) {
       console.error("Error updating alert:", error);
       res.status(500).json({ error: "Failed to update alert" });
+    }
+  });
+
+  // Delete TEST alerts (cleanup endpoint)
+  app.delete("/api/detection/alerts/test", async (_req: Request, res: Response) => {
+    try {
+      const deletedCount = await detectionDb.deleteTestAlerts();
+      console.log(`Deleted ${deletedCount} TEST alerts`);
+      res.json({
+        success: true,
+        deletedCount,
+        message: `Successfully deleted ${deletedCount} TEST alerts`,
+      });
+    } catch (error) {
+      console.error("Error deleting TEST alerts:", error);
+      res.status(500).json({ error: "Failed to delete TEST alerts" });
     }
   });
 
@@ -1240,6 +1256,71 @@ export function createApp(): Express {
       console.error("Error creating test alert:", error);
       res.status(500).json({ error: "Failed to create test alert" });
     }
+  });
+
+  // ============================================
+  // WALLET AUTO-ADD ENDPOINTS
+  // ============================================
+
+  /**
+   * POST /api/detection/wallet-auto-add/backfill
+   * Process existing alerts to auto-add their wallets to the whale database.
+   * Useful for backfilling wallets from alerts created before auto-add was deployed.
+   */
+  app.post("/api/detection/wallet-auto-add/backfill", async (_req: Request, res: Response) => {
+    try {
+      // Get all alerts that haven't been processed
+      const alerts = await detectionDb.getAlerts({}, { page: 1, limit: 100 });
+
+      const results = {
+        processed: 0,
+        added: 0,
+        skipped: 0,
+        alreadyExist: 0,
+        errors: 0,
+        details: [] as Array<{ walletAddress: string; added: boolean; reason: string }>,
+      };
+
+      for (const alert of alerts.data) {
+        const result = await walletAutoAddService.processAlert(alert);
+        results.processed++;
+
+        if (result.added) {
+          results.added++;
+        } else if (result.reason.includes("already exists")) {
+          results.alreadyExist++;
+        } else {
+          results.skipped++;
+        }
+
+        results.details.push(result);
+      }
+
+      res.json({
+        success: true,
+        results,
+        message: `Processed ${results.processed} alerts: ${results.added} wallets added, ${results.alreadyExist} already existed, ${results.skipped} skipped`,
+      });
+    } catch (error) {
+      console.error("Error backfilling wallets:", error);
+      res.status(500).json({ error: "Failed to backfill wallets" });
+    }
+  });
+
+  /**
+   * GET /api/detection/wallet-auto-add/config
+   * Get current wallet auto-add configuration
+   */
+  app.get("/api/detection/wallet-auto-add/config", (_req: Request, res: Response) => {
+    res.json(walletAutoAddService.getConfig());
+  });
+
+  /**
+   * GET /api/detection/wallet-auto-add/metrics
+   * Get wallet auto-add metrics
+   */
+  app.get("/api/detection/wallet-auto-add/metrics", (_req: Request, res: Response) => {
+    res.json(walletAutoAddService.getMetrics());
   });
 
   // 404 handler for unknown API routes (Express 5 syntax)

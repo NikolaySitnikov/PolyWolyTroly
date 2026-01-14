@@ -17,6 +17,7 @@
 import { detectionDb } from "./detectionDatabase.js";
 import { detectionCache } from "./detectionCache.js";
 import { priceHistoryService } from "./priceHistoryService.js";
+import { walletAutoAddService } from "./walletAutoAddService.js";
 import { broadcastDetectionAlert } from "../../api/websocket.js";
 import {
   freshConcentratedDepthRule,
@@ -236,7 +237,7 @@ class DetectionEngine {
       const context: RuleEvaluationContext = {
         walletAddress,
         conditionId,
-        tradeSize: this.estimateTradeSize(transfer),
+        tradeSize: await this.estimateTradeSize(transfer),
         txHash: transfer.txHash,
         timestamp: transfer.blockTimestamp || new Date(),
         // Entry price would need to be looked up from price history
@@ -569,16 +570,74 @@ class DetectionEngine {
 
   /**
    * Estimate trade size in USD from a CTF transfer
+   *
+   * Polymarket shares are ERC-1155 tokens where:
+   * - 1 share = 1 USDC on resolution if correct outcome
+   * - Trade value in USD = shares * price_per_share
+   * - Price is 0-1 representing the probability/price per share
+   *
+   * The amount in transfer is raw shares (no decimals adjustment needed for the trade value calculation).
+   * However, ERC-1155 amounts from the contract may have decimals for precision.
    */
-  private estimateTradeSize(transfer: CtfTransfer): number {
-    // Token amount is typically in 6 decimal places for Polymarket
-    // We need price data to calculate USD value
-    // For now, use amount as a rough estimate (will be refined with price lookup)
-    const amount = Number(transfer.amount) / 1e6;
+  private async estimateTradeSize(transfer: CtfTransfer): Promise<number> {
+    // Get the share amount from the transfer
+    // Polymarket outcome tokens use 1e6 decimals (like USDC)
+    const shares = Number(transfer.amount) / 1e6;
 
-    // TODO: Multiply by price when we have it
-    // For now assume average price of $0.50
-    return amount * 0.5;
+    // If no conditionId, we can't look up price
+    if (!transfer.conditionId) {
+      logger.debug({
+        msg: "No conditionId for trade size estimation, using shares only",
+        shares,
+        txHash: transfer.txHash,
+      });
+      // Return raw share count as fallback (will be inaccurate for high-priced outcomes)
+      return shares;
+    }
+
+    try {
+      // Get the latest price for this market
+      const priceData = await priceHistoryService.getLatestPrice(transfer.conditionId);
+
+      if (priceData) {
+        // For YES outcomes, use the price directly
+        // For NO outcomes, the price is (1 - YES price)
+        let price = priceData.price;
+        if (transfer.outcome === 'NO') {
+          // NO tokens are priced as complement of YES price
+          price = 1 - price;
+        }
+
+        // USD value = shares * price per share
+        const usdValue = shares * price;
+
+        logger.debug({
+          msg: "Calculated trade size from price data",
+          shares,
+          price,
+          outcome: transfer.outcome,
+          usdValue,
+          conditionId: transfer.conditionId,
+        });
+
+        return usdValue;
+      }
+    } catch (error) {
+      logger.debug({
+        msg: "Error fetching price for trade size estimation",
+        conditionId: transfer.conditionId,
+        error,
+      });
+    }
+
+    // Fallback: if no price data available, use 50% as average price
+    // This is a rough estimate and should be refined
+    logger.debug({
+      msg: "No price data available, using 50% average price",
+      shares,
+      conditionId: transfer.conditionId,
+    });
+    return shares * 0.5;
   }
 
   /**
@@ -645,6 +704,17 @@ class DetectionEngine {
       } catch (broadcastError) {
         logger.warn({ msg: "Failed to broadcast detection alert", error: broadcastError });
       }
+
+      // Auto-add wallet to whale database (non-blocking)
+      // This ensures flagged wallets are immediately tracked and enriched
+      walletAutoAddService.processAlert(alert).catch((autoAddError) => {
+        logger.warn({
+          msg: "Failed to auto-add wallet to database",
+          walletAddress: alert.walletAddress,
+          alertId: alert.id,
+          error: autoAddError,
+        });
+      });
     }
 
     return alert;

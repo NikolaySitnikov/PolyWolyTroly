@@ -254,14 +254,12 @@ function AlertCard({
       >
         {/* Wallet address */}
         <div
-          onClick={(e) => {
-            e.stopPropagation();
-            onWalletClick?.(alert.walletAddress);
-          }}
+          onClick={(e) => e.stopPropagation()}
           style={{ cursor: onWalletClick ? 'pointer' : 'default' }}
         >
           <CopyableAddress
             address={alert.walletAddress}
+            onClick={onWalletClick ? () => onWalletClick(alert.walletAddress) : undefined}
           />
         </div>
 
@@ -309,67 +307,71 @@ function AlertCard({
       </div>
 
       {/* Confidence score */}
-      {alert.confidenceScore !== undefined && (
-        <div
-          style={{
-            marginTop: tokens.spacing[3],
-            padding: tokens.spacing[2],
-            background: tokens.colors.void,
-            borderRadius: '4px',
-          }}
-        >
+      {alert.confidenceScore !== undefined && (() => {
+        // Convert decimal (0.76) to percentage (76)
+        const confidencePercent = Math.round(alert.confidenceScore * 100);
+        return (
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: tokens.spacing[1],
-            }}
-          >
-            <span
-              style={{
-                fontFamily: tokens.fonts.mono,
-                fontSize: tokens.fontSizes.xs,
-                color: tokens.colors.textMuted,
-              }}
-            >
-              Confidence
-            </span>
-            <span
-              style={{
-                fontFamily: tokens.fonts.mono,
-                fontSize: tokens.fontSizes.xs,
-                fontWeight: 600,
-                color: alert.confidenceScore >= 80 ? tokens.colors.loss : tokens.colors.textSecondary,
-              }}
-            >
-              {alert.confidenceScore}%
-            </span>
-          </div>
-          <div
-            style={{
-              height: '4px',
-              background: tokens.colors.border,
-              borderRadius: '2px',
-              overflow: 'hidden',
+              marginTop: tokens.spacing[3],
+              padding: tokens.spacing[2],
+              background: tokens.colors.void,
+              borderRadius: '4px',
             }}
           >
             <div
               style={{
-                width: `${alert.confidenceScore}%`,
-                height: '100%',
-                background:
-                  alert.confidenceScore >= 80
-                    ? tokens.colors.loss
-                    : alert.confidenceScore >= 60
-                    ? ALERT_SEVERITY_COLORS.HIGH
-                    : tokens.colors.cyan,
-                borderRadius: '2px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: tokens.spacing[1],
               }}
-            />
+            >
+              <span
+                style={{
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: tokens.fontSizes.xs,
+                  color: tokens.colors.textMuted,
+                }}
+              >
+                Confidence
+              </span>
+              <span
+                style={{
+                  fontFamily: tokens.fonts.mono,
+                  fontSize: tokens.fontSizes.xs,
+                  fontWeight: 600,
+                  color: confidencePercent >= 80 ? tokens.colors.loss : tokens.colors.textSecondary,
+                }}
+              >
+                {confidencePercent}%
+              </span>
+            </div>
+            <div
+              style={{
+                height: '4px',
+                background: tokens.colors.border,
+                borderRadius: '2px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: `${confidencePercent}%`,
+                  height: '100%',
+                  background:
+                    confidencePercent >= 80
+                      ? tokens.colors.loss
+                      : confidencePercent >= 60
+                      ? ALERT_SEVERITY_COLORS.HIGH
+                      : tokens.colors.cyan,
+                  borderRadius: '2px',
+                }}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
