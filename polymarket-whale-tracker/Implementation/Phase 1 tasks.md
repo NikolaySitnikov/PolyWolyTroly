@@ -186,18 +186,18 @@ src/services/insiderDetection/
 | 1.3.8 | Cache cluster data for performance | Unit test | ✅ |
 | 1.3.9 | Unit tests for cluster service (20+ tests) | Vitest | ✅ |
 
-### Phase 1.4: Rule #1 - Fresh-Concentrated-Depth Impact
+### Phase 1.4: Rule #1 - Fresh-Concentrated-Depth Impact ✅ COMPLETED
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 1.4.1 | Create `rules/ruleBase.ts` with `DetectionRule` interface | TypeScript compilation | |
-| 1.4.2 | Create `rules/freshConcentratedDepth.ts` skeleton | TypeScript compilation | |
-| 1.4.3 | Implement `evaluate(wallet, trade, market)` method | Unit test | |
-| 1.4.4 | Implement wallet age check (reuse from walletRiskService) | Unit test | |
-| 1.4.5 | Implement concentration check (reuse from walletActivityIndex) | Unit test | |
-| 1.4.6 | Implement depth impact check (reuse from marketDepthService) | Unit test | |
-| 1.4.7 | Implement confidence score calculation | Unit test | |
-| 1.4.8 | Create alert with detailed trigger values | Unit test | |
-| 1.4.9 | Unit tests for Rule #1 (18+ tests) | Vitest | |
+| 1.4.1 | Create `rules/ruleBase.ts` with `DetectionRule` interface | TypeScript compilation | ✅ |
+| 1.4.2 | Create `rules/freshConcentratedDepth.ts` skeleton | TypeScript compilation | ✅ |
+| 1.4.3 | Implement `evaluate(wallet, trade, market)` method | Unit test | ✅ |
+| 1.4.4 | Implement wallet age check (reuse from walletRiskService) | Unit test | ✅ |
+| 1.4.5 | Implement concentration check (reuse from walletActivityIndex) | Unit test | ✅ |
+| 1.4.6 | Implement depth impact check (reuse from marketDepthService) | Unit test | ✅ |
+| 1.4.7 | Implement confidence score calculation | Unit test | ✅ |
+| 1.4.8 | Create alert with detailed trigger values | Unit test | ✅ |
+| 1.4.9 | Unit tests for Rule #1 (18+ tests) | Vitest | ✅ |
 
 ### Phase 1.5: Rule #2 - Pre-Move Advantage
 | # | Task | Test Strategy | Status |
@@ -392,15 +392,39 @@ confidence = (
 ## Progress Tracking
 
 **Total Subtasks:** 78
-**Completed:** 22
+**Completed:** 31
 **In Progress:** 0
-**Remaining:** 56
+**Remaining:** 47
 
-Last Updated: 2026-01-13
+Last Updated: 2026-01-14
 
 ---
 
 ## Changelog
+
+### 2026-01-14 - Phase 1.4 Completed
+- Created `rules/ruleBase.ts` with abstract `BaseDetectionRule` class:
+  - Configuration loading from database/cache
+  - Threshold management (get/set)
+  - Alert creation helpers
+  - Confidence score utilities
+  - Alert deduplication logic
+- Created `rules/freshConcentratedDepth.ts` with full Rule #1 implementation:
+  - Detects new wallets (< N days) with high concentration (> N%)
+  - Evaluates depth impact (trade size vs available liquidity)
+  - Reuses existing services: walletActivityIndex, marketDepthService
+  - Weighted confidence scoring: age (30%), concentration (25%), depth (25%), size (20%)
+  - Maps confidence to severity: >=0.85 CRITICAL, >=0.70 HIGH, >=0.50 MEDIUM, else LOW
+  - Human-readable alert descriptions with market context
+- Threshold defaults: 14 days, 85% concentration, $3,000 min trade, 3.0x depth ratio
+- Created 37 unit tests for Rule #1 covering:
+  - Basic triggering conditions
+  - Threshold boundary tests
+  - Confidence score calculations
+  - Edge cases and error handling
+  - Alert deduplication
+  - Rule configuration
+- All tests passing (253 insider detection tests)
 
 ### 2026-01-13 - Phase 1.3 Completed
 - Created `clusterService.ts` with full implementation:

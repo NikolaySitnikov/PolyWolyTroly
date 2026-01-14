@@ -385,9 +385,83 @@ New service for tracking token prices over time for Mark-to-Market (MTM) calcula
 
 **Tests**: 25 new tests for priceHistoryService (186 total insider detection tests)
 
+**Phase 1.3 - Cluster Service** ✅ COMPLETE
+
+Service for building and managing wallet relationship clusters:
+
+**New Service** (`clusterService.ts`):
+- `buildSharedFunderEdges()` - Detect wallets funded from same source
+- `buildTimingCorrelationEdges()` - Detect wallets trading same direction within time window
+- `buildClusterGraph()` - Combine edges and assign cluster IDs using Union-Find
+- `getWalletCluster(address)` - Get cluster membership with caching
+- `getClusterActivity(clusterId, conditionId)` - Aggregate trading metrics across cluster
+- `refreshClusters()` - Background job to rebuild cluster graph
+- `getAllClusters()` / `deleteCluster()` - Cluster management
+- `getClusterCount()` - Total cluster count
+
+**Relationship Strength Calculation**:
+- Funding timing proximity (closer = stronger)
+- Funding amount similarity
+- Trade timing proximity
+- Trade volume similarity
+- Filters: Skips CEX/bridge funders, ignores small funding (<$100)
+
+**Tests**: 30 new tests for clusterService (216 total insider detection tests)
+
+**Phase 1.4 - Rule #1: Fresh-Concentrated-Depth Impact** ✅ COMPLETE
+
+First detection rule implementation:
+
+**New Files**:
+- `rules/ruleBase.ts` - Abstract base class for all detection rules
+  - Configuration loading from database with cache fallback
+  - Threshold get/set methods
+  - Alert creation with deduplication
+  - `notTriggered()` / `triggered()` result factories
+- `rules/freshConcentratedDepth.ts` - Rule #1 implementation
+
+**Detection Logic**:
+Triggers when ALL four conditions are met:
+1. Wallet age ≤ 14 days (or unknown)
+2. Concentration ≥ 85% in single market
+3. Trade size ≥ $3,000
+4. Depth ratio ≥ 3.0x (trade vs available liquidity)
+
+**Confidence Scoring**:
+- Wallet age: 30% weight (younger = higher)
+- Concentration: 25% weight (higher = higher)
+- Depth ratio: 25% weight (higher = higher, log scale)
+- Trade size: 20% weight (larger = higher, log scale)
+
+**Severity Mapping**:
+- ≥0.85 → CRITICAL
+- ≥0.70 → HIGH
+- ≥0.50 → MEDIUM
+- <0.50 → LOW
+
+**Usage**:
+```typescript
+import { freshConcentratedDepthRule } from "./rules/index.js";
+
+const result = await freshConcentratedDepthRule.evaluate({
+  walletAddress: "0x...",
+  conditionId: "0x...",
+  tradeSize: 5000,
+  txHash: "0x...",
+});
+
+if (result.triggered) {
+  // result.confidence = 0.75, result.severity = "HIGH"
+  // result.triggerValues = { walletAgeDays: 7, concentration: 92, ... }
+  await freshConcentratedDepthRule.createAlert(result, context);
+}
+```
+
+**Tests**: 37 new tests for Rule #1 (253 total insider detection tests)
+
 **Upcoming Phases**:
-- Phase 1.3: Cluster Service
-- Phase 1.4-1.6: Three Detection Rules
+- Phase 1.5: Rule #2 - Pre-Move Advantage
+- Phase 1.6: Rule #3 - Coordinated Cluster
 - Phase 1.7: Detection Engine Orchestration
 - Phase 1.8-1.11: Integration, API, Frontend, Testing
 
@@ -451,6 +525,8 @@ Test files:
 - `insiderDetection/__tests__/phase1Types.test.ts` - 27 tests for Phase 1 types and confidence helpers
 - `insiderDetection/__tests__/phase1Database.test.ts` - 15 integration tests for Phase 1 database operations
 - `insiderDetection/__tests__/priceHistoryService.test.ts` - 25 tests for price history service
+- `insiderDetection/__tests__/clusterService.test.ts` - 30 tests for wallet cluster service
+- `insiderDetection/__tests__/freshConcentratedDepth.test.ts` - 37 tests for Rule #1
 
 ## Module System
 

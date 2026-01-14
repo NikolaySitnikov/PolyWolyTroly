@@ -8,7 +8,10 @@
 // Rule types and interfaces
 export * from "./types.js";
 
-// Rule implementations will be added in subsequent phases:
-// export { freshConcentratedDepthRule } from "./freshConcentratedDepth.js";
+// Base class for rules
+export { BaseDetectionRule } from "./ruleBase.js";
+
+// Rule implementations
+export { FreshConcentratedDepthRule, freshConcentratedDepthRule } from "./freshConcentratedDepth.js";
 // export { preMoveAdvantageRule } from "./preMoveAdvantage.js";
 // export { coordinatedClusterRule } from "./coordinatedCluster.js";
