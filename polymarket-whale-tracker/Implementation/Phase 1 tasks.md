@@ -754,6 +754,31 @@ Last Updated: 2026-01-14
   - `GET /api/detection/wallet-auto-add/config` - Returns current configuration
   - `GET /api/detection/wallet-auto-add/metrics` - Returns service metrics
 
+#### 6. Wallet Source Tagging
+- **Purpose**: Distinguish wallets added via insider detection from those added via deposit tracking
+- **Database Changes**:
+  - Added `source` column to `wallets` table (migration 004)
+  - Values: `'deposit_tracking'` (default) or `'detection'`
+  - Existing wallets default to `'deposit_tracking'`
+- **Backend Changes**:
+  - `db.createWallet()` and `db.createWalletWithHistory()` accept optional `source` parameter
+  - `walletAutoAddService` passes `'detection'` when adding wallets from alerts
+- **Frontend Changes**:
+  - Added `WalletSource` type to `types/whale.ts`
+  - `WalletProfileHeader` displays "🔍 Detection" badge when `source === 'detection'`
+  - Badge appears next to Live badge on wallet profile page
+  - Only shows for wallets added via detection, NOT for regular deposit-tracked wallets
+- **Files Modified**:
+  - `src/scripts/migrations/004_add_wallet_source.ts` - New migration
+  - `src/services/database.ts` - Added source param to wallet creation
+  - `src/services/insiderDetection/walletAutoAddService.ts` - Passes 'detection' source
+  - `src/api/server.ts` - Added `POST /api/admin/migrate/004` endpoint
+  - `frontend/src/types/whale.ts` - Added `WalletSource` type
+  - `frontend/src/services/api.ts` - Added source to `WalletApiResponse`
+  - `frontend/src/hooks/useWallet.ts` - Added source to `WalletData`
+  - `frontend/src/components/WalletProfileHeader.tsx` - Added `DetectionSourceBadge`
+  - `frontend/src/components/WalletProfile.tsx` - Passes source prop to header
+
 ### 2026-01-13 - Initial Plan Created
 - Analyzed existing Phase 0 implementation
 - Identified reusable components from walletRiskService, walletActivityIndex, marketDepthService
