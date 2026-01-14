@@ -403,6 +403,32 @@ Last Updated: 2026-01-14
 
 ## Changelog
 
+### 2026-01-14 - WebSocket Live Updates for Detection Alerts
+- **USER REQUEST**: "I don't want to have to refresh. How do we achieve dynamic, live and blazingly fast alerts?"
+- **IMPLEMENTATION**:
+  - Added `broadcastDetectionAlert()` function to `src/api/websocket.ts`
+  - Modified `detectionEngine.ts` `createAlertFromResult()` to broadcast alerts via WebSocket immediately after DB insert
+  - Added `detection_alert` message type to WebSocket protocol
+  - Updated frontend `useWebSocket.ts` hook with `DetectionAlertEvent` interface and `onDetectionAlert` callback
+  - Updated `useDetectionAlerts.ts` hook to subscribe to WebSocket alerts and update UI instantly
+- **RESULT**: Detection alerts now appear in the UI **instantly** without page refresh or polling
+- Test endpoint `POST /api/detection/test-alert` created for verification
+- Verified working via browser MCP - new alerts appear with "just now" timestamp immediately
+
+### 2026-01-14 - API Response Format Fix
+- **BUG**: Frontend expected `alerts` array but backend returned `data` array
+- **FIX**: Modified `/api/detection/alerts` endpoint in `server.ts` (lines 429-436) to transform response:
+  ```typescript
+  res.json({
+    alerts: result.data,  // Changed from 'data' to 'alerts'
+    total: result.total,
+    page: result.page,
+    limit: result.limit,
+    totalPages: result.totalPages,
+  });
+  ```
+- This fixed the "Failed to fetch" error in Recent Alerts section
+
 ### 2026-01-14 - Phase 1.8 Critical Fix: Wire Detection Evaluation into CTF Listener
 - **BUG DISCOVERED**: `_evaluateTransfer()` method existed but was NEVER called from the main transfer processing flow
 - The detection engine, rules, and evaluation logic were all implemented, but actual transfers were not being evaluated

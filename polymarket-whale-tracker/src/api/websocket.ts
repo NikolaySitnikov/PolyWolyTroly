@@ -177,6 +177,29 @@ export function broadcastTradingUpdate(event: TradingUpdateEvent): void {
 }
 
 /**
+ * Broadcast a new detection alert to all clients
+ * Called when the detection engine creates a new alert
+ */
+export function broadcastDetectionAlert(alert: {
+  id: number;
+  alertType: string;
+  severity: string;
+  walletAddress: string;
+  conditionId?: string;
+  title: string;
+  description?: string;
+  confidenceScore?: number;
+  detectedAt: string;
+}): void {
+  console.log(`[WebSocket] Broadcasting detection alert to ${clients.size} clients: ${alert.severity} - ${alert.title}`);
+
+  broadcast({
+    type: 'detection_alert',
+    data: alert
+  });
+}
+
+/**
  * Get number of connected clients (for testing/monitoring)
  */
 export function getClientCount(): number {

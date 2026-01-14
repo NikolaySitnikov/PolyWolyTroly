@@ -17,6 +17,7 @@
 import { detectionDb } from "./detectionDatabase.js";
 import { detectionCache } from "./detectionCache.js";
 import { priceHistoryService } from "./priceHistoryService.js";
+import { broadcastDetectionAlert } from "../../api/websocket.js";
 import {
   freshConcentratedDepthRule,
   preMoveAdvantageRule,
@@ -627,6 +628,23 @@ class DetectionEngine {
         severity: result.severity,
         walletAddress: context.walletAddress,
       });
+
+      // Broadcast to all connected WebSocket clients for instant UI updates
+      try {
+        broadcastDetectionAlert({
+          id: alert.id,
+          alertType: alert.alertType,
+          severity: alert.severity,
+          walletAddress: alert.walletAddress,
+          conditionId: alert.conditionId,
+          title: alert.title,
+          description: alert.description,
+          confidenceScore: alert.confidenceScore,
+          detectedAt: alert.detectedAt.toISOString(),
+        });
+      } catch (broadcastError) {
+        logger.warn({ msg: "Failed to broadcast detection alert", error: broadcastError });
+      }
     }
 
     return alert;

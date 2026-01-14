@@ -2,11 +2,12 @@
  * useDetectionAlerts Hook
  *
  * React hook for fetching and managing insider detection alerts.
- * Supports pagination and filtering with automatic refetch on filter changes.
+ * Supports pagination and filtering with WebSocket for instant live updates.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchDetectionAlerts, updateDetectionAlertStatus } from '../services/api';
+import { fetchDetectionAlerts, updateDetectionAlertStatus, getWebSocketUrl } from '../services/api';
+import { useWebSocket, type DetectionAlertEvent } from './useWebSocket';
 import type {
   DetectionAlert,
   AlertFilters,
@@ -44,6 +45,10 @@ export function useDetectionAlerts(
   const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState<AlertFilters>(initialFilters || {});
   const isInitialLoad = useRef(true);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+  const pageRef = useRef(page);
+  pageRef.current = page;
 
   const fetchData = useCallback(async () => {
     if (isInitialLoad.current) {
@@ -64,7 +69,62 @@ export function useDetectionAlerts(
     }
   }, [page, limit, filters]);
 
+  // Handle incoming WebSocket detection alerts - instant updates!
+  const handleDetectionAlert = useCallback((alertEvent: DetectionAlertEvent) => {
+    // Convert WebSocket event to DetectionAlert format
+    const newAlert: DetectionAlert = {
+      id: alertEvent.id,
+      alertType: alertEvent.alertType as AlertType,
+      severity: alertEvent.severity as AlertSeverity,
+      walletAddress: alertEvent.walletAddress,
+      conditionId: alertEvent.conditionId,
+      title: alertEvent.title,
+      description: alertEvent.description,
+      confidenceScore: alertEvent.confidenceScore,
+      detectedAt: alertEvent.detectedAt,
+      status: 'new',
+      detectionRule: alertEvent.alertType, // Will be updated on next fetch
+    };
+
+    // Check if alert matches current filters
+    const currentFilters = filtersRef.current;
+    const matchesSeverity = !currentFilters.severity ||
+      (Array.isArray(currentFilters.severity)
+        ? currentFilters.severity.includes(newAlert.severity)
+        : currentFilters.severity === newAlert.severity);
+    const matchesStatus = !currentFilters.status ||
+      (Array.isArray(currentFilters.status)
+        ? currentFilters.status.includes(newAlert.status)
+        : currentFilters.status === newAlert.status);
+    const matchesType = !currentFilters.alertType ||
+      (Array.isArray(currentFilters.alertType)
+        ? currentFilters.alertType.includes(newAlert.alertType)
+        : currentFilters.alertType === newAlert.alertType);
+
+    // Only add to list if on page 1 and matches filters
+    if (pageRef.current === 1 && matchesSeverity && matchesStatus && matchesType) {
+      setAlerts((prev) => {
+        // Don't add if already exists
+        if (prev.some((a) => a.id === newAlert.id)) {
+          return prev;
+        }
+        // Add to beginning, keep only up to limit
+        return [newAlert, ...prev].slice(0, limit);
+      });
+      setTotal((prev) => prev + 1);
+    } else {
+      // Still increment total even if not shown
+      setTotal((prev) => prev + 1);
+    }
+  }, [limit]);
+
+  // Connect to WebSocket for instant alert updates
+  useWebSocket(getWebSocketUrl(), {
+    onDetectionAlert: handleDetectionAlert,
+  });
+
   useEffect(() => {
+    // Initial fetch
     fetchData();
   }, [fetchData]);
 

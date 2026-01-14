@@ -34,15 +34,28 @@ export interface TradingUpdateEvent {
   };
 }
 
+export interface DetectionAlertEvent {
+  id: number;
+  alertType: string;
+  severity: string;
+  walletAddress: string;
+  conditionId?: string;
+  title: string;
+  description?: string;
+  confidenceScore?: number;
+  detectedAt: string;
+}
+
 interface WebSocketMessage {
-  type: 'stats_update' | 'new_deposit' | 'trading_update';
-  data: StatsResponse | DepositEvent | TradingUpdateEvent;
+  type: 'stats_update' | 'new_deposit' | 'trading_update' | 'detection_alert';
+  data: StatsResponse | DepositEvent | TradingUpdateEvent | DetectionAlertEvent;
 }
 
 interface UseWebSocketOptions {
   onStats?: (stats: StatsResponse) => void;
   onDeposit?: (deposit: DepositEvent) => void;
   onTradingUpdate?: (update: TradingUpdateEvent) => void;
+  onDetectionAlert?: (alert: DetectionAlertEvent) => void;
 }
 
 interface UseWebSocketResult {
@@ -66,6 +79,7 @@ let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 const statsCallbacks = new Set<(stats: StatsResponse) => void>();
 const depositCallbacks = new Set<(deposit: DepositEvent) => void>();
 const tradingUpdateCallbacks = new Set<(update: TradingUpdateEvent) => void>();
+const detectionAlertCallbacks = new Set<(alert: DetectionAlertEvent) => void>();
 const connectionCallbacks = new Set<(connected: boolean) => void>();
 
 function notifyConnection(connected: boolean) {
@@ -103,6 +117,9 @@ function connect(url: string) {
           break;
         case 'trading_update':
           tradingUpdateCallbacks.forEach((cb) => cb(message.data as TradingUpdateEvent));
+          break;
+        case 'detection_alert':
+          detectionAlertCallbacks.forEach((cb) => cb(message.data as DetectionAlertEvent));
           break;
       }
     } catch (e) {
@@ -154,8 +171,9 @@ export function useWebSocket(
     onStats: ((stats: StatsResponse) => void) | null;
     onDeposit: ((deposit: DepositEvent) => void) | null;
     onTradingUpdate: ((update: TradingUpdateEvent) => void) | null;
+    onDetectionAlert: ((alert: DetectionAlertEvent) => void) | null;
     onConnection: ((connected: boolean) => void) | null;
-  }>({ onStats: null, onDeposit: null, onTradingUpdate: null, onConnection: null });
+  }>({ onStats: null, onDeposit: null, onTradingUpdate: null, onDetectionAlert: null, onConnection: null });
 
   useEffect(() => {
     // Create callbacks if not already created (first mount)
@@ -163,6 +181,7 @@ export function useWebSocket(
       callbacksRef.current.onStats = (stats: StatsResponse) => optionsRef.current.onStats?.(stats);
       callbacksRef.current.onDeposit = (deposit: DepositEvent) => optionsRef.current.onDeposit?.(deposit);
       callbacksRef.current.onTradingUpdate = (update: TradingUpdateEvent) => optionsRef.current.onTradingUpdate?.(update);
+      callbacksRef.current.onDetectionAlert = (alert: DetectionAlertEvent) => optionsRef.current.onDetectionAlert?.(alert);
       callbacksRef.current.onConnection = (isConnected: boolean) => setConnected(isConnected);
     }
 
@@ -172,6 +191,7 @@ export function useWebSocket(
     statsCallbacks.add(callbacksRef.current.onStats!);
     depositCallbacks.add(callbacksRef.current.onDeposit!);
     tradingUpdateCallbacks.add(callbacksRef.current.onTradingUpdate!);
+    detectionAlertCallbacks.add(callbacksRef.current.onDetectionAlert!);
     connectionCallbacks.add(callbacksRef.current.onConnection!);
 
     subscriberCount++;
@@ -186,11 +206,12 @@ export function useWebSocket(
       statsCallbacks.delete(callbacksRef.current.onStats!);
       depositCallbacks.delete(callbacksRef.current.onDeposit!);
       tradingUpdateCallbacks.delete(callbacksRef.current.onTradingUpdate!);
+      detectionAlertCallbacks.delete(callbacksRef.current.onDetectionAlert!);
       connectionCallbacks.delete(callbacksRef.current.onConnection!);
 
       // Disconnect and reset ref only when truly unmounted
       if (subscriberCount === 0) {
-        callbacksRef.current = { onStats: null, onDeposit: null, onTradingUpdate: null, onConnection: null };
+        callbacksRef.current = { onStats: null, onDeposit: null, onTradingUpdate: null, onDetectionAlert: null, onConnection: null };
         disconnect();
       }
     };

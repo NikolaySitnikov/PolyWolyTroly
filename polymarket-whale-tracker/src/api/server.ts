@@ -426,7 +426,14 @@ export function createApp(): Express {
         { page, limit, sortBy, sortDir }
       );
 
-      res.json(result);
+      // Transform response to match frontend expectation (alerts instead of data)
+      res.json({
+        alerts: result.data,
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      });
     } catch (error) {
       console.error("Error fetching detection alerts:", error);
       res.status(500).json({ error: "Failed to fetch detection alerts" });
@@ -1133,6 +1140,105 @@ export function createApp(): Express {
     } catch (error) {
       console.error("Error evaluating detection:", error);
       res.status(500).json({ error: "Failed to evaluate detection" });
+    }
+  });
+
+  // POST /api/detection/test-alert - Create a test alert for development/testing
+  // This endpoint allows creating fake alerts to verify the detection UI works
+  app.post("/api/detection/test-alert", async (req: Request, res: Response) => {
+    try {
+      const {
+        ruleName = 'FreshConcentratedDepthImpact',
+        severity = 'HIGH',
+        walletAddress = '0x' + 'test'.repeat(10),
+        conditionId = '0x' + 'testmarket'.repeat(6).slice(0, 64),
+        description = 'Test alert created for UI verification',
+      } = req.body;
+
+      // Validate severity
+      const validSeverities = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+      if (!validSeverities.includes(severity)) {
+        res.status(400).json({ error: `Invalid severity. Must be one of: ${validSeverities.join(', ')}` });
+        return;
+      }
+
+      // Validate rule name
+      const validRules = ['FreshConcentratedDepthImpact', 'PreMoveAdvantage', 'CoordinatedCluster'];
+      if (!validRules.includes(ruleName)) {
+        res.status(400).json({ error: `Invalid ruleName. Must be one of: ${validRules.join(', ')}` });
+        return;
+      }
+
+      // Map rule name to alert type
+      const ruleToAlertType: Record<string, 'timing' | 'size' | 'pattern' | 'cluster' | 'funding'> = {
+        'FreshConcentratedDepthImpact': 'pattern',
+        'PreMoveAdvantage': 'timing',
+        'CoordinatedCluster': 'cluster',
+      };
+
+      const alertTitle = `[TEST] ${ruleName} Alert`;
+      const alertType = ruleToAlertType[ruleName];
+      const normalizedWallet = walletAddress.toLowerCase();
+
+      // Create the test alert directly in the database using proper DetectionAlert format
+      const alertId = await detectionDb.createAlert({
+        alertType,
+        severity: severity as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW',
+        confidenceScore: 0.85,
+        walletAddress: normalizedWallet,
+        conditionId,
+        detectionRule: ruleName,
+        triggerValues: {
+          test: true,
+          walletAgeDays: 3,
+          concentration: 92,
+          tradeSizeUsd: 5000,
+          depthRatio: 4.2,
+        },
+        thresholdValues: {
+          maxWalletAgeDays: 14,
+          minConcentrationPct: 85,
+          minTradeSizeUsd: 3000,
+          minDepthRatio: 3.0,
+        },
+        title: alertTitle,
+        description,
+        status: 'new',
+      });
+
+      // Broadcast to WebSocket for instant UI updates (dynamic import to avoid circular dependency)
+      try {
+        const { broadcastDetectionAlert } = await import('./websocket.js');
+        broadcastDetectionAlert({
+          id: alertId,
+          alertType,
+          severity,
+          walletAddress: normalizedWallet,
+          conditionId,
+          title: alertTitle,
+          description,
+          confidenceScore: 0.85,
+          detectedAt: new Date().toISOString(),
+        });
+      } catch (wsError) {
+        console.warn("WebSocket broadcast failed:", wsError);
+      }
+
+      res.json({
+        success: true,
+        alert: {
+          id: alertId,
+          ruleName,
+          severity,
+          walletAddress: normalizedWallet,
+          conditionId,
+          description,
+        },
+        message: 'Test alert created and broadcast via WebSocket.',
+      });
+    } catch (error) {
+      console.error("Error creating test alert:", error);
+      res.status(500).json({ error: "Failed to create test alert" });
     }
   });
 
