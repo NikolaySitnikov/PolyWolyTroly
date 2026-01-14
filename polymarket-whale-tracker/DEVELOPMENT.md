@@ -54,6 +54,44 @@ npm run build && pm2 restart polywoly-backend
 - Logs saved to `./logs/pm2-*.log`
 - Process list saved for easy restart: `pm2 save` then `pm2 resurrect`
 
+#### PM2 Manual Control Commands
+
+```bash
+# === STATUS ===
+pm2 list                      # Show all processes with status
+pm2 status                    # Same as list
+pm2 show polywoly-backend     # Detailed info for one process
+
+# === STOP ===
+pm2 stop polywoly-backend     # Stop backend only
+pm2 stop polywoly-frontend    # Stop frontend only
+pm2 stop all                  # Stop all processes
+
+# === RESTART ===
+pm2 restart polywoly-backend  # Restart backend only
+pm2 restart polywoly-frontend # Restart frontend only
+pm2 restart all               # Restart all processes
+
+# === KILL (complete shutdown) ===
+pm2 delete polywoly-backend   # Remove backend from PM2
+pm2 delete polywoly-frontend  # Remove frontend from PM2
+pm2 delete all                # Remove all processes
+pm2 kill                      # Kill PM2 daemon entirely
+
+# === LOGS ===
+pm2 logs                      # Stream all logs
+pm2 logs polywoly-backend     # Stream backend logs only
+pm2 logs --lines 100          # Show last 100 lines
+pm2 flush                     # Clear all log files
+
+# === AFTER CODE CHANGES ===
+npm run build && pm2 restart polywoly-backend
+
+# === RECOVER ===
+pm2 resurrect                 # Restore saved process list (after pm2 kill)
+pm2 start ecosystem.config.cjs  # Start fresh from config
+```
+
 **To enable auto-start on system boot:**
 ```bash
 pm2 save
