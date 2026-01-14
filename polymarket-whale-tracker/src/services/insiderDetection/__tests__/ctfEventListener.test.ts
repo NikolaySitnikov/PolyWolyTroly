@@ -113,6 +113,11 @@ describe("CTF Event Listener", () => {
         consecutiveErrors: 0,
         transfersProcessed: 0,
         transfersSkippedDuplicate: 0,
+        // Detection engine integration stats
+        detectionEnabled: false,
+        detectionQueueLength: 0,
+        detectionEvaluationsProcessed: 0,
+        detectionAlertsTriggered: 0,
       });
     });
   });

@@ -10,6 +10,7 @@
  * - Deduplicates events using Redis cache
  * - Stores transfers in ctf_transfers table for analysis
  * - Health monitoring with heartbeat checks
+ * - Integrates with detection engine for real-time insider trading detection
  */
 
 import {
@@ -26,7 +27,7 @@ import { CONTRACTS, ERC1155_ABI, ZERO_ADDRESS } from "../../utils/constants.js";
 import { detectionDb } from "./detectionDatabase.js";
 import { detectionCache } from "./detectionCache.js";
 import { walletActivityIndex } from "./walletActivityIndex.js";
-import type { CtfTransfer } from "./types.js";
+import type { CtfTransfer, DetectionEngineResult } from "./types.js";
 import pino from "pino";
 
 const logger = pino({ level: "info" });
@@ -69,6 +70,13 @@ let heartbeatInterval: NodeJS.Timeout | null = null;
 let transfersProcessed = 0;
 let transfersSkippedDuplicate = 0;
 
+// Detection engine integration state
+let detectionEnabled = false;
+let detectionQueue: Array<Omit<CtfTransfer, "id">> = [];
+const MAX_DETECTION_QUEUE_SIZE = 10000;
+let detectionEvaluationsProcessed = 0;
+let detectionAlertsTriggered = 0;
+
 export interface CtfListenerHealthStatus {
   isRunning: boolean;
   lastEventTime: Date | null;
@@ -78,6 +86,11 @@ export interface CtfListenerHealthStatus {
   consecutiveErrors: number;
   transfersProcessed: number;
   transfersSkippedDuplicate: number;
+  // Detection engine integration stats
+  detectionEnabled: boolean;
+  detectionQueueLength: number;
+  detectionEvaluationsProcessed: number;
+  detectionAlertsTriggered: number;
 }
 
 /**
@@ -336,6 +349,11 @@ export const ctfEventListener = {
       consecutiveErrors,
       transfersProcessed,
       transfersSkippedDuplicate,
+      // Detection engine integration stats
+      detectionEnabled,
+      detectionQueueLength: detectionQueue.length,
+      detectionEvaluationsProcessed,
+      detectionAlertsTriggered,
     };
   },
 
@@ -536,5 +554,199 @@ export const ctfEventListener = {
    */
   async getCurrentBlock(): Promise<bigint> {
     return await httpClient.getBlockNumber();
+  },
+
+  // ============================================
+  // DETECTION ENGINE INTEGRATION
+  // ============================================
+
+  /**
+   * Enable or disable detection engine evaluation for transfers
+   */
+  setDetectionEnabled(enabled: boolean): void {
+    detectionEnabled = enabled;
+    logger.info({
+      msg: `Detection engine ${enabled ? "enabled" : "disabled"}`,
+    });
+  },
+
+  /**
+   * Check if detection is enabled
+   */
+  isDetectionEnabled(): boolean {
+    return detectionEnabled;
+  },
+
+  /**
+   * Evaluate a transfer through the detection engine
+   * This is async and non-blocking - errors are caught and logged
+   */
+  async _evaluateTransfer(transfer: Omit<CtfTransfer, "id">): Promise<DetectionEngineResult | null> {
+    if (!detectionEnabled) {
+      return null;
+    }
+
+    try {
+      // Lazy import to avoid circular dependencies
+      const { detectionEngine } = await import("./detectionEngine.js");
+
+      // Build a full transfer object for the engine
+      const fullTransfer: CtfTransfer = {
+        id: 0, // Not stored yet
+        ...transfer,
+      };
+
+      const result = await detectionEngine.evaluateTrade(fullTransfer);
+
+      if (result.evaluated) {
+        detectionEvaluationsProcessed++;
+
+        if (result.alertsCreated.length > 0) {
+          detectionAlertsTriggered += result.alertsCreated.length;
+          logger.info({
+            msg: "Detection engine triggered alerts",
+            alertCount: result.alertsCreated.length,
+            walletAddress: transfer.toAddress,
+            conditionId: transfer.conditionId,
+          });
+        }
+      }
+
+      return result;
+    } catch (error) {
+      logger.error({
+        msg: "Error in detection engine evaluation",
+        error,
+        walletAddress: transfer.toAddress,
+        conditionId: transfer.conditionId,
+      });
+      return null;
+    }
+  },
+
+  /**
+   * Queue a transfer for async detection processing
+   */
+  queueForDetection(transfer: Omit<CtfTransfer, "id">): void {
+    if (!detectionEnabled) {
+      return;
+    }
+
+    // Prevent queue from growing unbounded
+    if (detectionQueue.length >= MAX_DETECTION_QUEUE_SIZE) {
+      logger.warn({
+        msg: "Detection queue full, dropping oldest transfers",
+        queueSize: detectionQueue.length,
+      });
+      // Drop oldest 10%
+      detectionQueue = detectionQueue.slice(Math.floor(MAX_DETECTION_QUEUE_SIZE * 0.1));
+    }
+
+    detectionQueue.push(transfer);
+  },
+
+  /**
+   * Get the current detection queue length
+   */
+  getDetectionQueueLength(): number {
+    return detectionQueue.length;
+  },
+
+  /**
+   * Process queued transfers through detection engine
+   * @param limit Maximum number of transfers to process
+   * @returns Number of transfers processed
+   */
+  async processDetectionQueue(limit: number = 100): Promise<number> {
+    if (!detectionEnabled || detectionQueue.length === 0) {
+      return 0;
+    }
+
+    const toProcess = detectionQueue.splice(0, limit);
+    let processed = 0;
+
+    for (const transfer of toProcess) {
+      try {
+        await this._evaluateTransfer(transfer);
+        processed++;
+      } catch (error) {
+        logger.error({
+          msg: "Error processing queued transfer",
+          error,
+          txHash: transfer.txHash,
+        });
+      }
+    }
+
+    return processed;
+  },
+
+  /**
+   * Batch evaluate a list of historical transfers
+   * Useful for catch-up processing or historical analysis
+   */
+  async batchEvaluateTransfers(
+    transfers: Array<Omit<CtfTransfer, "id">>
+  ): Promise<{
+    processed: number;
+    triggered: number;
+    errors: number;
+  }> {
+    let processed = 0;
+    let triggered = 0;
+    let errors = 0;
+
+    // Lazy import to avoid circular dependencies
+    const { detectionEngine } = await import("./detectionEngine.js");
+
+    for (const transfer of transfers) {
+      try {
+        const fullTransfer: CtfTransfer = {
+          id: 0,
+          ...transfer,
+        };
+
+        const result = await detectionEngine.evaluateTrade(fullTransfer);
+
+        if (result.evaluated) {
+          processed++;
+          detectionEvaluationsProcessed++;
+
+          if (result.rulesTriggered.some((r) => r.triggered)) {
+            triggered++;
+          }
+
+          if (result.alertsCreated.length > 0) {
+            detectionAlertsTriggered += result.alertsCreated.length;
+          }
+        }
+      } catch (error) {
+        errors++;
+        logger.error({
+          msg: "Error in batch evaluation",
+          error,
+          txHash: transfer.txHash,
+        });
+      }
+    }
+
+    logger.info({
+      msg: "Batch evaluation complete",
+      processed,
+      triggered,
+      errors,
+    });
+
+    return { processed, triggered, errors };
+  },
+
+  /**
+   * Reset detection stats (for testing)
+   */
+  _resetDetectionStats(): void {
+    detectionEvaluationsProcessed = 0;
+    detectionAlertsTriggered = 0;
+    detectionQueue = [];
+    detectionEnabled = false;
   },
 };

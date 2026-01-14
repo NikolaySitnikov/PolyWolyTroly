@@ -634,9 +634,69 @@ const configs = await detectionEngine.getAllRuleConfigs();
 
 **Tests**: 43 new tests for detection engine (363 total insider detection tests)
 
+**Phase 1.8 - CTF Listener Integration** ✅ COMPLETE
+
+Integrates the detection engine with the CTF event listener for real-time detection:
+
+**Updated Files**:
+- `ctfEventListener.ts` - Added detection engine integration
+
+**New Methods on `ctfEventListener`**:
+- `setDetectionEnabled(enabled)` - Enable/disable detection engine evaluation
+- `isDetectionEnabled()` - Check if detection is enabled
+- `_evaluateTransfer(transfer)` - Evaluate transfer through detection engine (non-blocking, async)
+- `queueForDetection(transfer)` - Queue transfer for async detection processing
+- `getDetectionQueueLength()` - Get current queue size
+- `processDetectionQueue(limit)` - Process queued transfers in batches
+- `batchEvaluateTransfers(transfers)` - Batch evaluation for catch-up/historical analysis
+- `_resetDetectionStats()` - Reset detection stats (for testing)
+
+**Features**:
+- **Non-blocking Evaluation**: Detection runs asynchronously, errors caught/logged without blocking transfer processing
+- **Lazy Import**: Detection engine imported lazily to avoid circular dependencies
+- **Detection Queue**: Queue with max size of 10,000 transfers, overflow handling (drops oldest 10%)
+- **Health Status Integration**: `CtfListenerHealthStatus` includes detection stats
+- **Batch Processing**: Support for evaluating historical transfers in batches
+
+**Updated Health Status**:
+```typescript
+interface CtfListenerHealthStatus {
+  // ... existing fields ...
+  detectionEnabled: boolean;           // Whether detection is enabled
+  detectionQueueLength: number;        // Current queue size
+  detectionEvaluationsProcessed: number; // Total evaluations processed
+  detectionAlertsTriggered: number;    // Total alerts triggered
+}
+```
+
+**Usage**:
+```typescript
+import { ctfEventListener } from "./services/insiderDetection/index.js";
+
+// Enable detection
+ctfEventListener.setDetectionEnabled(true);
+
+// Check health (includes detection stats)
+const health = ctfEventListener.getHealthStatus();
+// { ..., detectionEnabled: true, detectionQueueLength: 0, detectionEvaluationsProcessed: 150, ... }
+
+// Batch evaluation for historical catch-up
+const transfers = await detectionDb.getRecentTransfers(1000);
+const result = await ctfEventListener.batchEvaluateTransfers(transfers);
+// { processed: 1000, triggered: 5, errors: 0 }
+
+// Queue and process detection asynchronously
+ctfEventListener.queueForDetection(transfer);
+const processed = await ctfEventListener.processDetectionQueue(100);
+```
+
+**Tests**: 12 new tests for CTF-Detection integration (375 total insider detection tests)
+- `ctfDetectionIntegration.test.ts` - Integration tests covering enable/disable, async queue, batch processing, health status
+
 **Upcoming Phases**:
-- Phase 1.8: CTF Listener Integration
-- Phase 1.9-1.11: API, Frontend, Testing
+- Phase 1.9: API Endpoints
+- Phase 1.10: Frontend Enhancements
+- Phase 1.11: Integration & Testing
 
 **Frontend Detection Page** (Phase 0.8):
 Components at `frontend/src/components/detection/`:
@@ -703,6 +763,7 @@ Test files:
 - `insiderDetection/__tests__/preMoveAdvantage.test.ts` - 35 tests for Rule #2
 - `insiderDetection/__tests__/coordinatedCluster.test.ts` - 32 tests for Rule #3
 - `insiderDetection/__tests__/detectionEngine.test.ts` - 43 tests for detection engine orchestration
+- `insiderDetection/__tests__/ctfDetectionIntegration.test.ts` - 12 tests for CTF-Detection integration
 
 ## Module System
 

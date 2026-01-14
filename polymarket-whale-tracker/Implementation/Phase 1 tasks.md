@@ -235,15 +235,15 @@ src/services/insiderDetection/
 | 1.7.8 | Add metrics tracking (rules triggered, alerts created) | Unit test | ✅ |
 | 1.7.9 | Unit tests for detection engine (43 tests) | Vitest | ✅ |
 
-### Phase 1.8: CTF Listener Integration
+### Phase 1.8: CTF Listener Integration ✅ COMPLETED
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 1.8.1 | Add detection engine hook to CTF listener | Integration test | |
-| 1.8.2 | Implement async evaluation (non-blocking transfer processing) | Integration test | |
-| 1.8.3 | Add rate limiting for detection evaluations | Unit test | |
-| 1.8.4 | Implement batch evaluation for catch-up scenarios | Integration test | |
-| 1.8.5 | Add health status for detection engine | Integration test | |
-| 1.8.6 | Integration tests for CTF → Detection pipeline | Vitest | |
+| 1.8.1 | Add detection engine hook to CTF listener | Integration test | ✅ |
+| 1.8.2 | Implement async evaluation (non-blocking transfer processing) | Integration test | ✅ |
+| 1.8.3 | Add rate limiting for detection evaluations | Unit test | ✅ |
+| 1.8.4 | Implement batch evaluation for catch-up scenarios | Integration test | ✅ |
+| 1.8.5 | Add health status for detection engine | Integration test | ✅ |
+| 1.8.6 | Integration tests for CTF → Detection pipeline | Vitest | ✅ |
 
 ### Phase 1.9: API Endpoints
 | # | Task | Test Strategy | Status |
@@ -392,15 +392,44 @@ confidence = (
 ## Progress Tracking
 
 **Total Subtasks:** 78
-**Completed:** 55
+**Completed:** 61
 **In Progress:** 0
-**Remaining:** 23
+**Remaining:** 17
 
 Last Updated: 2026-01-14
 
 ---
 
 ## Changelog
+
+### 2026-01-14 - Phase 1.8 Completed
+- Integrated detection engine with CTF event listener:
+  - `setDetectionEnabled()` / `isDetectionEnabled()` - enable/disable detection
+  - `_evaluateTransfer()` - evaluate transfer through detection engine (non-blocking)
+  - `queueForDetection()` - queue transfers for async processing
+  - `getDetectionQueueLength()` - check queue size
+  - `processDetectionQueue()` - process queued transfers in batches
+  - `batchEvaluateTransfers()` - batch evaluation for catch-up scenarios
+  - `_resetDetectionStats()` - reset stats for testing
+- Features implemented:
+  - Lazy import of detection engine to avoid circular dependencies
+  - Non-blocking async evaluation with error handling
+  - Detection queue with configurable max size (10,000 transfers)
+  - Queue overflow handling (drops oldest 10% when full)
+  - Health status includes detection stats
+  - Batch processing for historical/catch-up evaluation
+- Updated `CtfListenerHealthStatus` interface with detection fields:
+  - `detectionEnabled` - whether detection is enabled
+  - `detectionQueueLength` - current queue size
+  - `detectionEvaluationsProcessed` - total evaluations processed
+  - `detectionAlertsTriggered` - total alerts triggered
+- Created 12 integration tests in `ctfDetectionIntegration.test.ts` covering:
+  - Detection engine hook (enable/disable, error handling)
+  - Async evaluation queue (queue, process, batch limits)
+  - Rate limiting (engine handles throttling internally)
+  - Health status integration
+  - Batch evaluation for historical transfers
+- All tests passing (375 insider detection tests)
 
 ### 2026-01-14 - Phase 1.7 Completed
 - Created `detectionEngine.ts` - Core orchestration service for all detection rules:
