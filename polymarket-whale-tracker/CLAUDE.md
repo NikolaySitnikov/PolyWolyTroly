@@ -518,8 +518,60 @@ const result = await preMoveAdvantageRule.evaluate({
 
 **Tests**: 35 new tests for Rule #2 (288 total insider detection tests)
 
+**Phase 1.6 - Rule #3: Coordinated Cluster** ✅ COMPLETE
+
+Third detection rule implementation - detects coordinated trading from related wallet clusters:
+
+**New Files**:
+- `rules/coordinatedCluster.ts` - Rule #3 implementation
+
+**Detection Logic**:
+Evaluates clusters at the market level (not individual trades). Triggers when ALL conditions are met:
+1. Cluster size ≥ 3 wallets
+2. All wallets trading same side (all YES or all NO)
+3. Total notional ≥ $50,000
+4. Median wallet age ≤ 45 days
+
+**Key Methods**:
+- `evaluate(context)` - Evaluate all clusters with activity in a market
+- `evaluateCluster(clusterId, conditionId)` - Targeted evaluation of specific cluster
+- `getClustersForMarket(conditionId)` - Find all clusters with activity in a market
+- `gatherClusterData(clusterId, conditionId, wallets, windowHours)` - Aggregate cluster activity
+- `calculateMedian(values)` - Utility for median age calculation
+
+**Confidence Scoring**:
+- Cluster size: 30% weight (more wallets = higher)
+- Total notional: 30% weight (larger aggregate = higher, log scale)
+- Median age: 20% weight (younger = higher)
+- Relationship strength: 20% weight (stronger = higher)
+
+**Usage**:
+```typescript
+import { coordinatedClusterRule } from "./rules/index.js";
+
+// Evaluate all clusters in a market
+const result = await coordinatedClusterRule.evaluate({
+  walletAddress: "0x...", // Any wallet (used for context)
+  conditionId: "0x...",   // Market to evaluate
+});
+
+// Or evaluate a specific cluster
+const result = await coordinatedClusterRule.evaluateCluster(
+  "cluster_abc123",
+  "0xcondition..."
+);
+
+if (result.triggered) {
+  // result.confidence = 0.72, result.severity = "HIGH"
+  // result.triggerValues = { clusterId, clusterSize: 4, totalNotionalUsd: 75000, ... }
+  // result.relatedWallets = ["0xwallet1", "0xwallet2", ...]
+  await coordinatedClusterRule.createAlert(result, context);
+}
+```
+
+**Tests**: 32 new tests for Rule #3 (320 total insider detection tests)
+
 **Upcoming Phases**:
-- Phase 1.6: Rule #3 - Coordinated Cluster
 - Phase 1.7: Detection Engine Orchestration
 - Phase 1.8-1.11: Integration, API, Frontend, Testing
 
@@ -586,6 +638,7 @@ Test files:
 - `insiderDetection/__tests__/clusterService.test.ts` - 30 tests for wallet cluster service
 - `insiderDetection/__tests__/freshConcentratedDepth.test.ts` - 37 tests for Rule #1
 - `insiderDetection/__tests__/preMoveAdvantage.test.ts` - 35 tests for Rule #2
+- `insiderDetection/__tests__/coordinatedCluster.test.ts` - 32 tests for Rule #3
 
 ## Module System
 

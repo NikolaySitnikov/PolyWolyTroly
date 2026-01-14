@@ -211,16 +211,16 @@ src/services/insiderDetection/
 | 1.5.7 | Create alert with MTM gain details | Unit test | ✅ |
 | 1.5.8 | Unit tests for Rule #2 (35 tests) | Vitest | ✅ |
 
-### Phase 1.6: Rule #3 - Coordinated Cluster
+### Phase 1.6: Rule #3 - Coordinated Cluster ✅ COMPLETED
 | # | Task | Test Strategy | Status |
 |---|------|---------------|--------|
-| 1.6.1 | Create `rules/coordinatedCluster.ts` skeleton | TypeScript compilation | |
-| 1.6.2 | Implement `evaluate(market, timeWindow)` method | Unit test | |
-| 1.6.3 | Implement same-side detection (all wallets trading same direction) | Unit test | |
-| 1.6.4 | Implement cluster size and notional thresholds | Unit test | |
-| 1.6.5 | Implement median age calculation for cluster | Unit test | |
-| 1.6.6 | Create alert with cluster details and wallet list | Unit test | |
-| 1.6.7 | Unit tests for Rule #3 (15+ tests) | Vitest | |
+| 1.6.1 | Create `rules/coordinatedCluster.ts` skeleton | TypeScript compilation | ✅ |
+| 1.6.2 | Implement `evaluate(market, timeWindow)` method | Unit test | ✅ |
+| 1.6.3 | Implement same-side detection (all wallets trading same direction) | Unit test | ✅ |
+| 1.6.4 | Implement cluster size and notional thresholds | Unit test | ✅ |
+| 1.6.5 | Implement median age calculation for cluster | Unit test | ✅ |
+| 1.6.6 | Create alert with cluster details and wallet list | Unit test | ✅ |
+| 1.6.7 | Unit tests for Rule #3 (32 tests) | Vitest | ✅ |
 
 ### Phase 1.7: Detection Engine
 | # | Task | Test Strategy | Status |
@@ -392,15 +392,48 @@ confidence = (
 ## Progress Tracking
 
 **Total Subtasks:** 78
-**Completed:** 39
+**Completed:** 46
 **In Progress:** 0
-**Remaining:** 39
+**Remaining:** 32
 
 Last Updated: 2026-01-14
 
 ---
 
 ## Changelog
+
+### 2026-01-14 - Phase 1.6 Completed
+- Created `rules/coordinatedCluster.ts` with full Rule #3 implementation:
+  - `evaluate()` - evaluates all clusters with activity in a market
+  - `evaluateCluster()` - targeted evaluation of a specific cluster
+  - `getClustersForMarket()` - finds all clusters with activity in a market
+  - `gatherClusterData()` - aggregates wallet activity for a cluster
+  - `calculateConfidence()` - weighted confidence scoring
+  - `calculateMedian()` - utility for median age calculation
+- Features implemented:
+  - Same-side detection: all wallets must trade YES or all NO
+  - Cluster size threshold: minimum N wallets acting together
+  - Total notional threshold: minimum aggregate position size
+  - Median age check: fresh wallet clusters are more suspicious
+  - Relationship strength from clusterService
+  - Human-readable descriptions with market context
+- Confidence scoring weights:
+  - 30% cluster size (more wallets = higher)
+  - 30% total notional (larger aggregate = higher)
+  - 20% median age (younger = higher)
+  - 20% relationship strength (stronger = higher)
+- Threshold defaults: 3 wallets, $50,000 total notional, 45 days max median age, 6 hour window
+- Created 32 unit tests for Rule #3 covering:
+  - Basic triggering conditions
+  - Same-side detection (YES and NO)
+  - Threshold boundary tests
+  - Confidence score calculations
+  - Edge cases and error handling
+  - Alert deduplication
+  - Rule configuration
+  - evaluateCluster() method
+- Updated `rules/index.ts` to export CoordinatedClusterRule
+- All tests passing (320 insider detection tests)
 
 ### 2026-01-14 - Phase 1.5 Completed
 - Created `rules/preMoveAdvantage.ts` with full Rule #2 implementation:
