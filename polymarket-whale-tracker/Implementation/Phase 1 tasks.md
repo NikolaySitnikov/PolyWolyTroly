@@ -930,6 +930,22 @@ False positive alert triggered cascading data that all needed cleanup:
 **Preserved** (real blockchain data):
 - **ctf_transfers** - Kept the actual on-chain ERC-1155 transfer (blockchain fact, not our bug)
 
+#### Full Database Cleanup (All Affected Data)
+The 0.5 price bug affected far more data than initially realized:
+
+| Table | Records Deleted | Reason |
+|-------|-----------------|--------|
+| `detection_alerts` | **6** | All alerts used 0.5 fallback price |
+| `wallets` (source='detection') | **6** | Auto-added by false positive alerts |
+| `wallet_activity` (avg_entry_price=0.5) | **2,923** | 55% of all records had corrupted prices |
+| `pending_mtm_evaluations` (entry_price=0.5) | **83** | Would have triggered more false alerts |
+| **Total** | **3,018** | All corrupted data removed |
+
+**Impact Analysis**:
+- Markets at ~0% (Fed rate hike at 0.05%) → 1000x inflated values
+- Markets at ~100% (No Fed change at 94%) → 2x deflated values
+- Detection page now shows 0 alerts (clean slate)
+
 #### Wallet Age Issue (Separate Bug - Not Fixed)
 The wallet showed as "0 days old" because we only have 1 transfer for it (from today). The wallet has been active on Polymarket since Sep 2025, but our indexer didn't capture historical data. This is a known limitation - wallets that existed before we started indexing appear "new" to our system.
 
