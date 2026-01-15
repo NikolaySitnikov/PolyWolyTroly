@@ -919,9 +919,16 @@ if (midPrice !== undefined) {
 - Added validation warnings for suspicious cached prices (exactly 0.5)
 - Returns 0 if no reliable price found (fails trade size threshold, no false positive)
 
-#### Cleanup
-- Deleted 1 incorrect alert (ID 25) with $500,000 trade value
-- Other alerts verified as reasonable
+#### Cleanup (Full Cascade)
+False positive alert triggered cascading data that all needed cleanup:
+
+1. **detection_alerts** - Deleted alert ID 25 ($500,000 false trade value)
+2. **wallets** - Deleted wallet record (source='detection', added by false positive)
+3. **wallet_activity** - Deleted activity record ($500,000 false volume)
+4. **pending_mtm_evaluations** - Deleted ID 70 (would have triggered another false alert)
+
+**Preserved** (real blockchain data):
+- **ctf_transfers** - Kept the actual on-chain ERC-1155 transfer (blockchain fact, not our bug)
 
 #### Wallet Age Issue (Separate Bug - Not Fixed)
 The wallet showed as "0 days old" because we only have 1 transfer for it (from today). The wallet has been active on Polymarket since Sep 2025, but our indexer didn't capture historical data. This is a known limitation - wallets that existed before we started indexing appear "new" to our system.
