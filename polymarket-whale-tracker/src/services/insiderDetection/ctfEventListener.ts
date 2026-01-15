@@ -109,6 +109,7 @@ async function lookupMarketByTokenId(tokenIdBigInt: bigint): Promise<{
   const tokenIdStr = tokenIdBigInt.toString();
 
   try {
+    // First check our database
     const result = await detectionDb.getMarketByTokenId(tokenIdStr);
     if (result) {
       return {
@@ -117,24 +118,25 @@ async function lookupMarketByTokenId(tokenIdBigInt: bigint): Promise<{
       };
     }
 
-    // Fallback: try looking up from marketMetadataService which can fetch from API
-    // This handles cases where the market isn't in our DB yet
+    // Not in database - try on-demand lookup from Gamma API
+    // This handles closed/resolved markets that aren't in our regular sync
     const { marketMetadataService } = await import("./marketMetadataService.js");
+    const market = await marketMetadataService.lookupAndStoreMarketByTokenId(tokenIdStr);
 
-    // First sync markets if we haven't recently
-    await marketMetadataService.syncActiveMarkets();
-
-    // Try again after sync
-    const resultAfterSync = await detectionDb.getMarketByTokenId(tokenIdStr);
-    if (resultAfterSync) {
-      return {
-        conditionId: resultAfterSync.market.conditionId,
-        outcome: resultAfterSync.outcome,
-      };
+    if (market) {
+      // Now check which outcome this token is (YES or NO)
+      const resultAfterLookup = await detectionDb.getMarketByTokenId(tokenIdStr);
+      if (resultAfterLookup) {
+        return {
+          conditionId: resultAfterLookup.market.conditionId,
+          outcome: resultAfterLookup.outcome,
+        };
+      }
     }
 
+    // Still not found - this token may be from a very old market or multi-outcome market
     logger.debug({
-      msg: "Could not find market for token ID",
+      msg: "Could not find market for token ID (not in DB, not in Gamma API)",
       tokenId: tokenIdStr.substring(0, 20) + "...",
     });
     return null;

@@ -810,10 +810,40 @@ Navigation: Detection accessible via `/detection` route or clicking "Detection" 
 
 ### Required Environment Variables
 - `ALCHEMY_WSS_URL` / `ALCHEMY_HTTP_URL` - Polygon RPC endpoints (PublicNode)
-- `DATABASE_URL` - PostgreSQL connection string
+- `DATABASE_URL` - PostgreSQL connection string (local: `postgresql://localhost:5432/polywoly`)
 - `REDIS_URL` - Redis connection string (local: `redis://localhost:6379`)
 - `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` - Alert destination
 - `MIN_DEPOSIT_AMOUNT` - Threshold in USD (default: 7500)
+
+### Database: Local PostgreSQL (Development)
+
+**Migrated from Supabase to local PostgreSQL** (2026-01-14) due to Supabase free tier limits being exceeded (4,077% egress, 267% storage). See `Implementation/decisions/002_local_postgresql_migration.md` for full rationale.
+
+**Managing Local PostgreSQL**:
+```bash
+# Check status
+brew services list | grep postgresql
+
+# Stop PostgreSQL
+brew services stop postgresql@15
+
+# Start PostgreSQL
+brew services start postgresql@15
+
+# Access database directly
+/opt/homebrew/opt/postgresql@15/bin/psql -d polywoly
+
+# View table sizes
+/opt/homebrew/opt/postgresql@15/bin/psql -d polywoly -c "
+  SELECT tablename, pg_size_pretty(pg_total_relation_size('public.' || tablename))
+  FROM pg_tables WHERE schemaname = 'public' ORDER BY pg_total_relation_size('public.' || tablename) DESC;
+"
+```
+
+**Data Location**: `/opt/homebrew/var/postgresql@15`
+**Logs**: `/opt/homebrew/var/log/postgresql@15.log`
+
+**To switch back to Supabase**: Uncomment the Supabase `DATABASE_URL` in `.env`
 
 ## MANDATORY: Testing Requirements
 

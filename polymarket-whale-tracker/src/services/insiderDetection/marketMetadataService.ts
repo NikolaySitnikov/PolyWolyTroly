@@ -210,6 +210,112 @@ async function fetchAllActiveMarkets(): Promise<GammaMarket[]> {
 }
 
 /**
+ * Fetch ALL markets including closed ones (for backfill)
+ * This is slower but captures markets that are no longer "active"
+ */
+async function fetchAllMarkets(): Promise<GammaMarket[]> {
+  const allMarkets: GammaMarket[] = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    // Don't filter by active or closed - get everything
+    const batch = await fetchMarketsFromGamma({
+      limit: PAGE_SIZE,
+      offset,
+    });
+
+    if (batch.length === 0) {
+      hasMore = false;
+    } else {
+      allMarkets.push(...batch);
+      offset += PAGE_SIZE;
+
+      // Stop if we got fewer than page size
+      if (batch.length < PAGE_SIZE) {
+        hasMore = false;
+      }
+    }
+  }
+
+  return allMarkets;
+}
+
+// Rate limiting state for Gamma API
+let lastGammaApiCall = 0;
+const GAMMA_API_MIN_INTERVAL_MS = 100; // Min 100ms between calls (10 req/sec max)
+const GAMMA_RATE_LIMIT_BACKOFF_MS = 5000; // Wait 5s after 429 error
+let gammaRateLimitedUntil = 0;
+
+// Cache for failed token lookups to avoid repeated API calls
+const failedTokenLookupCache = new Set<string>();
+const FAILED_LOOKUP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Periodically clear the failed lookup cache
+setInterval(() => {
+  failedTokenLookupCache.clear();
+}, FAILED_LOOKUP_CACHE_TTL_MS);
+
+/**
+ * Lookup a market by token ID from Gamma API (on-demand)
+ * Used when a token is not in our database
+ * Includes rate limiting and retry logic
+ */
+async function lookupMarketByTokenIdFromGamma(tokenId: string): Promise<GammaMarket | null> {
+  // Check if we already tried and failed this token recently
+  if (failedTokenLookupCache.has(tokenId)) {
+    return null;
+  }
+
+  // Check if we're in rate limit backoff
+  const now = Date.now();
+  if (now < gammaRateLimitedUntil) {
+    console.log(`[MarketMetadata] Gamma API rate limited, waiting until ${new Date(gammaRateLimitedUntil).toISOString()}`);
+    return null;
+  }
+
+  // Ensure minimum interval between API calls
+  const timeSinceLastCall = now - lastGammaApiCall;
+  if (timeSinceLastCall < GAMMA_API_MIN_INTERVAL_MS) {
+    await new Promise(resolve => setTimeout(resolve, GAMMA_API_MIN_INTERVAL_MS - timeSinceLastCall));
+  }
+
+  try {
+    lastGammaApiCall = Date.now();
+
+    // Gamma API supports lookup by clob_token_ids
+    const url = `${GAMMA_API}/markets?clob_token_ids=${tokenId}`;
+    const response = await fetch(url);
+
+    if (response.status === 429) {
+      // Rate limited - back off
+      gammaRateLimitedUntil = Date.now() + GAMMA_RATE_LIMIT_BACKOFF_MS;
+      console.log(`[MarketMetadata] Gamma API error: 429 - backing off for ${GAMMA_RATE_LIMIT_BACKOFF_MS}ms`);
+      return null;
+    }
+
+    if (!response.ok) {
+      console.log(`[MarketMetadata] Gamma API error: ${response.status} for token ${tokenId.substring(0, 20)}...`);
+      failedTokenLookupCache.add(tokenId);
+      return null;
+    }
+
+    const data = await response.json();
+    if (Array.isArray(data) && data.length > 0) {
+      return data[0];
+    }
+
+    // No market found - cache this to avoid repeated lookups
+    failedTokenLookupCache.add(tokenId);
+    return null;
+  } catch (error) {
+    console.error(`[MarketMetadata] Error looking up token ${tokenId.substring(0, 20)}...:`, error);
+    failedTokenLookupCache.add(tokenId);
+    return null;
+  }
+}
+
+/**
  * Fetch a specific market by condition ID
  */
 async function fetchMarketByConditionId(conditionId: string): Promise<GammaMarket | null> {
@@ -394,6 +500,82 @@ export const marketMetadataService = {
    */
   async getActiveMarkets(): Promise<Market[]> {
     return detectionDb.getActiveMarkets();
+  },
+
+  /**
+   * Lookup a market by token ID (on-demand from Gamma API)
+   * Used when a token is not in our database.
+   * This handles closed/resolved markets that aren't in our regular sync.
+   *
+   * @returns The market if found, null otherwise
+   */
+  async lookupAndStoreMarketByTokenId(tokenId: string): Promise<Market | null> {
+    try {
+      // First check if we already have it
+      const existing = await detectionDb.getMarketByTokenId(tokenId);
+      if (existing) {
+        return existing.market;
+      }
+
+      // Lookup from Gamma API
+      const gammaMarket = await lookupMarketByTokenIdFromGamma(tokenId);
+      if (!gammaMarket) {
+        return null;
+      }
+
+      // Store in database
+      const market = gammaToMarket(gammaMarket);
+      await detectionDb.upsertMarket(market);
+
+      console.log(`[MarketMetadata] On-demand lookup: stored market ${market.slug} for token ${tokenId.substring(0, 20)}...`);
+
+      // Return the stored market
+      return detectionDb.getMarket(market.conditionId);
+    } catch (error) {
+      console.error(`[MarketMetadata] Error in on-demand token lookup:`, error);
+      return null;
+    }
+  },
+
+  /**
+   * Sync ALL markets (including closed ones) - use for backfill
+   * WARNING: This is slow and fetches ALL markets from Gamma API
+   *
+   * @returns Number of markets synced
+   */
+  async syncAllMarkets(): Promise<number> {
+    const startTime = Date.now();
+
+    try {
+      console.log("[MarketMetadata] Starting FULL market sync (including closed)...");
+      const markets = await fetchAllMarkets();
+
+      console.log(`[MarketMetadata] Fetched ${markets.length} total markets from Gamma API`);
+
+      let synced = 0;
+      for (const gamma of markets) {
+        try {
+          const market = gammaToMarket(gamma);
+          await detectionDb.upsertMarket(market);
+          synced++;
+
+          // Log progress every 1000 markets
+          if (synced % 1000 === 0) {
+            console.log(`[MarketMetadata] Synced ${synced}/${markets.length} markets...`);
+          }
+        } catch (error) {
+          console.error(`[MarketMetadata] Error syncing market ${gamma.conditionId}:`, error);
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      console.log(`[MarketMetadata] Full sync complete: ${synced} markets in ${duration}ms`);
+
+      return synced;
+    } catch (error) {
+      console.error("[MarketMetadata] Full sync failed:", error);
+      return 0;
+    }
   },
 
   /**
