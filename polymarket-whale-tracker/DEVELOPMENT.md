@@ -455,8 +455,11 @@ npm run dev:api
 
 This starts:
 - Market metadata sync (every 5 minutes from Gamma API)
-- Market depth polling (every 30 seconds from CLOB API)
+- Market depth service in **ON-DEMAND mode** (fetches from CLOB API only when Rule #1 evaluates a trade)
 - CTF token transfer listener (real-time from Polygon)
+- Detection engine (evaluates transfers against 3 detection rules)
+
+**Note**: Background depth polling was disabled to reduce storage (~4GB/month → minimal). See `Implementation/decisions/003_on_demand_depth_fetching.md`.
 
 ### Detection Dashboard
 
@@ -475,6 +478,27 @@ The Detection page (`#detection`) shows:
 | `/api/detection/alerts/:id` | PATCH | Update alert status (`investigating`, `confirmed`, `dismissed`) |
 | `/api/detection/wallets/:address/risk` | GET | Wallet risk profile |
 | `/api/detection/config` | GET | Detection thresholds |
+
+### Data Retention
+
+The database uses automatic data retention to keep storage bounded (~500MB-1GB steady state):
+
+| Table | Retention | Reason |
+|-------|-----------|--------|
+| `ctf_transfers` | 14 days | Cluster detection lookback |
+| `depth_snapshots` | 3 days | On-demand mode, rarely stored |
+| `price_history` | 14 days | MTM calculations |
+| `wallet_activity` | 30 days | Wallet profiles |
+
+**Run cleanup manually:**
+```bash
+npx tsx src/services/insiderDetection/dataRetentionService.ts
+```
+
+**Schedule as daily cron job** (add to `crontab -e`):
+```bash
+0 3 * * * cd /path/to/polymarket-whale-tracker && npx tsx src/services/insiderDetection/dataRetentionService.ts >> /var/log/polywoly-retention.log 2>&1
+```
 
 ### Caching
 

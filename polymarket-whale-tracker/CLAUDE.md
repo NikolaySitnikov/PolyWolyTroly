@@ -804,9 +804,9 @@ Types at `frontend/src/types/detection.ts`:
 Navigation: Detection accessible via `/detection` route or clicking "Detection" in nav.
 
 **Performance Considerations**:
-- Depth service polls top 100 markets by volume only (not all 5,500+)
-- On-demand depth fetching for other markets via `captureDepthOnDemand()`
-- See `Implementation/decisions/001_depth_polling_strategy.md` for rationale
+- **ON-DEMAND depth fetching** - No background polling. Depth fetched from CLOB API only when Rule #1 evaluates a trade (~300ms latency)
+- This saves ~4GB/month of storage vs continuous polling of top 100 markets
+- See `Implementation/decisions/003_on_demand_depth_fetching.md` for rationale
 
 ### Required Environment Variables
 - `ALCHEMY_WSS_URL` / `ALCHEMY_HTTP_URL` - Polygon RPC endpoints (PublicNode)
@@ -844,6 +844,32 @@ brew services start postgresql@15
 **Logs**: `/opt/homebrew/var/log/postgresql@15.log`
 
 **To switch back to Supabase**: Uncomment the Supabase `DATABASE_URL` in `.env`
+
+### Data Retention (Storage Management)
+
+**CRITICAL: We store ALL CTF transfers, not filtered ones.**
+
+Why we need ALL transfers (not filtered by trade size):
+1. **Cluster Detection (Rule #3)** - Coordinated clusters can be 10 wallets × $500 each = $5,000 coordinated activity
+2. **Wallet Concentration** - Must track ALL trades to calculate wallet's concentration in any market
+3. **Wallet Activity Index** - trade_count, total_volume need complete data
+
+**Storage is managed via data retention, not filtering:**
+```bash
+# Run data retention cleanup (removes old data)
+npx tsx src/services/insiderDetection/dataRetentionService.ts
+```
+
+Retention policies (optimized for ~500MB-1GB total):
+- `ctf_transfers`: 14 days (sufficient for cluster detection)
+- `depth_snapshots`: 3 days (on-demand mode, rarely stored)
+- `price_history`: 14 days (MTM calculations)
+- `wallet_activity`: 30 days (wallet profiles)
+
+**Schedule as daily cron job** (add to `crontab -e`):
+```bash
+0 3 * * * cd /path/to/polymarket-whale-tracker && npx tsx src/services/insiderDetection/dataRetentionService.ts >> /var/log/polywoly-retention.log 2>&1
+```
 
 ## MANDATORY: Testing Requirements
 

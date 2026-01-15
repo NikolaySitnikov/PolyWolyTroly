@@ -949,6 +949,51 @@ The 0.5 price bug affected far more data than initially realized:
 #### Wallet Age Issue (Separate Bug - Not Fixed)
 The wallet showed as "0 days old" because we only have 1 transfer for it (from today). The wallet has been active on Polymarket since Sep 2025, but our indexer didn't capture historical data. This is a known limitation - wallets that existed before we started indexing appear "new" to our system.
 
+### 2026-01-15 - Storage Optimization: On-Demand Depth Fetching
+
+#### Background
+After migrating from Supabase to local PostgreSQL (Decision 002), analyzed storage growth:
+- `depth_snapshots`: ~4 GB/month (polling 100 markets every 30s)
+- `ctf_transfers`: ~1.5 GB/month (all transfers for cluster detection)
+- Projected total: ~5-6 GB/month without optimization
+
+#### Solution Implemented
+Switched from continuous background polling to **ON-DEMAND depth fetching**:
+
+1. **Disabled background polling** in `server.ts`
+   - Removed `marketDepthService.startPolling()` call
+   - Added ON-DEMAND mode documentation comment
+
+2. **Added on-demand fallback** in `marketDepthService.ts`
+   - `getLiquidityAtTick()` now fetches from CLOB API if no cached data
+   - ~300ms latency per on-demand fetch (acceptable for alert review)
+
+3. **Updated retention periods** in `dataRetentionService.ts`
+   - `ctf_transfers`: 14 days (down from 30)
+   - `depth_snapshots`: 3 days (minimal - on-demand rarely stores)
+   - `price_history`: 14 days
+   - `wallet_activity`: 30 days
+
+4. **Created decision document**
+   - `Implementation/decisions/003_on_demand_depth_fetching.md`
+
+#### Testing
+Bulletproof tested data retention with real database operations:
+- Inserted test data with old timestamps (20 days, 40 days)
+- Inserted test data with recent timestamps (5 days, 15 days)
+- Ran cleanup service
+- Verified: Old data deleted, recent data preserved
+- All 4 tables tested (ctf_transfers, depth_snapshots, price_history, wallet_activity)
+
+#### Expected Storage After Optimization
+- Steady-state: ~500 MB - 1 GB (down from ~5-6 GB)
+- Current: ~67 MB (fresh database)
+
+#### Cron Setup for Daily Cleanup
+```bash
+0 3 * * * cd /path/to/polymarket-whale-tracker && npx tsx src/services/insiderDetection/dataRetentionService.ts >> /var/log/polywoly-retention.log 2>&1
+```
+
 ### 2026-01-13 - Initial Plan Created
 - Analyzed existing Phase 0 implementation
 - Identified reusable components from walletRiskService, walletActivityIndex, marketDepthService

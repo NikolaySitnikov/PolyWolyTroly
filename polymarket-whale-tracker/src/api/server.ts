@@ -1449,16 +1449,12 @@ export async function startServer(port: number = 3001): Promise<void> {
     console.log('Market metadata will be fetched on-demand instead');
   }
 
-  // Start market depth service for insider detection (Phase 0.4)
-  try {
-    // Start background polling (every 30 seconds by default)
-    // Polls CLOB API for order book depth on all active markets
-    marketDepthService.startPolling();
-    console.log('Market depth service started - polling CLOB API for order book depth');
-  } catch (error) {
-    console.error('Failed to start market depth service:', error);
-    console.log('Market depth data will be unavailable');
-  }
+  // Market depth service - ON-DEMAND mode (no background polling)
+  // Depth is fetched from CLOB API only when Rule #1 evaluates a trade
+  // This saves ~4GB/month of storage vs continuous polling
+  // See: Implementation/decisions/003_on_demand_depth_fetching.md
+  console.log('Market depth service ready - ON-DEMAND mode (no background polling)');
+  console.log('Depth will be fetched from CLOB API when detection rules need it');
 
   // Initialize detection engine and enable real-time detection (Phase 1.8)
   try {

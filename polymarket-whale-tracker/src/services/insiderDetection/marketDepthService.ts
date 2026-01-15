@@ -532,12 +532,21 @@ export const marketDepthService = {
   /**
    * Get liquidity at specific tick level for a market
    * Useful for calculating trade size vs. available liquidity
+   *
+   * ON-DEMAND MODE: If no cached/stored data exists, fetches fresh from CLOB API.
+   * This eliminates the need for background polling.
    */
   async getLiquidityAtTick(
     conditionId: string,
     tickLevel: 2 | 5 | 10 = 2
   ): Promise<{ bid: number; ask: number; total: number } | null> {
-    const snapshot = await this.getLatestDepth(conditionId);
+    // Try cached/stored data first
+    let snapshot = await this.getLatestDepth(conditionId);
+
+    // If no data, fetch on-demand from CLOB API
+    if (!snapshot) {
+      snapshot = await this.captureDepthOnDemand(conditionId);
+    }
 
     if (!snapshot) {
       return null;
