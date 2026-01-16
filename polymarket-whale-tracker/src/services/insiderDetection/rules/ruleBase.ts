@@ -35,7 +35,7 @@ export abstract class BaseDetectionRule implements DetectionRule {
   abstract name: DetectionRuleName;
   abstract description: string;
 
-  protected _enabled: boolean = true;
+  protected _enabled: boolean = false; // Default to OFF - user must explicitly enable
   protected _thresholds: Record<string, number> = {};
 
   /**

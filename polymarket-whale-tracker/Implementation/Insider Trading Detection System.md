@@ -81,6 +81,16 @@ All three responses agree your thresholds need adjustment:
 
 See [Phase 1 tasks.md](./Phase%201%20tasks.md) for detailed implementation status.
 
+### Phase 1.3 - Rule #1 Live Mode Debug Page ✅ COMPLETE (2026-01-16)
+- Created real-time debug page at `#debug-rule1` for monitoring Rule #1 evaluations
+- WebSocket-based live transaction feed with filtering (All / 2/4+ / 3/4+ checks)
+- Adjustable thresholds via sliders (persists to server)
+- KPI stats panel (Transfers, Evaluations, Alerts) with server polling
+- Enable/disable toggle (default: OFF)
+- Fixed multiple bugs: WebSocket reconnection loop, slider reset, counter jumping, disappearing rows
+
+See [Phase 1.3 - Rule 1 Live Mode.md](./Phase%201.3%20-%20Rule%201%20Live%20Mode.md) for detailed implementation.
+
 ### 1.1 MVP Rule #1: Fresh-Concentrated-Depth Impact
 **Priority: CRITICAL | Complexity: MEDIUM**
 

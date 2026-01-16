@@ -45,7 +45,7 @@ import { WhaleTableSkeleton } from './components/WhaleTableSkeleton';
 import { AlertFeedSkeleton } from './components/AlertFeedSkeleton';
 import { LiveTicker } from './components/LiveTicker';
 import { WhaleOfTheDay } from './components/WhaleOfTheDay';
-import { DetectionDashboard } from './components/detection';
+import { DetectionDashboard, Rule1TestPage } from './components/detection';
 import { useSettings } from './contexts/SettingsContext';
 import { useToast } from './contexts/ToastContext';
 import type { ViewId } from './types/navigation';
@@ -65,7 +65,7 @@ interface ParsedHash {
 
 function parseHash(): ParsedHash {
   const hash = window.location.hash.slice(1); // Remove #
-  const validViews: ViewId[] = ['dashboard', 'whales', 'alerts', 'detection', 'settings'];
+  const validViews: ViewId[] = ['dashboard', 'whales', 'alerts', 'detection', 'settings', 'debug-rule1'];
 
   // Check for wallet profile: #wallet/0x...
   if (hash.startsWith('wallet/')) {
@@ -869,6 +869,11 @@ function App() {
                 isMobile={isMobile}
                 onWalletClick={handleWhaleClick}
               />
+            )}
+
+            {/* Debug: Rule #1 Test Page */}
+            {currentView === 'debug-rule1' && (
+              <Rule1TestPage isMobile={isMobile} />
             )}
 
             {/* Settings page */}

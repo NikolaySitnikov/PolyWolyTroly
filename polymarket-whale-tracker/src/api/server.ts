@@ -1281,6 +1281,350 @@ export function createApp(): Express {
   });
 
   // ============================================
+  // DEBUG ENDPOINTS - Rule #1 Testing
+  // ============================================
+
+  /**
+   * POST /api/detection/debug/rule1/test
+   * Test Rule #1 (Fresh-Concentrated-Depth Impact) with custom thresholds
+   * This is a DRY RUN - no alerts are created
+   */
+  app.post("/api/detection/debug/rule1/test", async (req: Request, res: Response) => {
+    try {
+      const {
+        walletAddress,
+        conditionId,
+        tradeSizeOverride,
+        thresholds,
+      } = req.body;
+
+      // Validate wallet address
+      if (!walletAddress) {
+        res.status(400).json({ error: "walletAddress is required" });
+        return;
+      }
+
+      const ethAddressRegex = /^0x[a-fA-F0-9]{40}$/;
+      if (!ethAddressRegex.test(walletAddress)) {
+        res.status(400).json({ error: "Invalid wallet address format" });
+        return;
+      }
+
+      const normalizedWallet = walletAddress.toLowerCase();
+
+      // Import required services
+      const { walletActivityIndex } = await import("../services/insiderDetection/walletActivityIndex.js");
+
+      // Get wallet activity and concentration
+      const activities = await walletActivityIndex.getWalletActivity(normalizedWallet);
+      const concentration = await walletActivityIndex.getWalletConcentration(normalizedWallet);
+
+      // Determine which market to test
+      let targetConditionId = conditionId;
+      if (!targetConditionId && concentration.topMarket) {
+        targetConditionId = concentration.topMarket.conditionId;
+      }
+
+      if (!targetConditionId) {
+        res.status(400).json({
+          error: "No conditionId provided and wallet has no market activity",
+          triggered: false,
+        });
+        return;
+      }
+
+      // Calculate wallet age
+      let walletAgeDays: number | null = null;
+      let firstTradeAt: Date | null = null;
+      for (const activity of activities) {
+        if (activity.firstTradeAt) {
+          if (!firstTradeAt || activity.firstTradeAt < firstTradeAt) {
+            firstTradeAt = activity.firstTradeAt;
+          }
+        }
+      }
+      if (firstTradeAt) {
+        walletAgeDays = Math.floor(
+          (Date.now() - firstTradeAt.getTime()) / (1000 * 60 * 60 * 24)
+        );
+      }
+
+      // Get trade size - either override or actual volume in market
+      let tradeSizeUsd = tradeSizeOverride;
+      if (!tradeSizeUsd) {
+        const marketActivity = activities.find(a => a.conditionId === targetConditionId);
+        tradeSizeUsd = marketActivity?.totalVolume || 0;
+      }
+
+      // Get depth data from CLOB API
+      const depthRatio = await marketDepthService.calculateDepthRatio(
+        targetConditionId,
+        tradeSizeUsd,
+        2 // 2-tick depth
+      );
+      const liquidity = await marketDepthService.getLiquidityAtTick(targetConditionId, 2);
+
+      // Get market info
+      const market = await marketMetadataService.getMarket(targetConditionId);
+
+      // Apply custom thresholds or defaults
+      const maxAgeDays = thresholds?.maxWalletAgeDays ?? 14;
+      const minConcentration = thresholds?.minConcentrationPct ?? 85;
+      const minTradeSize = thresholds?.minTradeSizeUsd ?? 3000;
+      const minDepthRatio = thresholds?.minDepthRatio ?? 3.0;
+
+      // Calculate which checks pass
+      const concentrationPct = concentration.topMarket?.volumeShare || 0;
+
+      const checks = {
+        walletAge: {
+          passed: walletAgeDays === null || walletAgeDays <= maxAgeDays,
+          actual: walletAgeDays,
+          threshold: maxAgeDays,
+        },
+        concentration: {
+          passed: concentrationPct >= minConcentration,
+          actual: concentrationPct,
+          threshold: minConcentration,
+        },
+        tradeSize: {
+          passed: tradeSizeUsd >= minTradeSize,
+          actual: tradeSizeUsd,
+          threshold: minTradeSize,
+        },
+        depthRatio: {
+          passed: depthRatio !== null && depthRatio >= minDepthRatio,
+          actual: depthRatio,
+          threshold: minDepthRatio,
+        },
+      };
+
+      // Determine if all conditions are met
+      const allPassed = checks.walletAge.passed &&
+        checks.concentration.passed &&
+        checks.tradeSize.passed &&
+        checks.depthRatio.passed;
+
+      // Find which check failed first (for reason)
+      let reason = '';
+      if (!checks.tradeSize.passed) {
+        reason = 'Trade size below threshold';
+      } else if (!checks.walletAge.passed) {
+        reason = 'Wallet too old';
+      } else if (!checks.concentration.passed) {
+        reason = 'Concentration too low';
+      } else if (!checks.depthRatio.passed) {
+        reason = depthRatio === null ? 'No depth data available' : 'Depth ratio too low';
+      }
+
+      // Calculate confidence if triggered (simplified version)
+      let confidence = 0;
+      if (allPassed) {
+        // Simple weighted average
+        const ageScore = walletAgeDays !== null ? Math.max(0, 1 - walletAgeDays / 30) : 1;
+        const concScore = Math.min(1, (concentrationPct - 50) / 50);
+        const sizeScore = Math.min(1, Math.log10(tradeSizeUsd / 1000) / Math.log10(50));
+        const depthScore = depthRatio !== null ? Math.min(1, Math.log10(depthRatio) / Math.log10(10)) : 0.5;
+
+        confidence = ageScore * 0.30 + concScore * 0.25 + depthScore * 0.25 + sizeScore * 0.20;
+      }
+
+      res.json({
+        triggered: allPassed,
+        confidence: allPassed ? confidence : undefined,
+        severity: allPassed ? (confidence >= 0.7 ? 'CRITICAL' : confidence >= 0.5 ? 'HIGH' : 'MEDIUM') : undefined,
+        reason: allPassed ? 'All conditions met' : reason,
+        triggerValues: {
+          walletAgeDays,
+          concentration: concentrationPct,
+          tradeSizeUsd,
+          depthRatio,
+        },
+        thresholdValues: {
+          maxWalletAgeDays: maxAgeDays,
+          minConcentrationPct: minConcentration,
+          minTradeSizeUsd: minTradeSize,
+          minDepthRatio: minDepthRatio,
+        },
+        checks,
+        marketQuestion: market?.question,
+        depth2tickLiquidity: liquidity?.total || null,
+        walletInfo: {
+          totalVolume: concentration.totalVolume,
+          marketCount: concentration.marketCount,
+          firstTradeAt: firstTradeAt?.toISOString() || null,
+        },
+      });
+    } catch (error) {
+      console.error("Error testing Rule #1:", error);
+      res.status(500).json({ error: "Failed to test Rule #1", details: String(error) });
+    }
+  });
+
+  // ============================================
+  // RULE #1 LIVE MODE ENDPOINTS
+  // ============================================
+
+  /**
+   * GET /api/detection/rule1-live/status
+   * Get the current status of Rule #1 live mode
+   */
+  app.get("/api/detection/rule1-live/status", async (_req: Request, res: Response) => {
+    try {
+      // Import the rule
+      const { freshConcentratedDepthRule } = await import("../services/insiderDetection/rules/freshConcentratedDepth.js");
+
+      const thresholds = await freshConcentratedDepthRule.getThresholds();
+      const ctfHealth = ctfEventListener.getHealthStatus();
+
+      res.json({
+        // CTF Listener status
+        ctfListenerRunning: ctfHealth.isRunning,
+        ctfListenerHealthy: ctfHealth.healthy,
+        detectionEnabled: ctfHealth.detectionEnabled,
+        transfersProcessed: ctfHealth.transfersProcessed,
+        evaluationsProcessed: ctfHealth.detectionEvaluationsProcessed,
+        alertsTriggered: ctfHealth.detectionAlertsTriggered,
+
+        // Rule #1 config
+        rule1Enabled: freshConcentratedDepthRule.enabled,
+        thresholds: {
+          maxWalletAgeDays: thresholds.max_wallet_age_days,
+          minConcentrationPct: thresholds.min_concentration_pct,
+          minTradeSizeUsd: thresholds.min_trade_size_usd,
+          minDepthRatio: thresholds.min_depth_ratio,
+        },
+
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error getting Rule #1 live status:", error);
+      res.status(500).json({ error: "Failed to get status" });
+    }
+  });
+
+  /**
+   * POST /api/detection/rule1-live/thresholds
+   * Update Rule #1 thresholds on the fly (for live testing)
+   */
+  app.post("/api/detection/rule1-live/thresholds", async (req: Request, res: Response) => {
+    try {
+      const { maxWalletAgeDays, minConcentrationPct, minTradeSizeUsd, minDepthRatio } = req.body;
+
+      // Import the rule
+      const { freshConcentratedDepthRule } = await import("../services/insiderDetection/rules/freshConcentratedDepth.js");
+
+      // Build new thresholds object with only provided values
+      const newThresholds: Record<string, number> = {};
+      if (typeof maxWalletAgeDays === 'number') {
+        newThresholds.max_wallet_age_days = maxWalletAgeDays;
+      }
+      if (typeof minConcentrationPct === 'number') {
+        newThresholds.min_concentration_pct = minConcentrationPct;
+      }
+      if (typeof minTradeSizeUsd === 'number') {
+        newThresholds.min_trade_size_usd = minTradeSizeUsd;
+      }
+      if (typeof minDepthRatio === 'number') {
+        newThresholds.min_depth_ratio = minDepthRatio;
+      }
+
+      if (Object.keys(newThresholds).length === 0) {
+        res.status(400).json({ error: "No valid threshold values provided" });
+        return;
+      }
+
+      // Update the thresholds
+      await freshConcentratedDepthRule.setThresholds(newThresholds);
+
+      // Return updated thresholds
+      const updatedThresholds = await freshConcentratedDepthRule.getThresholds();
+
+      res.json({
+        success: true,
+        message: "Thresholds updated",
+        thresholds: {
+          maxWalletAgeDays: updatedThresholds.max_wallet_age_days,
+          minConcentrationPct: updatedThresholds.min_concentration_pct,
+          minTradeSizeUsd: updatedThresholds.min_trade_size_usd,
+          minDepthRatio: updatedThresholds.min_depth_ratio,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error updating Rule #1 thresholds:", error);
+      res.status(500).json({ error: "Failed to update thresholds" });
+    }
+  });
+
+  /**
+   * POST /api/detection/rule1-live/enable
+   * Enable or disable Rule #1 and detection globally
+   */
+  app.post("/api/detection/rule1-live/enable", async (req: Request, res: Response) => {
+    try {
+      const { enabled } = req.body;
+
+      if (typeof enabled !== 'boolean') {
+        res.status(400).json({ error: "enabled must be a boolean" });
+        return;
+      }
+
+      // Import the rule
+      const { freshConcentratedDepthRule } = await import("../services/insiderDetection/rules/freshConcentratedDepth.js");
+
+      // Enable/disable Rule #1
+      await freshConcentratedDepthRule.setEnabled(enabled);
+
+      // Also ensure detection is enabled on CTF listener
+      ctfEventListener.setDetectionEnabled(enabled);
+
+      res.json({
+        success: true,
+        rule1Enabled: enabled,
+        detectionEnabled: enabled,
+        message: enabled ? "Rule #1 and detection enabled" : "Rule #1 and detection disabled",
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error enabling/disabling Rule #1:", error);
+      res.status(500).json({ error: "Failed to update state" });
+    }
+  });
+
+  /**
+   * GET /api/detection/rule1-live/recent
+   * Get recent CTF transfers with their Rule #1 evaluation status
+   */
+  app.get("/api/detection/rule1-live/recent", async (req: Request, res: Response) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+
+      // Get recent transfers from database
+      const transfers = await detectionDb.getRecentCtfTransfers(limit);
+
+      // Return basic transfer info (full evaluation happens via WebSocket)
+      res.json({
+        transfers: transfers.map(t => ({
+          txHash: t.txHash,
+          walletAddress: t.toAddress,
+          conditionId: t.conditionId,
+          tokenId: t.tokenId,
+          amount: t.amount.toString(),
+          outcome: t.outcome,
+          blockNumber: t.blockNumber,
+          timestamp: t.blockTimestamp?.toISOString() || null,
+        })),
+        count: transfers.length,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error getting recent transfers:", error);
+      res.status(500).json({ error: "Failed to get recent transfers" });
+    }
+  });
+
+  // ============================================
   // WALLET AUTO-ADD ENDPOINTS
   // ============================================
 

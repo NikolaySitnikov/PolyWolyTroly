@@ -70,7 +70,7 @@ let heartbeatInterval: NodeJS.Timeout | null = null;
 let transfersProcessed = 0;
 let transfersSkippedDuplicate = 0;
 
-// Detection engine integration state
+// Detection engine integration state - default to OFF, user must explicitly enable
 let detectionEnabled = false;
 let detectionQueue: Array<Omit<CtfTransfer, "id">> = [];
 const MAX_DETECTION_QUEUE_SIZE = 10000;
@@ -659,6 +659,7 @@ export const ctfEventListener = {
   /**
    * Evaluate a transfer through the detection engine
    * This is async and non-blocking - errors are caught and logged
+   * Also broadcasts Rule #1 evaluation details for live mode
    */
   async _evaluateTransfer(transfer: Omit<CtfTransfer, "id">): Promise<DetectionEngineResult | null> {
     if (!detectionEnabled) {
@@ -668,6 +669,11 @@ export const ctfEventListener = {
     try {
       // Lazy import to avoid circular dependencies
       const { detectionEngine } = await import("./detectionEngine.js");
+      const { broadcastRule1Evaluation } = await import("../../api/websocket.js");
+      const { freshConcentratedDepthRule } = await import("./rules/freshConcentratedDepth.js");
+      const { walletActivityIndex } = await import("./walletActivityIndex.js");
+      const { marketDepthService } = await import("./marketDepthService.js");
+      const { marketMetadataService } = await import("./marketMetadataService.js");
 
       // Build a full transfer object for the engine
       const fullTransfer: CtfTransfer = {
@@ -689,6 +695,143 @@ export const ctfEventListener = {
             conditionId: transfer.conditionId,
           });
         }
+      }
+
+      // Broadcast detailed Rule #1 evaluation for live mode
+      // This runs in parallel and doesn't affect the main detection flow
+      try {
+        const walletAddress = transfer.toAddress.toLowerCase();
+        const conditionId = transfer.conditionId;
+
+        // Get Rule #1 thresholds
+        const thresholds = await freshConcentratedDepthRule.getThresholds();
+        const maxAgeDays = thresholds.max_wallet_age_days;
+        const minConcentration = thresholds.min_concentration_pct;
+        const minTradeSize = thresholds.min_trade_size_usd;
+        const minDepthRatio = thresholds.min_depth_ratio;
+
+        // Calculate trade size in USD (similar to detectionEngine.estimateTradeSize)
+        const shares = Number(transfer.amount) / 1e6;
+        let tradeSizeUsd = 0;
+
+        if (conditionId) {
+          try {
+            const clobResponse = await fetch(`https://clob.polymarket.com/markets/${conditionId}`);
+            if (clobResponse.ok) {
+              const clobData = await clobResponse.json() as { tokens?: Array<{ outcome: string; price: number }> };
+              if (clobData.tokens && clobData.tokens.length >= 2) {
+                const yesToken = clobData.tokens.find(t => t.outcome === 'Yes');
+                const noToken = clobData.tokens.find(t => t.outcome === 'No');
+                let price = transfer.outcome === 'YES' ? (yesToken?.price ?? 0) : (noToken?.price ?? 0);
+                if (price >= 0 && price <= 1) {
+                  tradeSizeUsd = shares * price;
+                }
+              }
+            }
+          } catch {
+            // Fallback: use shares as rough USD estimate
+            tradeSizeUsd = shares * 0.5;
+          }
+        }
+
+        // Get wallet age and concentration
+        const activities = await walletActivityIndex.getWalletActivity(walletAddress);
+        const concentration = await walletActivityIndex.getWalletConcentration(walletAddress);
+
+        let walletAgeDays: number | null = null;
+        for (const activity of activities) {
+          if (activity.firstTradeAt) {
+            const firstAt = activity.firstTradeAt;
+            const ageDays = Math.floor((Date.now() - firstAt.getTime()) / (1000 * 60 * 60 * 24));
+            if (walletAgeDays === null || ageDays < walletAgeDays) {
+              walletAgeDays = ageDays;
+            }
+          }
+        }
+
+        const concentrationPct = concentration.topMarket?.volumeShare || 0;
+
+        // Get depth ratio
+        let depthRatio: number | null = null;
+        if (conditionId && tradeSizeUsd > 0) {
+          depthRatio = await marketDepthService.calculateDepthRatio(conditionId, tradeSizeUsd, 2);
+        }
+
+        // Get market question
+        let marketQuestion: string | undefined;
+        if (conditionId) {
+          const market = await marketMetadataService.getMarket(conditionId);
+          marketQuestion = market?.question;
+        }
+
+        // Evaluate checks
+        const checks = {
+          tradeSize: {
+            passed: tradeSizeUsd >= minTradeSize,
+            value: tradeSizeUsd,
+            threshold: minTradeSize,
+          },
+          walletAge: {
+            passed: walletAgeDays === null || walletAgeDays <= maxAgeDays,
+            value: walletAgeDays,
+            threshold: maxAgeDays,
+          },
+          concentration: {
+            passed: concentrationPct >= minConcentration,
+            value: concentrationPct,
+            threshold: minConcentration,
+          },
+          depthRatio: {
+            passed: depthRatio !== null && depthRatio >= minDepthRatio,
+            value: depthRatio,
+            threshold: minDepthRatio,
+          },
+        };
+
+        const allPassed = checks.tradeSize.passed &&
+          checks.walletAge.passed &&
+          checks.concentration.passed &&
+          checks.depthRatio.passed;
+
+        // Determine reason for not triggering
+        let reason = '';
+        if (!allPassed) {
+          if (!checks.tradeSize.passed) {
+            reason = 'Trade size below threshold';
+          } else if (!checks.walletAge.passed) {
+            reason = 'Wallet too old';
+          } else if (!checks.concentration.passed) {
+            reason = 'Concentration too low';
+          } else if (!checks.depthRatio.passed) {
+            reason = depthRatio === null ? 'No depth data' : 'Depth ratio too low';
+          }
+        }
+
+        // Find Rule #1 result from detection engine
+        const rule1Result = result.rulesTriggered.find(r => r.ruleName === 'FreshConcentratedDepthImpact');
+
+        broadcastRule1Evaluation({
+          txHash: transfer.txHash,
+          walletAddress,
+          conditionId: conditionId || null,
+          tokenId: transfer.tokenId,
+          amount: transfer.amount.toString(),
+          outcome: transfer.outcome,
+          blockNumber: transfer.blockNumber,
+          timestamp: transfer.blockTimestamp?.toISOString() || new Date().toISOString(),
+          tradeSizeUsd,
+          marketQuestion,
+          evaluated: result.evaluated,
+          triggered: rule1Result?.triggered || false,
+          checks,
+          confidence: rule1Result?.confidence,
+          severity: rule1Result?.severity,
+          alertId: result.alertsCreated[0],
+          reason: allPassed ? undefined : reason,
+        });
+      } catch (broadcastError) {
+        // Don't fail main detection if broadcast fails
+        logger.debug({ msg: "Failed to broadcast Rule #1 evaluation", error: broadcastError });
       }
 
       return result;

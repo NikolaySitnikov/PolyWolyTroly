@@ -11,8 +11,9 @@ import type { IconProps } from '../components/icons';
  * Available navigation views in the application
  * 'wallet' is a dynamic view that displays a specific wallet profile
  * 'detection' is the insider trading detection dashboard
+ * 'debug-rule1' is a debug page for testing Rule #1 detection
  */
-export type ViewId = 'dashboard' | 'whales' | 'alerts' | 'detection' | 'settings' | 'wallet';
+export type ViewId = 'dashboard' | 'whales' | 'alerts' | 'detection' | 'settings' | 'wallet' | 'debug-rule1';
 
 /**
  * Icon can be either a string (emoji) or a React component

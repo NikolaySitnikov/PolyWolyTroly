@@ -200,6 +200,54 @@ export function broadcastDetectionAlert(alert: {
 }
 
 /**
+ * Rule #1 Live evaluation result for streaming
+ */
+export interface Rule1LiveEvaluation {
+  // Transfer info
+  txHash: string;
+  walletAddress: string;
+  conditionId: string | null;
+  tokenId: string;
+  amount: string;
+  outcome?: 'YES' | 'NO';
+  blockNumber: number;
+  timestamp: string;
+
+  // Trade info
+  tradeSizeUsd: number;
+  marketQuestion?: string;
+
+  // Rule #1 evaluation
+  evaluated: boolean;
+  triggered: boolean;
+
+  // Individual check results
+  checks: {
+    tradeSize: { passed: boolean; value: number; threshold: number };
+    walletAge: { passed: boolean; value: number | null; threshold: number };
+    concentration: { passed: boolean; value: number; threshold: number };
+    depthRatio: { passed: boolean; value: number | null; threshold: number };
+  };
+
+  // If triggered
+  confidence?: number;
+  severity?: string;
+  alertId?: number;
+  reason?: string;
+}
+
+/**
+ * Broadcast a Rule #1 live evaluation to all clients
+ * Used by the Rule #1 debug/test page to show live transaction evaluation
+ */
+export function broadcastRule1Evaluation(evaluation: Rule1LiveEvaluation): void {
+  broadcast({
+    type: 'rule1_live_evaluation',
+    data: evaluation
+  });
+}
+
+/**
  * Get number of connected clients (for testing/monitoring)
  */
 export function getClientCount(): number {
